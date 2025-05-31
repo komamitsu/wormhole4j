@@ -1,33 +1,49 @@
 package org.komamitsu.wormhole;
 
+import java.util.BitSet;
 import java.util.HashMap;
 
-public class MetaTrieHashTable extends HashMap<String, MetaTrieHashTable.Item> {
-  public enum ItemType {
+class MetaTrieHashTable extends HashMap<String, MetaTrieHashTable.NodeMeta> {
+  enum NodeType {
     INTERNAL, LEAF;
   }
 
-  public static class Item {
-    private final ItemType itemType;
-    private final int leftMostLeafIndex;
-    private final int rightMostLeafIndex;
-    private final String anchorPrefix;
-    private final byte[] bitmap = new byte[16];
+  public static class NodeMeta {
+    final NodeType type;
+    final int leftMostLeafIndex;
+    final int rightMostLeafIndex;
+    final String anchorPrefix;
+    final BitSet bitmap;
 
-    public Item(ItemType itemType, int leftMostLeafIndex, int rightMostLeafIndex, String anchorPrefix) {
-      this.itemType = itemType;
+    NodeMeta(NodeType type, int leftMostLeafIndex, int rightMostLeafIndex, String anchorPrefix, BitSet bitmap) {
+      this.type = type;
       this.leftMostLeafIndex = leftMostLeafIndex;
       this.rightMostLeafIndex = rightMostLeafIndex;
       this.anchorPrefix = anchorPrefix;
+      this.bitmap = bitmap;
+    }
+
+    Character findOneSibling(char sibling) {
+      // Search left siblings.
+      int index = bitmap.previousSetBit(sibling);
+      if (index >= 0) {
+        return (char) index;
+      }
+      // Search right siblings.
+      index = bitmap.nextSetBit(sibling);
+      if (index >= 0) {
+        return (char) index;
+      }
+      return null;
     }
   }
 
-  public Item searchLongestPrefixMatchItem(String searchKey) {
-    String lpm = searchLongestPrefixMatch(searchKey);
+  NodeMeta searchLongestPrefixMatch(String searchKey) {
+    String lpm = searchLongestPrefixMatchKey(searchKey);
     return get(lpm);
   }
   
-  private String searchLongestPrefixMatch(String searchKey) {
+  private String searchLongestPrefixMatchKey(String searchKey) {
     int m = 0;
     int n = Math.min(searchKey.length(), maxAnchorLength()) + 1;
     while (m + 1 < n) {
@@ -42,6 +58,7 @@ public class MetaTrieHashTable extends HashMap<String, MetaTrieHashTable.Item> {
     return searchKey.substring(0, m - 1);
   }
 
+  // TODO: Memoize
   private int maxAnchorLength() {
     int max = 0;
     for (String key : keySet()) {
