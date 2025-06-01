@@ -18,7 +18,7 @@ public class LeafNode<T> {
   @Nullable
   public T pointSearchLeaf(String key) {
     int keyHash = 0x7FFF & key.hashCode();
-    int leafSize = hashTag.length;
+    int leafSize = values.size();
     int i = keyHash * leafSize / (Short.MAX_VALUE + 1);
     while (i > 0 && keyHash <= hashTag[i - 1]) {
       i--;
