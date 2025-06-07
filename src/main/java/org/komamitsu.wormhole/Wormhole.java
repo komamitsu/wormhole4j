@@ -1,10 +1,40 @@
 package org.komamitsu.wormhole;
 
+import java.util.BitSet;
+
 public class Wormhole<T> {
+  private static final int DEFAULT_LEAF_NODE_SIZE = 128;
   private final MetaTrieHashTable table = new MetaTrieHashTable();
   private final LeafList<T> leafList = new LeafList<>();
+  private final int leafNodeSize;
 
-  LeafNode<T> searchTrieHashTable(String key) {
+  public Wormhole() {
+    this(DEFAULT_LEAF_NODE_SIZE);
+  }
+
+  public Wormhole(int leafNodeSize) {
+    this.leafNodeSize = leafNodeSize;
+    initialize();
+  }
+
+  private void initialize() {
+    leafList.add(new LeafNode<>(leafNodeSize));
+    {
+      // Add the root.
+      String key = "";
+      BitSet bitSet = new BitSet();
+      bitSet.set(0);
+      table.put(key, new MetaTrieHashTable.NodeMeta(MetaTrieHashTable.NodeType.INTERNAL, 0, 0, key, bitSet));
+    }
+    {
+      // Add the first node.
+      String key = "\0";
+      BitSet bitSet = new BitSet();
+      table.put(key, new MetaTrieHashTable.NodeMeta(MetaTrieHashTable.NodeType.LEAF, 0, 0, key, bitSet));
+    }
+  }
+
+  private LeafNode<T> searchTrieHashTable(String key) {
     MetaTrieHashTable.NodeMeta nodeMeta = table.searchLongestPrefixMatch(key);
     if (nodeMeta.type == MetaTrieHashTable.NodeType.LEAF) {
       return leafList.get(nodeMeta.leftMostLeafIndex);
