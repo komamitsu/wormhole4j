@@ -2,51 +2,128 @@ package org.komamitsu.wormhole;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
 public class LeafNode<T> {
-  private static class Entry<T> {
-    private final short hashTag;
+  private final List<KeyValue<T>> keyValues;
+  // All references are always sorted by hash.
+  private final Tag[] tags;
+  // Some references are sorted by key.
+  private final KeyReference[] keyReferences;
+  private int numOfSortedKeyReferences;
+
+  private static class KeyValue<T> {
     private final String key;
     private final T value;
 
-    public Entry(short hashTag, String key, T value) {
-      this.hashTag = hashTag;
+    private KeyValue(String key, T value) {
       this.key = key;
       this.value = value;
     }
   }
 
-  private final List<Entry<T>> entries;
+  // TODO: This can be replaced with Integer, using the first 16 bits for hash and the second 16 bits for index.
+  private static class Tag {
+    private final short hash;
+    private final int kvIndex;
+
+    private Tag(short hash, int kvIndex) {
+      this.hash = hash;
+      this.kvIndex = kvIndex;
+    }
+  }
+
+  // A pointer to key via Tag.
+  private static class KeyReference {
+    private final Tag tag;
+
+    private KeyReference(Tag tag) {
+      this.tag = tag;
+    }
+  }
 
   public LeafNode(int size) {
-    entries = new ArrayList<>(size);
+    keyValues = new ArrayList<>(size);
+    tags = new Tag[size];
+    keyReferences = new KeyReference[size];
+  }
+
+  private short getHashTag(int tagIndex) {
+    return tags[tagIndex].hash;
+  }
+
+  private KeyValue<T> getKeyValueByTagIndex(int tagIndex) {
+    return keyValues.get(tags[tagIndex].kvIndex);
   }
 
   @Nullable
   public T pointSearchLeaf(String key) {
     int keyHash = 0x7FFF & key.hashCode();
-    int leafSize = entries.size();
-    int i = keyHash * leafSize / (Short.MAX_VALUE + 1);
-    while (i > 0 && keyHash <= entries.get(i - 1).hashTag) {
-      i--;
+    int leafSize = keyValues.size();
+    int tagIndex = keyHash * leafSize / (Short.MAX_VALUE + 1);
+    while (tagIndex > 0 && keyHash <= getHashTag(tagIndex - 1)) {
+      tagIndex--;
     }
-    while (i < leafSize && entries.get(i).hashTag < keyHash) {
-      i++;
+    while (tagIndex < leafSize && getHashTag(tagIndex) < keyHash) {
+      tagIndex++;
     }
-    while (i < leafSize && entries.get(i).hashTag == keyHash) {
-      Entry<T> entry = entries.get(i);
-      if (entry.key.equals(key)) {
-        return entry.value;
+    while (tagIndex < leafSize && getHashTag(tagIndex) == keyHash) {
+      KeyValue<T> kv = getKeyValueByTagIndex(tagIndex);
+      if (kv.key.equals(key)) {
+        return kv.value;
       }
-      i++;
+      tagIndex++;
     }
     return null;
   }
 
-  public void sort() {
-    // TODO: Implement `incSort()`.
-    entries.sort(Comparator.comparingInt(a -> a.hashTag));
+  public void incSort() {
+    // Sort unsorted key references.
+    Arrays.sort(keyReferences,
+        numOfSortedKeyReferences,
+        keyValues.size(),
+        Comparator.comparing(keyReference -> keyValues.get(keyReference.tag.kvIndex).key));
+
+    // Merge sorted and unsorted key references.
+    KeyReference[] tmp = new KeyReference[keyValues.size()];
+    int idxForSortedKeyRef = 0;
+    int idxForUnsortedKeyRef = 0;
+    int outputIndex = 0;
+    while (true) {
+      String keyFromSortedKeyRef = null;
+      if (idxForSortedKeyRef < numOfSortedKeyReferences) {
+        keyFromSortedKeyRef = getKeyValueByTagIndex(idxForSortedKeyRef).key;
+      }
+      String keyFromUnsortedKeyRef = null;
+      if (idxForUnsortedKeyRef < keyValues.size()) {
+        keyFromUnsortedKeyRef = getKeyValueByTagIndex(idxForUnsortedKeyRef).key;
+      }
+
+      if (keyFromSortedKeyRef != null) {
+        if (keyFromUnsortedKeyRef != null) {
+          if (keyFromSortedKeyRef.compareTo(keyFromUnsortedKeyRef) < 0) {
+            tmp[outputIndex] = keyReferences[idxForSortedKeyRef++];
+          }
+          else {
+            tmp[outputIndex] = keyReferences[numOfSortedKeyReferences + idxForUnsortedKeyRef++];
+          }
+        }
+        else {
+          tmp[outputIndex] = keyReferences[idxForSortedKeyRef++];
+        }
+      }
+      else {
+        if (keyFromUnsortedKeyRef != null) {
+          tmp[outputIndex] = keyReferences[numOfSortedKeyReferences + idxForUnsortedKeyRef++];
+        }
+        else {
+          break;
+        }
+      }
+      outputIndex++;
+    }
+    System.arraycopy(tmp, 0, keyReferences, 0, keyValues.size());
   }
 }
