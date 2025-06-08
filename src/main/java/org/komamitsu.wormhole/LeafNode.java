@@ -58,6 +58,10 @@ public class LeafNode<T> {
     return keyValues.get(tags[tagIndex].kvIndex);
   }
 
+  private KeyValue<T> getKeyValueByKeyRefIndex(int keyReferenceIndex) {
+    return keyValues.get(keyReferences[keyReferenceIndex].tag.kvIndex);
+  }
+
   @Nullable
   public T pointSearchLeaf(String key) {
     int keyHash = 0x7FFF & key.hashCode();
@@ -88,35 +92,41 @@ public class LeafNode<T> {
 
     // Merge sorted and unsorted key references.
     KeyReference[] tmp = new KeyReference[keyValues.size()];
+    // [0, numOfSortedKeyReferences)
     int idxForSortedKeyRef = 0;
-    int idxForUnsortedKeyRef = 0;
+    // [numOfSortedKeyReferences, keyValues.size())
+    int idxForUnsortedKeyRef = numOfSortedKeyReferences;
     int outputIndex = 0;
+    String keyFromSortedKeyRef = null;
+    String keyFromUnsortedKeyRef = null;
     while (true) {
-      String keyFromSortedKeyRef = null;
-      if (idxForSortedKeyRef < numOfSortedKeyReferences) {
-        keyFromSortedKeyRef = getKeyValueByTagIndex(idxForSortedKeyRef).key;
+      if (keyFromSortedKeyRef == null && idxForSortedKeyRef < numOfSortedKeyReferences) {
+        keyFromSortedKeyRef = getKeyValueByKeyRefIndex(idxForSortedKeyRef).key;
       }
-      String keyFromUnsortedKeyRef = null;
-      if (idxForUnsortedKeyRef < keyValues.size()) {
-        keyFromUnsortedKeyRef = getKeyValueByTagIndex(idxForUnsortedKeyRef).key;
+      if (keyFromUnsortedKeyRef == null && idxForUnsortedKeyRef < keyValues.size()) {
+        keyFromUnsortedKeyRef = getKeyValueByKeyRefIndex(idxForUnsortedKeyRef).key;
       }
 
       if (keyFromSortedKeyRef != null) {
         if (keyFromUnsortedKeyRef != null) {
           if (keyFromSortedKeyRef.compareTo(keyFromUnsortedKeyRef) < 0) {
             tmp[outputIndex] = keyReferences[idxForSortedKeyRef++];
+            keyFromSortedKeyRef = null;
           }
           else {
-            tmp[outputIndex] = keyReferences[numOfSortedKeyReferences + idxForUnsortedKeyRef++];
+            tmp[outputIndex] = keyReferences[idxForUnsortedKeyRef++];
+            keyFromUnsortedKeyRef = null;
           }
         }
         else {
           tmp[outputIndex] = keyReferences[idxForSortedKeyRef++];
+          keyFromSortedKeyRef = null;
         }
       }
       else {
         if (keyFromUnsortedKeyRef != null) {
-          tmp[outputIndex] = keyReferences[numOfSortedKeyReferences + idxForUnsortedKeyRef++];
+          tmp[outputIndex] = keyReferences[idxForUnsortedKeyRef++];
+          keyFromUnsortedKeyRef = null;
         }
         else {
           break;
