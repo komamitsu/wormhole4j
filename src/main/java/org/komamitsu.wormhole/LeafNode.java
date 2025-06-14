@@ -1,10 +1,7 @@
 package org.komamitsu.wormhole;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 public class LeafNode<T> {
   private final List<KeyValue<T>> keyValues;
@@ -22,6 +19,14 @@ public class LeafNode<T> {
       this.key = key;
       this.value = value;
     }
+
+    @Override
+    public String toString() {
+      return "KeyValue{" +
+          "key='" + key + '\'' +
+          ", value=" + value +
+          '}';
+    }
   }
 
   // TODO: This can be replaced with Integer, using the first 16 bits for hash and the second 16 bits for index.
@@ -33,6 +38,14 @@ public class LeafNode<T> {
       this.hash = hash;
       this.kvIndex = kvIndex;
     }
+
+    @Override
+    public String toString() {
+      return "Tag{" +
+          "hash=" + hash +
+          ", kvIndex=" + kvIndex +
+          '}';
+    }
   }
 
   // A pointer to key via Tag.
@@ -41,6 +54,13 @@ public class LeafNode<T> {
 
     private KeyReference(Tag tag) {
       this.tag = tag;
+    }
+
+    @Override
+    public String toString() {
+      return "KeyReference{" +
+          "tag=" + tag +
+          '}';
     }
   }
 
@@ -58,8 +78,16 @@ public class LeafNode<T> {
     return keyValues.get(tags[tagIndex].kvIndex);
   }
 
+  private Tag getTagByKeyRefIndex(int keyReferenceIndex) {
+    return keyReferences[keyReferenceIndex].tag;
+  }
+
   private KeyValue<T> getKeyValueByKeyRefIndex(int keyReferenceIndex) {
     return keyValues.get(keyReferences[keyReferenceIndex].tag.kvIndex);
+  }
+
+  String getKeyByKeyRefIndex(int keyReferenceIndex) {
+    return keyValues.get(keyReferences[keyReferenceIndex].tag.kvIndex).key;
   }
 
   @Nullable
@@ -135,5 +163,84 @@ public class LeafNode<T> {
       outputIndex++;
     }
     System.arraycopy(tmp, 0, keyReferences, 0, keyValues.size());
+    numOfSortedKeyReferences = keyValues.size();
+  }
+
+  private Tuple<LeafNode<T>, Set<Tag>> copyToNewLeafNode(int startKeyRefIndex) {
+    assert numOfSortedKeyReferences == keyValues.size();
+
+    int currentSize = keyValues.size();
+
+    // Copy entries to a new leaf node.
+    LeafNode<T> newLeafNode = new LeafNode<>(maxSize());
+    Set<Tag> tagsInNewLeafNode = new HashSet<>(maxSize());
+    for (int i = startKeyRefIndex; i < currentSize; i++) {
+      Tag tag = getTagByKeyRefIndex(i);
+      tagsInNewLeafNode.add(tag);
+      KeyValue<T> kv = keyValues.get(tag.kvIndex);
+      keyValues.set(tag.kvIndex, null);
+      newLeafNode.keyValues.add(kv);
+      // This needs to be sorted later.
+      newLeafNode.tags[i] = tag;
+      newLeafNode.keyReferences[i] = keyReferences[i];
+    }
+    Arrays.sort(newLeafNode.tags);
+    newLeafNode.numOfSortedKeyReferences = newLeafNode.keyValues.size();
+
+    return new Tuple<>(newLeafNode, tagsInNewLeafNode);
+  }
+
+  private void removeMovedEntries(int startKeyRefIndex, Set<Tag> tagsInNewLeafNode) {
+    keyValues.removeIf(Objects::isNull);
+
+    Tag[] srcTags = Arrays.copyOf(tags, tags.length);
+    int srcTagIndex = 0, dstTagIndex = 0;
+    while (srcTagIndex < srcTags.length) {
+      Tag srcTag = srcTags[srcTagIndex++];
+      if (srcTag == null) {
+        // All original stored tags are scanned.
+        break;
+      }
+      if (tagsInNewLeafNode.contains(srcTag)) {
+        // The tag is moved to the new leaf node and should be skipped.
+        continue;
+      }
+      tags[dstTagIndex++] = srcTag;
+    }
+    for (; dstTagIndex < tags.length; dstTagIndex++) {
+      tags[dstTagIndex] = null;
+    }
+
+    for (int i = startKeyRefIndex; i < keyReferences.length; i++) {
+      keyReferences[i] = null;
+    }
+  }
+
+  public LeafNode<T> splitToNewLeafNode(int startKeyRefIndex) {
+    Tuple<LeafNode<T>, Set<Tag>> copied = copyToNewLeafNode(startKeyRefIndex);
+    LeafNode<T> newLeafNode = copied.first;
+    Set<Tag> tagsInNewLeafNode = copied.second;
+
+    removeMovedEntries(startKeyRefIndex, tagsInNewLeafNode);
+
+    return newLeafNode;
+  }
+
+  private int maxSize() {
+    return tags.length;
+  }
+
+  public int size() {
+    return keyValues.size();
+  }
+
+  @Override
+  public String toString() {
+    return "LeafNode{" +
+        "keyValues=" + keyValues +
+        ", tags=" + Arrays.toString(tags) +
+        ", keyReferences=" + Arrays.toString(keyReferences) +
+        ", numOfSortedKeyReferences=" + numOfSortedKeyReferences +
+        '}';
   }
 }
