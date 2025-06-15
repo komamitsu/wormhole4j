@@ -1,12 +1,11 @@
 package org.komamitsu.wormhole;
 
-import java.util.BitSet;
 
 public class Wormhole<T> {
   private static final int DEFAULT_LEAF_NODE_SIZE = 128;
   public static final String SMALLEST_TOKEN = "\0";
-  private final MetaTrieHashTable table = new MetaTrieHashTable();
-  private final LeafList<T> leafList = new LeafList<>();
+  public static final char BITMAP_ID_OF_SMALLEST_TOKEN = 0;
+  private final MetaTrieHashTable<T> table = new MetaTrieHashTable<>();
   private final int leafNodeSize;
 
   public Wormhole() {
@@ -19,43 +18,37 @@ public class Wormhole<T> {
   }
 
   private void initialize() {
-    leafList.add(new LeafNode<>(leafNodeSize));
+    LeafNode<T> rootLeafNode = new LeafNode<>(leafNodeSize, null, null);
     {
       // Add the root.
       String key = "";
-      BitSet bitSet = new BitSet();
-      bitSet.set(0);
-      table.put(key, new MetaTrieHashTable.NodeMetaInternal(key, 0, 0, bitSet), 0);
+      table.put(key, new MetaTrieHashTable.NodeMetaInternal<T>(key, rootLeafNode, rootLeafNode, BITMAP_ID_OF_SMALLEST_TOKEN));
     }
     {
       // Add the first node.
       String key = SMALLEST_TOKEN;
-      table.put(key, new MetaTrieHashTable.NodeMetaLeaf(key, 0), 0);
+      table.put(key, new MetaTrieHashTable.NodeMetaLeaf<>(key, rootLeafNode));
     }
   }
 
   private LeafNode<T> searchTrieHashTable(String key) {
-    MetaTrieHashTable.NodeMeta nodeMeta = table.searchLongestPrefixMatch(key);
+    MetaTrieHashTable.NodeMeta<T> nodeMeta = table.searchLongestPrefixMatch(key);
     if (nodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf) {
-      return leafList.get(((MetaTrieHashTable.NodeMetaLeaf) nodeMeta).leafIndex);
+      return ((MetaTrieHashTable.NodeMetaLeaf<T>) nodeMeta).leafNode;
     }
 
-    MetaTrieHashTable.NodeMetaInternal nodeMetaInternal = (MetaTrieHashTable.NodeMetaInternal) nodeMeta;
+    MetaTrieHashTable.NodeMetaInternal<T> nodeMetaInternal = (MetaTrieHashTable.NodeMetaInternal<T>) nodeMeta;
     int anchorPrefixLength = nodeMetaInternal.anchorPrefix.length();
 
     // The leaf type is INTERNAL.
     if (anchorPrefixLength == key.length()) {
-      int leafNodeIndex = nodeMetaInternal.leftMostLeafIndex;
       if (key.compareTo(nodeMeta.anchorPrefix) < 0) {
-        if (leafNodeIndex <= 0) {
-          throw new AssertionError();
-        }
         // For example, if the paper's example had key "J" in the second leaf node and the search key is "J",
         // this special treatment would be necessary.
-        return leafList.get(leafNodeIndex - 1);
+        return nodeMetaInternal.getLeftMostLeafNode().getLeft();
       }
       else {
-        return leafList.get(leafNodeIndex);
+        return nodeMetaInternal.getLeftMostLeafNode();
       }
     }
 
@@ -69,29 +62,29 @@ public class Wormhole<T> {
       return null;
     }
 
-    MetaTrieHashTable.NodeMeta childNode = table.get(nodeMetaInternal.anchorPrefix + siblingToken);
+    MetaTrieHashTable.NodeMeta<T> childNode = table.get(nodeMetaInternal.anchorPrefix + siblingToken);
     if (childNode == null) {
       throw new AssertionError();
     }
 
     if (childNode instanceof MetaTrieHashTable.NodeMetaLeaf) {
-      int leafNodeIndex = ((MetaTrieHashTable.NodeMetaLeaf) childNode).leafIndex;
+      LeafNode<T> leafNode = ((MetaTrieHashTable.NodeMetaLeaf<T>) childNode).leafNode;
       if (missingToken < siblingToken) {
-        return leafList.get(leafNodeIndex - 1);
+        return leafNode.getLeft();
       }
       else {
-        return leafList.get(leafNodeIndex);
+        return leafNode;
       }
     }
     else {
-      MetaTrieHashTable.NodeMetaInternal childNodeInternal = (MetaTrieHashTable.NodeMetaInternal) childNode;
+      MetaTrieHashTable.NodeMetaInternal<T> childNodeInternal = (MetaTrieHashTable.NodeMetaInternal<T>) childNode;
       if (missingToken < siblingToken) {
         // The child node is a subtree right to the target node.
-        return leafList.get(childNodeInternal.leftMostLeafIndex - 1);
+        return childNodeInternal.getLeftMostLeafNode().getLeft();
       }
       else {
         // The child node is a subtree left to the target node.
-        return leafList.get(childNodeInternal.rightMostLeafIndex);
+        return childNodeInternal.getRightMostLeafNode();
       }
     }
   }
@@ -143,16 +136,13 @@ public class Wormhole<T> {
     throw new RuntimeException("Cannot split the leaf node. Leaf node: " + leafNode);
   }
 
-  private void split(int leafNodeIndex, LeafNode<T> leafNode) {
+  private void split(LeafNode<T> leafNode) {
     // TODO: This can be moved to LeafNode.splitToNewLeafNode() ?
     Tuple<Integer, String> found = findSplitPositionAndNewAnchorInLeafNode(leafNode);
     int splitPosIndex = found.first;
     String newAnchor = found.second;
     LeafNode<T> newLeafNode = leafNode.splitToNewLeafNode(splitPosIndex);
 
-    int newLeafNodeIndex = leafNodeIndex + 1;
-    leafList.add(newLeafNodeIndex, newLeafNode);
-
-    table.put(newAnchor, new MetaTrieHashTable.NodeMetaLeaf(newAnchor, newLeafNodeIndex), newLeafNodeIndex);
+    table.handleSplitNodes(newAnchor, leafNode, newLeafNode);
   }
 }

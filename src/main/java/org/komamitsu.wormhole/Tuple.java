@@ -1,10 +1,10 @@
 package org.komamitsu.wormhole;
 
-public class Tuple<F, S> {
-  public final F first;
-  public final S second;
+class Tuple<F, S> {
+  final F first;
+  final S second;
 
-  public Tuple(F first, S second) {
+  Tuple(F first, S second) {
     this.first = first;
     this.second = second;
   }

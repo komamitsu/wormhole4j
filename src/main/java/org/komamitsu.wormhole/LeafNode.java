@@ -3,13 +3,18 @@ package org.komamitsu.wormhole;
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class LeafNode<T> {
+class LeafNode<T> {
   private final List<KeyValue<T>> keyValues;
   // All references are always sorted by hash.
   private final Tag[] tags;
   // Some references are sorted by key.
   private final KeyReference[] keyReferences;
   private int numOfSortedKeyReferences;
+
+  @Nullable
+  private LeafNode<T> left;
+  @Nullable
+  private LeafNode<T> right;
 
   private static class KeyValue<T> {
     private final String key;
@@ -64,10 +69,30 @@ public class LeafNode<T> {
     }
   }
 
-  public LeafNode(int size) {
+  LeafNode(int size, @Nullable LeafNode<T> left, @Nullable LeafNode<T> right) {
     keyValues = new ArrayList<>(size);
     tags = new Tag[size];
     keyReferences = new KeyReference[size];
+    this.left = left;
+    this.right = right;
+  }
+
+  @Nullable
+  LeafNode<T> getLeft() {
+    return left;
+  }
+
+  @Nullable
+  LeafNode<T> getRight() {
+    return right;
+  }
+
+  void setLeft(@Nullable LeafNode<T> left) {
+    this.left = left;
+  }
+
+  void setRight(@Nullable LeafNode<T> right) {
+    this.right = right;
   }
 
   private short getHashTag(int tagIndex) {
@@ -91,7 +116,7 @@ public class LeafNode<T> {
   }
 
   @Nullable
-  public T pointSearchLeaf(String key) {
+  T pointSearchLeaf(String key) {
     int keyHash = 0x7FFF & key.hashCode();
     int leafSize = keyValues.size();
     int tagIndex = keyHash * leafSize / (Short.MAX_VALUE + 1);
@@ -111,7 +136,7 @@ public class LeafNode<T> {
     return null;
   }
 
-  public void incSort() {
+  void incSort() {
     // Sort unsorted key references.
     Arrays.sort(keyReferences,
         numOfSortedKeyReferences,
@@ -172,7 +197,7 @@ public class LeafNode<T> {
     int currentSize = keyValues.size();
 
     // Copy entries to a new leaf node.
-    LeafNode<T> newLeafNode = new LeafNode<>(maxSize());
+    LeafNode<T> newLeafNode = new LeafNode<>(maxSize(), this, this.right);
     Set<Tag> tagsInNewLeafNode = new HashSet<>(maxSize());
     for (int i = startKeyRefIndex; i < currentSize; i++) {
       Tag tag = getTagByKeyRefIndex(i);
@@ -216,7 +241,7 @@ public class LeafNode<T> {
     }
   }
 
-  public LeafNode<T> splitToNewLeafNode(int startKeyRefIndex) {
+  LeafNode<T> splitToNewLeafNode(int startKeyRefIndex) {
     Tuple<LeafNode<T>, Set<Tag>> copied = copyToNewLeafNode(startKeyRefIndex);
     LeafNode<T> newLeafNode = copied.first;
     Set<Tag> tagsInNewLeafNode = copied.second;
@@ -230,7 +255,7 @@ public class LeafNode<T> {
     return tags.length;
   }
 
-  public int size() {
+  int size() {
     return keyValues.size();
   }
 

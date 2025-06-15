@@ -1,13 +1,14 @@
 package org.komamitsu.wormhole;
 
+import javax.annotation.Nullable;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 
-class MetaTrieHashTable {
-  private final Map<String, NodeMeta> table = new HashMap<>();
+class MetaTrieHashTable<T> {
+  private final Map<String, NodeMeta<T>> table = new HashMap<>();
 
-  static abstract class NodeMeta {
+  static abstract class NodeMeta<T> {
     final String anchorPrefix;
 
     public NodeMeta(String anchorPrefix) {
@@ -15,31 +16,30 @@ class MetaTrieHashTable {
     }
   }
 
-  static class NodeMetaLeaf extends NodeMeta {
-    final int leafIndex;
+  static class NodeMetaLeaf<T> extends NodeMeta<T> {
+    final LeafNode<T> leafNode;
 
-    public NodeMetaLeaf(String anchorPrefix, int leafIndex) {
+    NodeMetaLeaf(String anchorPrefix, LeafNode<T> leafNode) {
       super(anchorPrefix);
-      this.leafIndex = leafIndex;
+      this.leafNode = leafNode;
     }
   }
 
-  static class NodeMetaInternal extends NodeMeta {
-    final int leftMostLeafIndex;
-    final int rightMostLeafIndex;
+  static class NodeMetaInternal<T> extends NodeMeta<T> {
+    @Nullable
+    private LeafNode<T> leftMostLeafNode;
+    @Nullable
+    private LeafNode<T> rightMostLeafNode;
     final BitSet bitmap;
 
-    NodeMetaInternal(String anchorPrefix, int leftMostLeafIndex, int rightMostLeafIndex, char initBitId) {
-      super(anchorPrefix);
-      this.leftMostLeafIndex = leftMostLeafIndex;
-      this.rightMostLeafIndex = rightMostLeafIndex;
-      this.bitmap = new BitSet(initBitId);
+    NodeMetaInternal(String anchorPrefix, LeafNode<T> leftMostLeafNode, LeafNode<T> rightMostLeafNode, char initBitId) {
+      this(anchorPrefix, leftMostLeafNode, rightMostLeafNode, new BitSet(initBitId));
     }
 
-    NodeMetaInternal(String anchorPrefix, int leftMostLeafIndex, int rightMostLeafIndex, BitSet bitmap) {
+    NodeMetaInternal(String anchorPrefix, LeafNode<T> leftMostLeafNode, LeafNode<T> rightMostLeafNode, BitSet bitmap) {
       super(anchorPrefix);
-      this.leftMostLeafIndex = leftMostLeafIndex;
-      this.rightMostLeafIndex = rightMostLeafIndex;
+      this.leftMostLeafNode = leftMostLeafNode;
+      this.rightMostLeafNode = rightMostLeafNode;
       this.bitmap = bitmap;
     }
 
@@ -56,57 +56,75 @@ class MetaTrieHashTable {
       }
       return null;
     }
+
+    @Nullable
+    LeafNode<T> getLeftMostLeafNode() {
+      return leftMostLeafNode;
+    }
+
+    @Nullable
+    LeafNode<T> getRightMostLeafNode() {
+      return rightMostLeafNode;
+    }
+
+    void setLeftMostLeafNode(@Nullable LeafNode<T> leftMostLeafNode) {
+      this.leftMostLeafNode = leftMostLeafNode;
+    }
+
+    void setRightMostLeafNode(@Nullable LeafNode<T> rightMostLeafNode) {
+      this.rightMostLeafNode = rightMostLeafNode;
+    }
   }
 
-  NodeMeta get(String key) {
+  NodeMeta<T> get(String key) {
     return table.get(key);
   }
 
-  void put(String key, NodeMeta nodeMeta, int nodeIndex) {
+  void put(String key, NodeMeta<T> nodeMeta) {
     table.put(key, nodeMeta);
+  }
+
+  void handleSplitNodes(String key, LeafNode<T> origLeafNode, LeafNode<T> newLeafNode) {
+    NodeMetaLeaf<T> newNodeMeta = new NodeMetaLeaf<>(key, newLeafNode);
+    put(key, newNodeMeta);
 
     // Update node meta that have a shorter anchor prefix.
     for (int prefixLen = 0; prefixLen < key.length(); prefixLen++) {
       String prefix = key.substring(0, prefixLen);
-      NodeMeta node = table.get(prefix);
+      NodeMeta<T> node = table.get(prefix);
       if (node == null) {
-
+        table.put(prefix, new NodeMetaInternal<T>(prefix, newLeafNode, newLeafNode, key.charAt(prefixLen)));
         continue;
       }
 
       if (node instanceof NodeMetaLeaf) {
-        int leafIndex = ((NodeMetaLeaf) node).leafIndex;
+        LeafNode<T> leafNode = ((NodeMetaLeaf<T>) node).leafNode;
 
         // If there is a leaf node which has the same prefix, append the smallest token to the prefix of the leaf node
         // and add an internal node with the same prefix instead of the original leaf node.
         String prefixWithSmallestToken = prefix + Wormhole.SMALLEST_TOKEN;
-        NodeMetaLeaf updatedNode = new NodeMetaLeaf(prefixWithSmallestToken, leafIndex);
+        NodeMetaLeaf<T> updatedNode = new NodeMetaLeaf<>(prefixWithSmallestToken, leafNode);
         table.put(prefixWithSmallestToken, updatedNode);
 
-        // TODO: Define '\0'.
-        NodeMetaInternal parent = new NodeMetaInternal(prefix, leafIndex, leafIndex, '\0');
+        NodeMetaInternal<T> parent = new NodeMetaInternal<T>(prefix, leafNode, leafNode, Wormhole.BITMAP_ID_OF_SMALLEST_TOKEN);
         table.put(prefix, parent);
       }
       else {
         assert node instanceof NodeMetaInternal;
 
-        NodeMetaInternal internalNode = (NodeMetaInternal) node;
-        int leftMostLeafIndex = internalNode.leftMostLeafIndex;
-        int rightMostLeafIndex = internalNode.rightMostLeafIndex;
-        if (leftMostLeafIndex == nodeIndex + 1) {
-          leftMostLeafIndex = nodeIndex;
+        NodeMetaInternal<T> internalNode = (NodeMetaInternal<T>) node;
+
+        if (internalNode.getLeftMostLeafNode() == origLeafNode.getRight()) {
+          internalNode.setLeftMostLeafNode(origLeafNode);
         }
-        if (rightMostLeafIndex == nodeIndex - 1) {
-          rightMostLeafIndex = nodeIndex;
-        }
-        if (internalNode.leftMostLeafIndex != leftMostLeafIndex || internalNode.rightMostLeafIndex == rightMostLeafIndex) {
-          table.put(prefix, new NodeMetaInternal(internalNode.anchorPrefix, leftMostLeafIndex, rightMostLeafIndex, internalNode.bitmap));
+        if (internalNode.getRightMostLeafNode() == origLeafNode.getLeft()) {
+          internalNode.setRightMostLeafNode(origLeafNode);
         }
       }
     }
   }
 
-  NodeMeta searchLongestPrefixMatch(String searchKey) {
+  NodeMeta<T> searchLongestPrefixMatch(String searchKey) {
     String lpm = searchLongestPrefixMatchKey(searchKey);
     return table.get(lpm);
   }
