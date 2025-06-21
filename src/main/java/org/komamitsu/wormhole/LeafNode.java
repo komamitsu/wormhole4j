@@ -292,14 +292,15 @@ class LeafNode<T> {
   void add(String key, T value) {
     keyValues.add(new KeyValue<>(key, value));
 
-    int kvIndex = size() - 1;
+    int size = size();
+    int kvIndex = size - 1;
     short keyHash = calculateKeyHash(key);
 
     Tag tag = new Tag(keyHash, kvIndex);
-    tags[size() - 1] = tag;
-    Arrays.sort(tags);
+    tags[size - 1] = tag;
+    Arrays.sort(tags, 0, size);
 
     // Sorting this will be delayed until range scan or split.
-    keyReferences[size() - 1] = new KeyReference(tag);
+    keyReferences[size - 1] = new KeyReference(tag);
   }
 }

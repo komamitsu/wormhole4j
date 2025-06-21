@@ -33,14 +33,11 @@ class MetaTrieHashTable<T> {
     final BitSet bitmap;
 
     NodeMetaInternal(String anchorPrefix, LeafNode<T> leftMostLeafNode, LeafNode<T> rightMostLeafNode, char initBitId) {
-      this(anchorPrefix, leftMostLeafNode, rightMostLeafNode, new BitSet(initBitId));
-    }
-
-    NodeMetaInternal(String anchorPrefix, LeafNode<T> leftMostLeafNode, LeafNode<T> rightMostLeafNode, BitSet bitmap) {
       super(anchorPrefix);
       this.leftMostLeafNode = leftMostLeafNode;
       this.rightMostLeafNode = rightMostLeafNode;
-      this.bitmap = bitmap;
+      this.bitmap = new BitSet();
+      bitmap.set(initBitId);
     }
 
     Character findOneSibling(char sibling) {

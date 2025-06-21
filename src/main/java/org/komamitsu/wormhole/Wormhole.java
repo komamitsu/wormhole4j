@@ -36,6 +36,10 @@ public class Wormhole<T> {
         newLeafNode.add(key, value);
       }
     }
+    else {
+      assert leafNode.size() < leafNodeSize;
+      leafNode.add(key, value);
+    }
   }
 
   @Nullable
