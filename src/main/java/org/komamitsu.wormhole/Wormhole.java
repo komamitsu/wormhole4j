@@ -17,12 +17,32 @@ public class Wormhole<T> {
     initialize();
   }
 
+  public void put(String key, T value) {
+    LeafNode<T> leafNode = searchTrieHashTable(key);
+    LeafNode.KeyValue<T> existingKeyValue = leafNode.pointSearchLeaf(key);
+    if (existingKeyValue != null) {
+      existingKeyValue.setValue(value);
+      return;
+    }
+
+    if (leafNode.size() == leafNodeSize) {
+      // Split the node and get a new right leaf node.
+      LeafNode<T> newLeafNode = split(leafNode);
+      if (key.compareTo(newLeafNode.anchorKey) < 0) {
+        leafNode.add(key, value);
+      }
+      else {
+        newLeafNode.add(key, value);
+      }
+    }
+  }
+
   private void initialize() {
-    LeafNode<T> rootLeafNode = new LeafNode<>(leafNodeSize, null, null);
+    LeafNode<T> rootLeafNode = new LeafNode<>(SMALLEST_TOKEN, leafNodeSize, null, null);
     {
       // Add the root.
       String key = "";
-      table.put(key, new MetaTrieHashTable.NodeMetaInternal<T>(key, rootLeafNode, rootLeafNode, BITMAP_ID_OF_SMALLEST_TOKEN));
+      table.put(key, new MetaTrieHashTable.NodeMetaInternal<>(key, rootLeafNode, rootLeafNode, BITMAP_ID_OF_SMALLEST_TOKEN));
     }
     {
       // Add the first node.
@@ -53,18 +73,18 @@ public class Wormhole<T> {
     }
 
     if (anchorPrefixLength > key.length()) {
-      throw new AssertionError();
+      throw new AssertionError("The length of the anchor prefix is longer than the length of the key");
     }
 
     char missingToken = key.charAt(anchorPrefixLength);
     Character siblingToken = nodeMetaInternal.findOneSibling(missingToken);
     if (siblingToken == null) {
-      return null;
+      throw new AssertionError("Any sibling token is not found");
     }
 
     MetaTrieHashTable.NodeMeta<T> childNode = table.get(nodeMetaInternal.anchorPrefix + siblingToken);
     if (childNode == null) {
-      throw new AssertionError();
+      throw new AssertionError("Child node is not found");
     }
 
     if (childNode instanceof MetaTrieHashTable.NodeMetaLeaf) {
@@ -121,7 +141,7 @@ public class Wormhole<T> {
       }
 
       // Check the anchor key prefix condition.
-      MetaTrieHashTable.NodeMeta existingNodeMeta = table.get(newAnchor);
+      MetaTrieHashTable.NodeMeta<T> existingNodeMeta = table.get(newAnchor);
       if (existingNodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf) {
         // "Append 0s to key when necessary"
         newAnchor = newAnchor + SMALLEST_TOKEN;
@@ -136,13 +156,15 @@ public class Wormhole<T> {
     throw new RuntimeException("Cannot split the leaf node. Leaf node: " + leafNode);
   }
 
-  private void split(LeafNode<T> leafNode) {
+  private LeafNode<T> split(LeafNode<T> leafNode) {
     // TODO: This can be moved to LeafNode.splitToNewLeafNode() ?
     Tuple<Integer, String> found = findSplitPositionAndNewAnchorInLeafNode(leafNode);
     int splitPosIndex = found.first;
     String newAnchor = found.second;
-    LeafNode<T> newLeafNode = leafNode.splitToNewLeafNode(splitPosIndex);
+    LeafNode<T> newLeafNode = leafNode.splitToNewLeafNode(newAnchor, splitPosIndex);
 
     table.handleSplitNodes(newAnchor, leafNode, newLeafNode);
+
+    return newLeafNode;
   }
 }

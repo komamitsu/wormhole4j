@@ -4,6 +4,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 class LeafNode<T> {
+  public final String anchorKey;
   private final List<KeyValue<T>> keyValues;
   // All references are always sorted by hash.
   private final Tag[] tags;
@@ -16,9 +17,9 @@ class LeafNode<T> {
   @Nullable
   private LeafNode<T> right;
 
-  private static class KeyValue<T> {
-    private final String key;
-    private final T value;
+  static class KeyValue<T> {
+    public final String key;
+    private T value;
 
     private KeyValue(String key, T value) {
       this.key = key;
@@ -32,14 +33,23 @@ class LeafNode<T> {
           ", value=" + value +
           '}';
     }
+
+    public T getValue() {
+      return value;
+    }
+
+    public void setValue(T value) {
+      this.value = value;
+    }
   }
 
   // TODO: This can be replaced with Integer, using the first 16 bits for hash and the second 16 bits for index.
-  private static class Tag {
+  private static class Tag implements Comparable<Tag> {
     private final short hash;
     private final int kvIndex;
 
     private Tag(short hash, int kvIndex) {
+      assert hash >= 0;
       this.hash = hash;
       this.kvIndex = kvIndex;
     }
@@ -50,6 +60,11 @@ class LeafNode<T> {
           "hash=" + hash +
           ", kvIndex=" + kvIndex +
           '}';
+    }
+
+    @Override
+    public int compareTo(Tag other) {
+      return Short.compare(hash, other.hash);
     }
   }
 
@@ -69,7 +84,8 @@ class LeafNode<T> {
     }
   }
 
-  LeafNode(int size, @Nullable LeafNode<T> left, @Nullable LeafNode<T> right) {
+  LeafNode(String anchorKey, int size, @Nullable LeafNode<T> left, @Nullable LeafNode<T> right) {
+    this.anchorKey = anchorKey;
     keyValues = new ArrayList<>(size);
     tags = new Tag[size];
     keyReferences = new KeyReference[size];
@@ -115,9 +131,13 @@ class LeafNode<T> {
     return keyValues.get(keyReferences[keyReferenceIndex].tag.kvIndex).key;
   }
 
+  private short calculateKeyHash(String key) {
+    return (short) (0x7FFF & key.hashCode());
+  }
+
   @Nullable
-  T pointSearchLeaf(String key) {
-    int keyHash = 0x7FFF & key.hashCode();
+  KeyValue<T> pointSearchLeaf(String key) {
+    short keyHash = calculateKeyHash(key);
     int leafSize = keyValues.size();
     int tagIndex = keyHash * leafSize / (Short.MAX_VALUE + 1);
     while (tagIndex > 0 && keyHash <= getHashTag(tagIndex - 1)) {
@@ -129,7 +149,7 @@ class LeafNode<T> {
     while (tagIndex < leafSize && getHashTag(tagIndex) == keyHash) {
       KeyValue<T> kv = getKeyValueByTagIndex(tagIndex);
       if (kv.key.equals(key)) {
-        return kv.value;
+        return kv;
       }
       tagIndex++;
     }
@@ -191,13 +211,13 @@ class LeafNode<T> {
     numOfSortedKeyReferences = keyValues.size();
   }
 
-  private Tuple<LeafNode<T>, Set<Tag>> copyToNewLeafNode(int startKeyRefIndex) {
+  private Tuple<LeafNode<T>, Set<Tag>> copyToNewLeafNode(String newAnchor, int startKeyRefIndex) {
     assert numOfSortedKeyReferences == keyValues.size();
 
     int currentSize = keyValues.size();
 
     // Copy entries to a new leaf node.
-    LeafNode<T> newLeafNode = new LeafNode<>(maxSize(), this, this.right);
+    LeafNode<T> newLeafNode = new LeafNode<>(newAnchor, maxSize(), this, this.right);
     Set<Tag> tagsInNewLeafNode = new HashSet<>(maxSize());
     for (int i = startKeyRefIndex; i < currentSize; i++) {
       Tag tag = getTagByKeyRefIndex(i);
@@ -241,8 +261,8 @@ class LeafNode<T> {
     }
   }
 
-  LeafNode<T> splitToNewLeafNode(int startKeyRefIndex) {
-    Tuple<LeafNode<T>, Set<Tag>> copied = copyToNewLeafNode(startKeyRefIndex);
+  LeafNode<T> splitToNewLeafNode(String newAnchor, int startKeyRefIndex) {
+    Tuple<LeafNode<T>, Set<Tag>> copied = copyToNewLeafNode(newAnchor, startKeyRefIndex);
     LeafNode<T> newLeafNode = copied.first;
     Set<Tag> tagsInNewLeafNode = copied.second;
 
@@ -267,5 +287,19 @@ class LeafNode<T> {
         ", keyReferences=" + Arrays.toString(keyReferences) +
         ", numOfSortedKeyReferences=" + numOfSortedKeyReferences +
         '}';
+  }
+
+  void add(String key, T value) {
+    keyValues.add(new KeyValue<>(key, value));
+
+    int kvIndex = size() - 1;
+    short keyHash = calculateKeyHash(key);
+
+    Tag tag = new Tag(keyHash, kvIndex);
+    tags[size() - 1] = tag;
+    Arrays.sort(tags);
+
+    // Sorting this will be delayed until range scan or split.
+    keyReferences[size() - 1] = new KeyReference(tag);
   }
 }

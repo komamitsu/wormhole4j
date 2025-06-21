@@ -121,7 +121,12 @@ class MetaTrieHashTable<T> {
           internalNode.setRightMostLeafNode(origLeafNode);
         }
       }
+      return;
     }
+
+    throw new RuntimeException(
+        String.format("Failed to handle split nodes. Key: %s, Original leaf node: %s, New leaf node: %s",
+            key, origLeafNode, newLeafNode));
   }
 
   NodeMeta<T> searchLongestPrefixMatch(String searchKey) {
