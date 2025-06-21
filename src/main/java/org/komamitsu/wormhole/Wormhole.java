@@ -1,5 +1,6 @@
 package org.komamitsu.wormhole;
 
+import javax.annotation.Nullable;
 
 public class Wormhole<T> {
   private static final int DEFAULT_LEAF_NODE_SIZE = 128;
@@ -35,6 +36,16 @@ public class Wormhole<T> {
         newLeafNode.add(key, value);
       }
     }
+  }
+
+  @Nullable
+  public T get(String key) {
+    LeafNode<T> leafNode = searchTrieHashTable(key);
+    LeafNode.KeyValue<T> keyValue = leafNode.pointSearchLeaf(key);
+    if (keyValue == null) {
+      return null;
+    }
+    return keyValue.getValue();
   }
 
   private void initialize() {
