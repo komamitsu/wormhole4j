@@ -212,13 +212,18 @@ class LeafNode<T> {
   }
 
   private Tuple<LeafNode<T>, Set<Tag>> copyToNewLeafNode(String newAnchor, int startKeyRefIndex) {
-    assert numOfSortedKeyReferences == keyValues.size();
+    if (numOfSortedKeyReferences != keyValues.size()) {
+      throw new AssertionError(
+          String.format("The leaf node doesn't seem to be sorted. The number of sorted key references: %d, The key value size: %d",
+              numOfSortedKeyReferences, keyValues.size()));
+    }
 
     int currentSize = keyValues.size();
 
     // Copy entries to a new leaf node.
     LeafNode<T> newLeafNode = new LeafNode<>(newAnchor, maxSize(), this, this.right);
     Set<Tag> tagsInNewLeafNode = new HashSet<>(maxSize());
+    int tagIndexInNewLeafNode = 0;
     for (int i = startKeyRefIndex; i < currentSize; i++) {
       Tag tag = getTagByKeyRefIndex(i);
       tagsInNewLeafNode.add(tag);
@@ -226,17 +231,20 @@ class LeafNode<T> {
       keyValues.set(tag.kvIndex, null);
       newLeafNode.keyValues.add(kv);
       // This needs to be sorted later.
-      newLeafNode.tags[i] = tag;
+      newLeafNode.tags[tagIndexInNewLeafNode++] = tag;
       newLeafNode.keyReferences[i] = keyReferences[i];
     }
-    Arrays.sort(newLeafNode.tags);
-    newLeafNode.numOfSortedKeyReferences = newLeafNode.keyValues.size();
+    int newLeafNodeSize = newLeafNode.size();
+    Arrays.sort(newLeafNode.tags, 0, newLeafNodeSize);
+    newLeafNode.numOfSortedKeyReferences = newLeafNodeSize;
 
     return new Tuple<>(newLeafNode, tagsInNewLeafNode);
   }
 
   private void removeMovedEntries(int startKeyRefIndex, Set<Tag> tagsInNewLeafNode) {
     keyValues.removeIf(Objects::isNull);
+
+    int leafNodeSize = keyValues.size();
 
     Tag[] srcTags = Arrays.copyOf(tags, tags.length);
     int srcTagIndex = 0, dstTagIndex = 0;
@@ -255,10 +263,12 @@ class LeafNode<T> {
     for (; dstTagIndex < tags.length; dstTagIndex++) {
       tags[dstTagIndex] = null;
     }
+    Arrays.sort(tags, 0, leafNodeSize);
 
     for (int i = startKeyRefIndex; i < keyReferences.length; i++) {
       keyReferences[i] = null;
     }
+    numOfSortedKeyReferences = leafNodeSize;
   }
 
   LeafNode<T> splitToNewLeafNode(String newAnchor, int startKeyRefIndex) {

@@ -143,7 +143,8 @@ public class Wormhole<T> {
       String k1 = leafNode.getKeyByKeyRefIndex(i - 1);
       String k2 = leafNode.getKeyByKeyRefIndex(i);
 
-      String newAnchor = extractLongestCommonPrefix(k1, k2);
+      String lcp = extractLongestCommonPrefix(k1, k2);
+      String newAnchor = lcp.length() == k2.length() ? k2 : lcp + k2.charAt(lcp.length());
 
       // TODO: When to use the terminator character?
 
@@ -151,9 +152,7 @@ public class Wormhole<T> {
       if (newAnchor.compareTo(k1) <= 0) {
         continue;
       }
-      if (k2.compareTo(newAnchor) < 0) {
-        continue;
-      }
+      // For anchor-key ≤ node-key, the relationship of `newAnchor` and `k2` always satisfy it.
 
       // Check the anchor key prefix condition.
       MetaTrieHashTable.NodeMeta<T> existingNodeMeta = table.get(newAnchor);
@@ -172,6 +171,7 @@ public class Wormhole<T> {
   }
 
   private LeafNode<T> split(LeafNode<T> leafNode) {
+    leafNode.incSort();
     // TODO: This can be moved to LeafNode.splitToNewLeafNode() ?
     Tuple<Integer, String> found = findSplitPositionAndNewAnchorInLeafNode(leafNode);
     int splitPosIndex = found.first;
