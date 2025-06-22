@@ -90,7 +90,7 @@ class MetaTrieHashTable<T> {
       String prefix = key.substring(0, prefixLen);
       NodeMeta<T> node = table.get(prefix);
       if (node == null) {
-        table.put(prefix, new NodeMetaInternal<T>(prefix, newLeafNode, newLeafNode, key.charAt(prefixLen)));
+        table.put(prefix, new NodeMetaInternal<>(prefix, newLeafNode, newLeafNode, key.charAt(prefixLen)));
         continue;
       }
 

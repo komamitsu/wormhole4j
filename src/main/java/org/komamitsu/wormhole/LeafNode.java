@@ -5,11 +5,12 @@ import java.util.*;
 
 class LeafNode<T> {
   public final String anchorKey;
+  private final int maxSize;
   private final List<KeyValue<T>> keyValues;
   // All references are always sorted by hash.
-  private final Tag[] tags;
+  private final List<Tag<T>> tags;
   // Some references are sorted by key.
-  private final KeyReference[] keyReferences;
+  private final List<KeyReference<T>> keyReferences;
   private int numOfSortedKeyReferences;
 
   @Nullable
@@ -44,35 +45,35 @@ class LeafNode<T> {
   }
 
   // TODO: This can be replaced with Integer, using the first 16 bits for hash and the second 16 bits for index.
-  private static class Tag implements Comparable<Tag> {
+  private static class Tag<T> implements Comparable<Tag<T>> {
     private final short hash;
-    private final int kvIndex;
+    private final KeyValue<T> keyValue;
 
-    private Tag(short hash, int kvIndex) {
+    private Tag(short hash, KeyValue<T> keyValue) {
       assert hash >= 0;
       this.hash = hash;
-      this.kvIndex = kvIndex;
+      this.keyValue = keyValue;
     }
 
     @Override
     public String toString() {
       return "Tag{" +
           "hash=" + hash +
-          ", kvIndex=" + kvIndex +
+          ", keyValue=" + keyValue +
           '}';
     }
 
     @Override
-    public int compareTo(Tag other) {
+    public int compareTo(Tag<T> other) {
       return Short.compare(hash, other.hash);
     }
   }
 
   // A pointer to key via Tag.
-  private static class KeyReference {
-    private final Tag tag;
+  private static class KeyReference<T> implements Comparable<KeyReference<T>> {
+    private final Tag<T> tag;
 
-    private KeyReference(Tag tag) {
+    private KeyReference(Tag<T> tag) {
       this.tag = tag;
     }
 
@@ -82,13 +83,19 @@ class LeafNode<T> {
           "tag=" + tag +
           '}';
     }
+
+    @Override
+    public int compareTo(KeyReference<T> other) {
+      return tag.keyValue.key.compareTo(other.tag.keyValue.key);
+    }
   }
 
   LeafNode(String anchorKey, int size, @Nullable LeafNode<T> left, @Nullable LeafNode<T> right) {
     this.anchorKey = anchorKey;
+    this.maxSize = size;
     keyValues = new ArrayList<>(size);
-    tags = new Tag[size];
-    keyReferences = new KeyReference[size];
+    tags = new ArrayList<>(size);
+    keyReferences = new ArrayList<>(size);
     this.left = left;
     this.right = right;
   }
@@ -112,23 +119,27 @@ class LeafNode<T> {
   }
 
   private short getHashTag(int tagIndex) {
-    return tags[tagIndex].hash;
+    return tags.get(tagIndex).hash;
   }
 
   private KeyValue<T> getKeyValueByTagIndex(int tagIndex) {
-    return keyValues.get(tags[tagIndex].kvIndex);
+    return tags.get(tagIndex).keyValue;
   }
 
-  private Tag getTagByKeyRefIndex(int keyReferenceIndex) {
-    return keyReferences[keyReferenceIndex].tag;
+  private Tag<T> getTagByKeyRefIndex(int keyReferenceIndex) {
+    return keyReferences.get(keyReferenceIndex).tag;
   }
 
   private KeyValue<T> getKeyValueByKeyRefIndex(int keyReferenceIndex) {
-    return keyValues.get(keyReferences[keyReferenceIndex].tag.kvIndex);
+    return keyReferences.get(keyReferenceIndex).tag.keyValue;
   }
 
   String getKeyByKeyRefIndex(int keyReferenceIndex) {
-    return keyValues.get(keyReferences[keyReferenceIndex].tag.kvIndex).key;
+    return keyReferences.get(keyReferenceIndex).tag.keyValue.key;
+  }
+
+  private KeyReference<T> getKeyReference(int keyReferenceIndex) {
+    return keyReferences.get(keyReferenceIndex);
   }
 
   private short calculateKeyHash(String key) {
@@ -157,19 +168,17 @@ class LeafNode<T> {
   }
 
   void incSort() {
+    int size = size();
+
     // Sort unsorted key references.
-    Arrays.sort(keyReferences,
-        numOfSortedKeyReferences,
-        keyValues.size(),
-        Comparator.comparing(keyReference -> keyValues.get(keyReference.tag.kvIndex).key));
+    List<KeyReference<T>> unsortedKeyReferences = keyReferences.subList(numOfSortedKeyReferences, size);
+    Collections.sort(unsortedKeyReferences);
 
     // Merge sorted and unsorted key references.
-    KeyReference[] tmp = new KeyReference[keyValues.size()];
-    // [0, numOfSortedKeyReferences)
+    List<KeyReference<T>> mergedKeyReferences = new ArrayList<>(size);
+
     int idxForSortedKeyRef = 0;
-    // [numOfSortedKeyReferences, keyValues.size())
-    int idxForUnsortedKeyRef = numOfSortedKeyReferences;
-    int outputIndex = 0;
+    int idxForUnsortedKeyRef = 0;
     String keyFromSortedKeyRef = null;
     String keyFromUnsortedKeyRef = null;
     while (true) {
@@ -180,38 +189,39 @@ class LeafNode<T> {
         keyFromUnsortedKeyRef = getKeyValueByKeyRefIndex(idxForUnsortedKeyRef).key;
       }
 
+      KeyReference<T> keyReference;
       if (keyFromSortedKeyRef != null) {
         if (keyFromUnsortedKeyRef != null) {
           if (keyFromSortedKeyRef.compareTo(keyFromUnsortedKeyRef) < 0) {
-            tmp[outputIndex] = keyReferences[idxForSortedKeyRef++];
+            keyReference = getKeyReference(idxForSortedKeyRef++);
             keyFromSortedKeyRef = null;
           }
           else {
-            tmp[outputIndex] = keyReferences[idxForUnsortedKeyRef++];
+            keyReference = getKeyReference(idxForUnsortedKeyRef++);
             keyFromUnsortedKeyRef = null;
           }
         }
         else {
-          tmp[outputIndex] = keyReferences[idxForSortedKeyRef++];
+          keyReference = getKeyReference(idxForSortedKeyRef++);
           keyFromSortedKeyRef = null;
         }
       }
       else {
         if (keyFromUnsortedKeyRef != null) {
-          tmp[outputIndex] = keyReferences[idxForUnsortedKeyRef++];
+          keyReference = getKeyReference(idxForUnsortedKeyRef++);
           keyFromUnsortedKeyRef = null;
         }
         else {
           break;
         }
       }
-      outputIndex++;
+      mergedKeyReferences.add(keyReference);
     }
-    System.arraycopy(tmp, 0, keyReferences, 0, keyValues.size());
-    numOfSortedKeyReferences = keyValues.size();
+    Collections.copy(keyReferences, mergedKeyReferences);
+    numOfSortedKeyReferences = size;
   }
 
-  private Tuple<LeafNode<T>, Set<Tag>> copyToNewLeafNode(String newAnchor, int startKeyRefIndex) {
+  private Tuple<LeafNode<T>, Set<KeyValue<T>>> copyToNewLeafNode(String newAnchor, int startKeyRefIndex) {
     if (numOfSortedKeyReferences != keyValues.size()) {
       throw new AssertionError(
           String.format("The leaf node doesn't seem to be sorted. The number of sorted key references: %d, The key value size: %d",
@@ -221,68 +231,46 @@ class LeafNode<T> {
     int currentSize = keyValues.size();
 
     // Copy entries to a new leaf node.
-    LeafNode<T> newLeafNode = new LeafNode<>(newAnchor, maxSize(), this, this.right);
-    Set<Tag> tagsInNewLeafNode = new HashSet<>(maxSize());
-    int tagIndexInNewLeafNode = 0;
+    LeafNode<T> newLeafNode = new LeafNode<>(newAnchor, maxSize, this, this.right);
+    Set<KeyValue<T>> keyValuesInNewLeafNode = new HashSet<>(maxSize);
     for (int i = startKeyRefIndex; i < currentSize; i++) {
-      Tag tag = getTagByKeyRefIndex(i);
-      tagsInNewLeafNode.add(tag);
-      KeyValue<T> kv = keyValues.get(tag.kvIndex);
-      keyValues.set(tag.kvIndex, null);
+      Tag<T> tag = getTagByKeyRefIndex(i);
+      KeyValue<T> kv = tag.keyValue;
       newLeafNode.keyValues.add(kv);
+      keyValuesInNewLeafNode.add(kv);
       // This needs to be sorted later.
-      newLeafNode.tags[tagIndexInNewLeafNode++] = tag;
-      newLeafNode.keyReferences[i] = keyReferences[i];
+      newLeafNode.tags.add(tag);
+      newLeafNode.keyReferences.add(keyReferences.get(i));
     }
     int newLeafNodeSize = newLeafNode.size();
-    Arrays.sort(newLeafNode.tags, 0, newLeafNodeSize);
+    Collections.sort(newLeafNode.tags);
     newLeafNode.numOfSortedKeyReferences = newLeafNodeSize;
 
-    return new Tuple<>(newLeafNode, tagsInNewLeafNode);
+    setRight(newLeafNode);
+
+    return new Tuple<>(newLeafNode, keyValuesInNewLeafNode);
   }
 
-  private void removeMovedEntries(int startKeyRefIndex, Set<Tag> tagsInNewLeafNode) {
-    keyValues.removeIf(Objects::isNull);
+  private void removeMovedEntries(Set<KeyValue<T>> keyValuesInNewLeafNode) {
+    keyValues.removeIf(keyValuesInNewLeafNode::contains);
 
-    int leafNodeSize = keyValues.size();
+    tags.removeIf(tag -> keyValuesInNewLeafNode.contains(tag.keyValue));
+    Collections.sort(tags);
 
-    Tag[] srcTags = Arrays.copyOf(tags, tags.length);
-    int srcTagIndex = 0, dstTagIndex = 0;
-    while (srcTagIndex < srcTags.length) {
-      Tag srcTag = srcTags[srcTagIndex++];
-      if (srcTag == null) {
-        // All original stored tags are scanned.
-        break;
-      }
-      if (tagsInNewLeafNode.contains(srcTag)) {
-        // The tag is moved to the new leaf node and should be skipped.
-        continue;
-      }
-      tags[dstTagIndex++] = srcTag;
-    }
-    for (; dstTagIndex < tags.length; dstTagIndex++) {
-      tags[dstTagIndex] = null;
-    }
-    Arrays.sort(tags, 0, leafNodeSize);
+    keyReferences.removeIf(keyRef -> keyValuesInNewLeafNode.contains(keyRef.tag.keyValue));
+    Collections.sort(keyReferences);
 
-    for (int i = startKeyRefIndex; i < keyReferences.length; i++) {
-      keyReferences[i] = null;
-    }
-    numOfSortedKeyReferences = leafNodeSize;
+    numOfSortedKeyReferences = size();
   }
 
   LeafNode<T> splitToNewLeafNode(String newAnchor, int startKeyRefIndex) {
-    Tuple<LeafNode<T>, Set<Tag>> copied = copyToNewLeafNode(newAnchor, startKeyRefIndex);
+    Tuple<LeafNode<T>, Set<KeyValue<T>>> copied = copyToNewLeafNode(newAnchor, startKeyRefIndex);
     LeafNode<T> newLeafNode = copied.first;
-    Set<Tag> tagsInNewLeafNode = copied.second;
+    Set<KeyValue<T>> keyValuesInNewLeafNode = copied.second;
 
-    removeMovedEntries(startKeyRefIndex, tagsInNewLeafNode);
+    removeMovedEntries(keyValuesInNewLeafNode);
 
     return newLeafNode;
-  }
-
-  private int maxSize() {
-    return tags.length;
   }
 
   int size() {
@@ -292,25 +280,28 @@ class LeafNode<T> {
   @Override
   public String toString() {
     return "LeafNode{" +
-        "keyValues=" + keyValues +
-        ", tags=" + Arrays.toString(tags) +
-        ", keyReferences=" + Arrays.toString(keyReferences) +
+        "anchorKey='" + anchorKey + '\'' +
+        ", maxSize=" + maxSize +
+        ", keyValues=" + keyValues +
+        ", tags=" + tags +
+        ", keyReferences=" + keyReferences +
         ", numOfSortedKeyReferences=" + numOfSortedKeyReferences +
+        ", left=" + (left == null ? "null" : left.anchorKey) +
+        ", right=" + (right == null ? "null" : right.anchorKey) +
         '}';
   }
 
   void add(String key, T value) {
-    keyValues.add(new KeyValue<>(key, value));
+    KeyValue<T> keyValue = new KeyValue<>(key, value);
+    keyValues.add(keyValue);
 
-    int size = size();
-    int kvIndex = size - 1;
     short keyHash = calculateKeyHash(key);
 
-    Tag tag = new Tag(keyHash, kvIndex);
-    tags[size - 1] = tag;
-    Arrays.sort(tags, 0, size);
+    Tag<T> tag = new Tag<T>(keyHash, keyValue);
+    tags.add(tag);
+    Collections.sort(tags);
 
     // Sorting this will be delayed until range scan or split.
-    keyReferences[size - 1] = new KeyReference(tag);
+    keyReferences.add(new KeyReference<>(tag));
   }
 }
