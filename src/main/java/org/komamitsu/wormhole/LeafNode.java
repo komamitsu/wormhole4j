@@ -2,16 +2,16 @@ package org.komamitsu.wormhole;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Predicate;
 
 class LeafNode<T> {
   public final String anchorKey;
   private final int maxSize;
   private final List<KeyValue<T>> keyValues;
   // All references are always sorted by hash.
-  private final List<Tag<T>> tags;
+  private final Tags<T> tags;
   // Some references are sorted by key.
-  private final List<KeyReference<T>> keyReferences;
-  private int numOfSortedKeyReferences;
+  private final KeyReferences<T> keyReferences;
 
   @Nullable
   private LeafNode<T> left;
@@ -44,6 +44,8 @@ class LeafNode<T> {
     }
   }
 
+  // Tag
+
   // TODO: This can be replaced with Integer, using the first 16 bits for hash and the second 16 bits for index.
   private static class Tag<T> implements Comparable<Tag<T>> {
     private final short hash;
@@ -69,6 +71,43 @@ class LeafNode<T> {
     }
   }
 
+  private static class Tags<T> {
+    private final List<Tag<T>> values;
+
+    private Tags(int maxSize) {
+      this.values = new ArrayList<>(maxSize);
+    }
+
+    private void add(Tag<T> value) {
+      values.add(value);
+    }
+
+    private void sort() {
+      Collections.sort(values);
+    }
+
+    private void removeIf(Predicate<Tag<T>> predicate) {
+      values.removeIf(predicate);
+    }
+
+    private short getHashTagByIndex(int index) {
+      return values.get(index).hash;
+    }
+
+    private KeyValue<T> getKeyValueByIndex(int index) {
+      return values.get(index).keyValue;
+    }
+
+    @Override
+    public String toString() {
+      return "Tags{" +
+          "values=" + values +
+          '}';
+    }
+  }
+
+  // Key reference
+
   // A pointer to key via Tag.
   private static class KeyReference<T> implements Comparable<KeyReference<T>> {
     private final Tag<T> tag;
@@ -90,12 +129,116 @@ class LeafNode<T> {
     }
   }
 
-  LeafNode(String anchorKey, int size, @Nullable LeafNode<T> left, @Nullable LeafNode<T> right) {
+  private static class KeyReferences<T> {
+    private final List<KeyReference<T>> values;
+    private int numOfSortedValues;
+
+    private KeyReferences(int maxSize) {
+      this.values = new ArrayList<>(maxSize);
+    }
+
+    private void add(KeyReference<T> value) {
+      values.add(value);
+    }
+
+    private KeyReference<T> get(int index) {
+      return values.get(index);
+    }
+
+    private Tag<T> getTag(int index) {
+      return values.get(index).tag;
+    }
+
+    private KeyValue<T> getKeyValue(int index) {
+      return values.get(index).tag.keyValue;
+    }
+
+    private String getKey(int index) {
+      return values.get(index).tag.keyValue.key;
+    }
+
+    private void removeIf(Predicate<KeyReference<T>> predicate) {
+      values.removeIf(predicate);
+      // The original values should be sorted, then the current values should be sorted after removing values.
+      markAsSorted();
+    }
+
+    private void sort() {
+      int totalSize = values.size();
+
+      List<KeyReference<T>> unsortedValues = values.subList(numOfSortedValues, totalSize);
+      Collections.sort(unsortedValues);
+
+      // Merge sorted and unsorted key references.
+      List<KeyReference<T>> mergedValues = new ArrayList<>(totalSize);
+
+      int idxForSortedKeyRef = 0;
+      int idxForUnsortedKeyRef = 0;
+      String keyFromSortedKeyRef = null;
+      String keyFromUnsortedKeyRef = null;
+      while (true) {
+        if (keyFromSortedKeyRef == null && idxForSortedKeyRef < numOfSortedValues) {
+          keyFromSortedKeyRef = values.get(idxForSortedKeyRef).tag.keyValue.key;
+        }
+        if (keyFromUnsortedKeyRef == null && idxForUnsortedKeyRef < unsortedValues.size()) {
+          keyFromUnsortedKeyRef = unsortedValues.get(idxForUnsortedKeyRef).tag.keyValue.key;
+        }
+
+        KeyReference<T> keyReference;
+        if (keyFromSortedKeyRef != null) {
+          if (keyFromUnsortedKeyRef != null) {
+            if (keyFromSortedKeyRef.compareTo(keyFromUnsortedKeyRef) < 0) {
+              keyReference = values.get(idxForSortedKeyRef++);
+              keyFromSortedKeyRef = null;
+            }
+            else {
+              keyReference = unsortedValues.get(idxForUnsortedKeyRef++);
+              keyFromUnsortedKeyRef = null;
+            }
+          }
+          else {
+            keyReference = values.get(idxForSortedKeyRef++);
+            keyFromSortedKeyRef = null;
+          }
+        }
+        else {
+          if (keyFromUnsortedKeyRef != null) {
+            keyReference = unsortedValues.get(idxForUnsortedKeyRef++);
+            keyFromUnsortedKeyRef = null;
+          }
+          else {
+            break;
+          }
+        }
+        mergedValues.add(keyReference);
+      }
+      Collections.copy(values, mergedValues);
+      numOfSortedValues = totalSize;
+    }
+
+    private boolean isSorted() {
+      return values.size() == numOfSortedValues;
+    }
+
+    private void markAsSorted() {
+      numOfSortedValues = values.size();
+    }
+
+    @Override
+    public String toString() {
+      return "KeyReferences{" +
+          "values=" + values +
+          ", numOfSortedValues=" + numOfSortedValues +
+          '}';
+    }
+  }
+
+  LeafNode(String anchorKey, int maxSize, @Nullable LeafNode<T> left, @Nullable LeafNode<T> right) {
     this.anchorKey = anchorKey;
-    this.maxSize = size;
-    keyValues = new ArrayList<>(size);
-    tags = new ArrayList<>(size);
-    keyReferences = new ArrayList<>(size);
+    this.maxSize = maxSize;
+    keyValues = new ArrayList<>(maxSize);
+    tags = new Tags<>(maxSize);
+    keyReferences = new KeyReferences<>(maxSize);
     this.left = left;
     this.right = right;
   }
@@ -118,28 +261,8 @@ class LeafNode<T> {
     this.right = right;
   }
 
-  private short getHashTag(int tagIndex) {
-    return tags.get(tagIndex).hash;
-  }
-
-  private KeyValue<T> getKeyValueByTagIndex(int tagIndex) {
-    return tags.get(tagIndex).keyValue;
-  }
-
-  private Tag<T> getTagByKeyRefIndex(int keyReferenceIndex) {
-    return keyReferences.get(keyReferenceIndex).tag;
-  }
-
-  private KeyValue<T> getKeyValueByKeyRefIndex(int keyReferenceIndex) {
-    return keyReferences.get(keyReferenceIndex).tag.keyValue;
-  }
-
-  String getKeyByKeyRefIndex(int keyReferenceIndex) {
-    return keyReferences.get(keyReferenceIndex).tag.keyValue.key;
-  }
-
-  private KeyReference<T> getKeyReference(int keyReferenceIndex) {
-    return keyReferences.get(keyReferenceIndex);
+  String getKeyByKeyRefIndex(int keyRefIndex) {
+    return keyReferences.getKey(keyRefIndex);
   }
 
   private short calculateKeyHash(String key) {
@@ -151,14 +274,14 @@ class LeafNode<T> {
     short keyHash = calculateKeyHash(key);
     int leafSize = keyValues.size();
     int tagIndex = keyHash * leafSize / (Short.MAX_VALUE + 1);
-    while (tagIndex > 0 && keyHash <= getHashTag(tagIndex - 1)) {
+    while (tagIndex > 0 && keyHash <= tags.getHashTagByIndex(tagIndex - 1)) {
       tagIndex--;
     }
-    while (tagIndex < leafSize && getHashTag(tagIndex) < keyHash) {
+    while (tagIndex < leafSize && tags.getHashTagByIndex(tagIndex) < keyHash) {
       tagIndex++;
     }
-    while (tagIndex < leafSize && getHashTag(tagIndex) == keyHash) {
-      KeyValue<T> kv = getKeyValueByTagIndex(tagIndex);
+    while (tagIndex < leafSize && tags.getHashTagByIndex(tagIndex) == keyHash) {
+      KeyValue<T> kv = tags.getKeyValueByIndex(tagIndex);
       if (kv.key.equals(key)) {
         return kv;
       }
@@ -168,64 +291,13 @@ class LeafNode<T> {
   }
 
   void incSort() {
-    int totalSize = size();
-
-    // Sort unsorted key references.
-    List<KeyReference<T>> unsortedKeyReferences = keyReferences.subList(numOfSortedKeyReferences, totalSize);
-    Collections.sort(unsortedKeyReferences);
-
-    // Merge sorted and unsorted key references.
-    List<KeyReference<T>> mergedKeyReferences = new ArrayList<>(totalSize);
-
-    int idxForSortedKeyRef = 0;
-    int idxForUnsortedKeyRef = 0;
-    String keyFromSortedKeyRef = null;
-    String keyFromUnsortedKeyRef = null;
-    while (true) {
-      if (keyFromSortedKeyRef == null && idxForSortedKeyRef < numOfSortedKeyReferences) {
-        keyFromSortedKeyRef = getKeyValueByKeyRefIndex(idxForSortedKeyRef).key;
-      }
-      if (keyFromUnsortedKeyRef == null && idxForUnsortedKeyRef < totalSize) {
-        keyFromUnsortedKeyRef = getKeyValueByKeyRefIndex(idxForUnsortedKeyRef).key;
-      }
-
-      KeyReference<T> keyReference;
-      if (keyFromSortedKeyRef != null) {
-        if (keyFromUnsortedKeyRef != null) {
-          if (keyFromSortedKeyRef.compareTo(keyFromUnsortedKeyRef) < 0) {
-            keyReference = keyReferences.get(idxForSortedKeyRef++);
-            keyFromSortedKeyRef = null;
-          }
-          else {
-            keyReference = unsortedKeyReferences.get(idxForUnsortedKeyRef++);
-            keyFromUnsortedKeyRef = null;
-          }
-        }
-        else {
-          keyReference = keyReferences.get(idxForSortedKeyRef++);
-          keyFromSortedKeyRef = null;
-        }
-      }
-      else {
-        if (keyFromUnsortedKeyRef != null) {
-          keyReference = unsortedKeyReferences.get(idxForUnsortedKeyRef++);
-          keyFromUnsortedKeyRef = null;
-        }
-        else {
-          break;
-        }
-      }
-      mergedKeyReferences.add(keyReference);
-    }
-    Collections.copy(keyReferences, mergedKeyReferences);
-    numOfSortedKeyReferences = totalSize;
+    keyReferences.sort();
   }
 
   private Tuple<LeafNode<T>, Set<KeyValue<T>>> copyToNewLeafNode(String newAnchor, int startKeyRefIndex) {
-    if (numOfSortedKeyReferences != keyValues.size()) {
+    if (!keyReferences.isSorted()) {
       throw new AssertionError(
-          String.format("The leaf node doesn't seem to be sorted. The number of sorted key references: %d, The key value size: %d",
-              numOfSortedKeyReferences, keyValues.size()));
+          String.format("The leaf node doesn't seem to be sorted. Key references: %s", keyReferences));
     }
 
     int currentSize = keyValues.size();
@@ -234,7 +306,7 @@ class LeafNode<T> {
     LeafNode<T> newLeafNode = new LeafNode<>(newAnchor, maxSize, this, this.right);
     Set<KeyValue<T>> keyValuesInNewLeafNode = new HashSet<>(maxSize);
     for (int i = startKeyRefIndex; i < currentSize; i++) {
-      Tag<T> tag = getTagByKeyRefIndex(i);
+      Tag<T> tag = keyReferences.getTag(i);
       KeyValue<T> kv = tag.keyValue;
       newLeafNode.keyValues.add(kv);
       keyValuesInNewLeafNode.add(kv);
@@ -242,9 +314,8 @@ class LeafNode<T> {
       newLeafNode.tags.add(tag);
       newLeafNode.keyReferences.add(keyReferences.get(i));
     }
-    int newLeafNodeSize = newLeafNode.size();
-    Collections.sort(newLeafNode.tags);
-    newLeafNode.numOfSortedKeyReferences = newLeafNodeSize;
+    tags.sort();
+    newLeafNode.keyReferences.markAsSorted();
 
     setRight(newLeafNode);
 
@@ -255,12 +326,9 @@ class LeafNode<T> {
     keyValues.removeIf(keyValuesInNewLeafNode::contains);
 
     tags.removeIf(tag -> keyValuesInNewLeafNode.contains(tag.keyValue));
-    Collections.sort(tags);
+    tags.sort();
 
     keyReferences.removeIf(keyRef -> keyValuesInNewLeafNode.contains(keyRef.tag.keyValue));
-    Collections.sort(keyReferences);
-
-    numOfSortedKeyReferences = size();
   }
 
   LeafNode<T> splitToNewLeafNode(String newAnchor, int startKeyRefIndex) {
@@ -285,7 +353,6 @@ class LeafNode<T> {
         ", keyValues=" + keyValues +
         ", tags=" + tags +
         ", keyReferences=" + keyReferences +
-        ", numOfSortedKeyReferences=" + numOfSortedKeyReferences +
         ", left=" + (left == null ? "null" : left.anchorKey) +
         ", right=" + (right == null ? "null" : right.anchorKey) +
         '}';
@@ -299,7 +366,7 @@ class LeafNode<T> {
 
     Tag<T> tag = new Tag<>(keyHash, keyValue);
     tags.add(tag);
-    Collections.sort(tags);
+    tags.sort();
 
     // Sorting this will be delayed until range scan or split.
     keyReferences.add(new KeyReference<>(tag));
