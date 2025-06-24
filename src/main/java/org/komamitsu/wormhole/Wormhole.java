@@ -183,4 +183,12 @@ public class Wormhole<T> {
 
     return newLeafNode;
   }
+
+  @Override
+  public String toString() {
+    return "Wormhole{" +
+        "table=" + table +
+        ", leafNodeSize=" + leafNodeSize +
+        '}';
+  }
 }

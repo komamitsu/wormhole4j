@@ -1,6 +1,5 @@
 package org.komamitsu.wormhole;
 
-import javax.annotation.Nullable;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,6 +21,13 @@ class MetaTrieHashTable<T> {
     NodeMetaLeaf(String anchorPrefix, LeafNode<T> leafNode) {
       super(anchorPrefix);
       this.leafNode = leafNode;
+    }
+
+    @Override
+    public String toString() {
+      return "NodeMetaLeaf{" +
+          "leafNode=" + leafNode +
+          '}';
     }
   }
 
@@ -66,6 +72,15 @@ class MetaTrieHashTable<T> {
 
     void setRightMostLeafNode(LeafNode<T> rightMostLeafNode) {
       this.rightMostLeafNode = rightMostLeafNode;
+    }
+
+    @Override
+    public String toString() {
+      return "NodeMetaInternal{" +
+          "leftMostLeafNode=" + leftMostLeafNode +
+          ", rightMostLeafNode=" + rightMostLeafNode +
+          ", bitmap=" + bitmap +
+          '}';
     }
   }
 
@@ -152,5 +167,12 @@ class MetaTrieHashTable<T> {
       }
     }
     return max;
+  }
+
+  @Override
+  public String toString() {
+    return "MetaTrieHashTable{" +
+        "table=" + table +
+        '}';
   }
 }

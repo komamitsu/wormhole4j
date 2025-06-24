@@ -3,6 +3,10 @@ package org.komamitsu.wormhole;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Nested;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class WormholeTest {
@@ -85,6 +89,41 @@ class WormholeTest {
       assertThat(wormhole.get("aaa")).isEqualTo(3);
       assertThat(wormhole.get("aaaa")).isEqualTo(4);
       assertThat(wormhole.get("aaaaa")).isEqualTo(5);
+    }
+
+    @Test
+    void afterPuttingManyRecords_ShouldReturnIt() {
+      // Arrange
+      Wormhole<Integer> wormhole = new Wormhole<>(3);
+      int maxKeyLength = 8;
+      int recordCount = 22;
+      Map<String, Integer> expected = new HashMap<>(recordCount);
+
+      // Act
+      for (int i = 0; i < recordCount; i++) {
+        // TODO: NPE occurs when the key length is 0.
+        int keyLength = ThreadLocalRandom.current().nextInt(1, maxKeyLength + 1);
+        StringBuilder sb = new StringBuilder(keyLength);
+        for (int j = 0; j < keyLength; j++) {
+          char c = (char) ThreadLocalRandom.current().nextInt('a', 'z' + 1);
+          sb.append(c);
+        }
+        String key = sb.toString();
+        int value = ThreadLocalRandom.current().nextInt();
+        expected.put(key, value);
+        try {
+          wormhole.put(key, value);
+        }
+        catch (Exception e) {
+          System.err.printf("Failed to put. Key: %s, Value: %d, Wormhole:%s%n", key, value, wormhole);
+          throw e;
+        }
+      }
+
+      // Assert
+      for (Map.Entry<String, Integer> entry : expected.entrySet()) {
+        assertThat(wormhole.get(entry.getKey())).isEqualTo(entry.getValue());
+      }
     }
   }
 }
