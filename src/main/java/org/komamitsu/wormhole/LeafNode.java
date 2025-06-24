@@ -297,7 +297,7 @@ class LeafNode<T> {
 
     short keyHash = calculateKeyHash(key);
 
-    Tag<T> tag = new Tag<T>(keyHash, keyValue);
+    Tag<T> tag = new Tag<>(keyHash, keyValue);
     tags.add(tag);
     Collections.sort(tags);
 

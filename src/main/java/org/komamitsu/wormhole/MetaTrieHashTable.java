@@ -111,11 +111,13 @@ class MetaTrieHashTable<T> {
 
         NodeMetaInternal<T> internalNode = (NodeMetaInternal<T>) node;
 
-        if (internalNode.getLeftMostLeafNode() == origLeafNode.getRight()) {
-          internalNode.setLeftMostLeafNode(origLeafNode);
+        // Note that the pseudocode on the paper checks and update the original leaf node, but I think it should be the
+        // new leaf node.
+        if (internalNode.getLeftMostLeafNode() == newLeafNode.getRight()) {
+          internalNode.setLeftMostLeafNode(newLeafNode);
         }
-        if (internalNode.getRightMostLeafNode() == origLeafNode.getLeft()) {
-          internalNode.setRightMostLeafNode(origLeafNode);
+        if (internalNode.getRightMostLeafNode() == newLeafNode.getLeft()) {
+          internalNode.setRightMostLeafNode(newLeafNode);
         }
       }
       return;
