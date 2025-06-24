@@ -310,11 +310,11 @@ class LeafNode<T> {
       KeyValue<T> kv = tag.keyValue;
       newLeafNode.keyValues.add(kv);
       keyValuesInNewLeafNode.add(kv);
-      // This needs to be sorted later.
       newLeafNode.tags.add(tag);
       newLeafNode.keyReferences.add(keyReferences.get(i));
     }
-    tags.sort();
+    newLeafNode.tags.sort();
+    // The original leaf node's key references were sorted. Therefore, the new leaf node's ones should be sorted.
     newLeafNode.keyReferences.markAsSorted();
 
     setRight(newLeafNode);
