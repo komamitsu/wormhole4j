@@ -26,9 +26,7 @@ class MetaTrieHashTable<T> {
   }
 
   static class NodeMetaInternal<T> extends NodeMeta<T> {
-    @Nullable
     private LeafNode<T> leftMostLeafNode;
-    @Nullable
     private LeafNode<T> rightMostLeafNode;
     final BitSet bitmap;
 
@@ -54,21 +52,19 @@ class MetaTrieHashTable<T> {
       return null;
     }
 
-    @Nullable
     LeafNode<T> getLeftMostLeafNode() {
       return leftMostLeafNode;
     }
 
-    @Nullable
     LeafNode<T> getRightMostLeafNode() {
       return rightMostLeafNode;
     }
 
-    void setLeftMostLeafNode(@Nullable LeafNode<T> leftMostLeafNode) {
+    void setLeftMostLeafNode(LeafNode<T> leftMostLeafNode) {
       this.leftMostLeafNode = leftMostLeafNode;
     }
 
-    void setRightMostLeafNode(@Nullable LeafNode<T> rightMostLeafNode) {
+    void setRightMostLeafNode(LeafNode<T> rightMostLeafNode) {
       this.rightMostLeafNode = rightMostLeafNode;
     }
   }
@@ -81,7 +77,7 @@ class MetaTrieHashTable<T> {
     table.put(key, nodeMeta);
   }
 
-  void handleSplitNodes(String key, LeafNode<T> origLeafNode, LeafNode<T> newLeafNode) {
+  void handleSplitNodes(String key, LeafNode<T> newLeafNode) {
     NodeMetaLeaf<T> newNodeMeta = new NodeMetaLeaf<>(key, newLeafNode);
     put(key, newNodeMeta);
 
@@ -103,13 +99,17 @@ class MetaTrieHashTable<T> {
         NodeMetaLeaf<T> updatedNode = new NodeMetaLeaf<>(prefixWithSmallestToken, leafNode);
         table.put(prefixWithSmallestToken, updatedNode);
 
-        NodeMetaInternal<T> parent = new NodeMetaInternal<T>(prefix, leafNode, leafNode, Wormhole.BITMAP_ID_OF_SMALLEST_TOKEN);
+        NodeMetaInternal<T> parent = new NodeMetaInternal<>(prefix, leafNode, leafNode, Wormhole.BITMAP_ID_OF_SMALLEST_TOKEN);
         table.put(prefix, parent);
       }
       else {
         assert node instanceof NodeMetaInternal;
 
         NodeMetaInternal<T> internalNode = (NodeMetaInternal<T>) node;
+
+        // The pseudocode of the 'split()` function on the paper doesn't update existing internal nodes' bitmap.
+        // However, it's necessary.
+        internalNode.bitmap.set(key.charAt(prefixLen));
 
         // Note that the pseudocode on the paper checks and update the original leaf node, but I think it should be the
         // new leaf node.

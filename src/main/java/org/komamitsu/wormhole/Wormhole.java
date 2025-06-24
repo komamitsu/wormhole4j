@@ -77,13 +77,14 @@ public class Wormhole<T> {
 
     // The leaf type is INTERNAL.
     if (anchorPrefixLength == key.length()) {
-      if (key.compareTo(nodeMeta.anchorPrefix) < 0) {
+      LeafNode<T> leafNode = nodeMetaInternal.getLeftMostLeafNode();
+      if (key.compareTo(leafNode.anchorKey) < 0) {
         // For example, if the paper's example had key "J" in the second leaf node and the search key is "J",
         // this special treatment would be necessary.
-        return nodeMetaInternal.getLeftMostLeafNode().getLeft();
+        return leafNode.getLeft();
       }
       else {
-        return nodeMetaInternal.getLeftMostLeafNode();
+        return leafNode;
       }
     }
 
@@ -178,7 +179,7 @@ public class Wormhole<T> {
     String newAnchor = found.second;
     LeafNode<T> newLeafNode = leafNode.splitToNewLeafNode(newAnchor, splitPosIndex);
 
-    table.handleSplitNodes(newAnchor, leafNode, newLeafNode);
+    table.handleSplitNodes(newAnchor, newLeafNode);
 
     return newLeafNode;
   }
