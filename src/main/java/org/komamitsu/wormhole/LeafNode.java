@@ -168,14 +168,14 @@ class LeafNode<T> {
   }
 
   void incSort() {
-    int size = size();
+    int totalSize = size();
 
     // Sort unsorted key references.
-    List<KeyReference<T>> unsortedKeyReferences = keyReferences.subList(numOfSortedKeyReferences, size);
+    List<KeyReference<T>> unsortedKeyReferences = keyReferences.subList(numOfSortedKeyReferences, totalSize);
     Collections.sort(unsortedKeyReferences);
 
     // Merge sorted and unsorted key references.
-    List<KeyReference<T>> mergedKeyReferences = new ArrayList<>(size);
+    List<KeyReference<T>> mergedKeyReferences = new ArrayList<>(totalSize);
 
     int idxForSortedKeyRef = 0;
     int idxForUnsortedKeyRef = 0;
@@ -185,7 +185,7 @@ class LeafNode<T> {
       if (keyFromSortedKeyRef == null && idxForSortedKeyRef < numOfSortedKeyReferences) {
         keyFromSortedKeyRef = getKeyValueByKeyRefIndex(idxForSortedKeyRef).key;
       }
-      if (keyFromUnsortedKeyRef == null && idxForUnsortedKeyRef < keyValues.size()) {
+      if (keyFromUnsortedKeyRef == null && idxForUnsortedKeyRef < totalSize) {
         keyFromUnsortedKeyRef = getKeyValueByKeyRefIndex(idxForUnsortedKeyRef).key;
       }
 
@@ -193,22 +193,22 @@ class LeafNode<T> {
       if (keyFromSortedKeyRef != null) {
         if (keyFromUnsortedKeyRef != null) {
           if (keyFromSortedKeyRef.compareTo(keyFromUnsortedKeyRef) < 0) {
-            keyReference = getKeyReference(idxForSortedKeyRef++);
+            keyReference = keyReferences.get(idxForSortedKeyRef++);
             keyFromSortedKeyRef = null;
           }
           else {
-            keyReference = getKeyReference(idxForUnsortedKeyRef++);
+            keyReference = unsortedKeyReferences.get(idxForUnsortedKeyRef++);
             keyFromUnsortedKeyRef = null;
           }
         }
         else {
-          keyReference = getKeyReference(idxForSortedKeyRef++);
+          keyReference = keyReferences.get(idxForSortedKeyRef++);
           keyFromSortedKeyRef = null;
         }
       }
       else {
         if (keyFromUnsortedKeyRef != null) {
-          keyReference = getKeyReference(idxForUnsortedKeyRef++);
+          keyReference = unsortedKeyReferences.get(idxForUnsortedKeyRef++);
           keyFromUnsortedKeyRef = null;
         }
         else {
@@ -218,7 +218,7 @@ class LeafNode<T> {
       mergedKeyReferences.add(keyReference);
     }
     Collections.copy(keyReferences, mergedKeyReferences);
-    numOfSortedKeyReferences = size;
+    numOfSortedKeyReferences = totalSize;
   }
 
   private Tuple<LeafNode<T>, Set<KeyValue<T>>> copyToNewLeafNode(String newAnchor, int startKeyRefIndex) {
