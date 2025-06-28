@@ -96,7 +96,7 @@ class WormholeTest {
       // Arrange
       Wormhole<Integer> wormhole = new Wormhole<>(3);
       int maxKeyLength = 8;
-      int recordCount = 20;
+      int recordCount = 700;
       Map<String, Integer> expected = new LinkedHashMap<>(recordCount);
 
       // Act
@@ -112,6 +112,7 @@ class WormholeTest {
         int value = ThreadLocalRandom.current().nextInt();
         expected.put(key, value);
         wormhole.put(key, value);
+        wormhole.validate();
       }
 
       // Assert

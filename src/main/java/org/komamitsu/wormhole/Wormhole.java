@@ -162,7 +162,7 @@ public class Wormhole<T> {
 
       // Check the anchor key prefix condition.
       MetaTrieHashTable.NodeMeta<T> existingNodeMeta = table.get(newAnchor);
-      if (existingNodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf) {
+      if (existingNodeMeta != null) {
         // "Append 0s to key when necessary"
         newAnchor = newAnchor + SMALLEST_TOKEN;
         existingNodeMeta = table.get(newAnchor);
@@ -244,14 +244,14 @@ public class Wormhole<T> {
       for (int i = 0; i < leafNodes.size(); i++) {
         LeafNode<T> leafNode = leafNodes.get(i);
         if (i > 0) {
-          if (leafNode.getLeft() == leafNodes.get(i - 1)) {
+          if (leafNode.getLeft() != leafNodes.get(i - 1)) {
             throw new AssertionError(
                 String.format(
                     "The left node of the leaf node is wrong. Leaf node: %s, Expected left node: %s", leafNode, leafNodes.get(i - 1)));
           }
         }
         if (i < leafNodes.size() - 1) {
-          if (leafNode.getRight() == leafNodes.get(i + 1)) {
+          if (leafNode.getRight() != leafNodes.get(i + 1)) {
             throw new AssertionError(
                 String.format(
                     "The right node of the leaf node is wrong. Leaf node: %s, Expected right node: %s", leafNode, leafNodes.get(i + 1)));

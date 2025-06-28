@@ -95,6 +95,12 @@ class MetaTrieHashTable<T> {
 
   void handleSplitNodes(String key, LeafNode<T> newLeafNode) {
     NodeMetaLeaf<T> newNodeMeta = new NodeMetaLeaf<>(key, newLeafNode);
+    NodeMeta<T> existingNodeMeta = get(key);
+    if (existingNodeMeta != null) {
+      throw new AssertionError(
+          String.format(
+              "There is a node meta that has the same key. Key: %s, Node meta: %s", key, existingNodeMeta));
+    }
     put(key, newNodeMeta);
 
     // Update node meta that have a shorter anchor prefix.
