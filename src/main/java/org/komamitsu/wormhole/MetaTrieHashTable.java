@@ -5,7 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 class MetaTrieHashTable<T> {
-  private final Map<String, NodeMeta<T>> table = new HashMap<>();
+  // Visible for testing
+  final Map<String, NodeMeta<T>> table = new HashMap<>();
 
   static abstract class NodeMeta<T> {
     final String anchorPrefix;
@@ -116,24 +117,25 @@ class MetaTrieHashTable<T> {
 
         NodeMetaInternal<T> parent = new NodeMetaInternal<>(prefix, leafNode, leafNode, Wormhole.BITMAP_ID_OF_SMALLEST_TOKEN);
         table.put(prefix, parent);
+
+        node = parent;
       }
-      else {
-        assert node instanceof NodeMetaInternal;
 
-        NodeMetaInternal<T> internalNode = (NodeMetaInternal<T>) node;
+      assert node instanceof NodeMetaInternal;
 
-        // The pseudocode of the 'split()` function on the paper doesn't update existing internal nodes' bitmap.
-        // However, it's necessary.
-        internalNode.bitmap.set(key.charAt(prefixLen));
+      NodeMetaInternal<T> internalNode = (NodeMetaInternal<T>) node;
 
-        // Note that the pseudocode on the paper checks and update the original leaf node, but I think it should be the
-        // new leaf node.
-        if (internalNode.getLeftMostLeafNode() == newLeafNode.getRight()) {
-          internalNode.setLeftMostLeafNode(newLeafNode);
-        }
-        if (internalNode.getRightMostLeafNode() == newLeafNode.getLeft()) {
-          internalNode.setRightMostLeafNode(newLeafNode);
-        }
+      // The pseudocode of the 'split()` function on the paper doesn't update existing internal nodes' bitmap.
+      // However, it's necessary.
+      internalNode.bitmap.set(key.charAt(prefixLen));
+
+      // Note that the pseudocode on the paper checks and update the original leaf node, but I think it should be the
+      // new leaf node.
+      if (internalNode.getLeftMostLeafNode() == newLeafNode.getRight()) {
+        internalNode.setLeftMostLeafNode(newLeafNode);
+      }
+      if (internalNode.getRightMostLeafNode() == newLeafNode.getLeft()) {
+        internalNode.setRightMostLeafNode(newLeafNode);
       }
     }
   }

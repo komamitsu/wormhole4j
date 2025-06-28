@@ -9,14 +9,18 @@ class LeafNode<T> {
   private final int maxSize;
   private final List<KeyValue<T>> keyValues;
   // All references are always sorted by hash.
-  private final Tags<T> tags;
+  // Visible for testing.
+  final Tags<T> tags;
   // Some references are sorted by key.
-  private final KeyReferences<T> keyReferences;
+  // Visible for testing.
+  final KeyReferences<T> keyReferences;
 
+  // Visible for testing.
   @Nullable
-  private LeafNode<T> left;
+  LeafNode<T> left;
+  // Visible for testing.
   @Nullable
-  private LeafNode<T> right;
+  LeafNode<T> right;
 
   static class KeyValue<T> {
     public final String key;
@@ -71,7 +75,8 @@ class LeafNode<T> {
     }
   }
 
-  private static class Tags<T> {
+  // Visible for testing.
+  static class Tags<T> {
     private final List<Tag<T>> values;
 
     private Tags(int maxSize) {
@@ -90,12 +95,18 @@ class LeafNode<T> {
       values.removeIf(predicate);
     }
 
-    private short getHashTagByIndex(int index) {
+    // Visible for testing.
+    short getHashTagByIndex(int index) {
       return values.get(index).hash;
     }
 
     private KeyValue<T> getKeyValueByIndex(int index) {
       return values.get(index).keyValue;
+    }
+
+    // Visible for testing.
+    int size() {
+      return values.size();
     }
 
     @Override
@@ -109,7 +120,8 @@ class LeafNode<T> {
   // Key reference
 
   // A pointer to key via Tag.
-  private static class KeyReference<T> implements Comparable<KeyReference<T>> {
+  // Visible for testing.
+  static class KeyReference<T> implements Comparable<KeyReference<T>> {
     private final Tag<T> tag;
 
     private KeyReference(Tag<T> tag) {
@@ -129,7 +141,8 @@ class LeafNode<T> {
     }
   }
 
-  private static class KeyReferences<T> {
+  // Visible for testing.
+  static class KeyReferences<T> {
     private final List<KeyReference<T>> values;
     private int numOfSortedValues;
 
@@ -153,8 +166,14 @@ class LeafNode<T> {
       return values.get(index).tag.keyValue;
     }
 
-    private String getKey(int index) {
+    // Visible for testing.
+    String getKey(int index) {
       return values.get(index).tag.keyValue.key;
+    }
+
+    // Visible for testing.
+    int getNumOfSortedValues() {
+      return numOfSortedValues;
     }
 
     private void removeIf(Predicate<KeyReference<T>> predicate) {
@@ -222,6 +241,11 @@ class LeafNode<T> {
 
     private void markAsSorted() {
       numOfSortedValues = values.size();
+    }
+
+    // Visible for testing.
+    int size() {
+      return values.size();
     }
 
     @Override

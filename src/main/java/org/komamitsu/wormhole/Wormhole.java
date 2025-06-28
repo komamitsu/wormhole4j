@@ -6,7 +6,8 @@ public class Wormhole<T> {
   private static final int DEFAULT_LEAF_NODE_SIZE = 128;
   public static final String SMALLEST_TOKEN = "\0";
   public static final char BITMAP_ID_OF_SMALLEST_TOKEN = 0;
-  private final MetaTrieHashTable<T> table = new MetaTrieHashTable<>();
+  // Visible for testing.
+  final MetaTrieHashTable<T> table = new MetaTrieHashTable<>();
   private final int leafNodeSize;
 
   public Wormhole() {
