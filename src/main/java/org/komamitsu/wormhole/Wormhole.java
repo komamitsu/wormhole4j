@@ -1,6 +1,10 @@
 package org.komamitsu.wormhole;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 
 public class Wormhole<T> {
   private static final int DEFAULT_LEAF_NODE_SIZE = 128;
@@ -191,5 +195,69 @@ public class Wormhole<T> {
         "table=" + table +
         ", leafNodeSize=" + leafNodeSize +
         '}';
+  }
+
+  void validate() {
+    new Validator<T>(this).validate();
+  }
+
+  private static class Validator<T> {
+    private final Wormhole<T> wormhole;
+
+    Validator(Wormhole<T> wormhole) {
+      this.wormhole = wormhole;
+    }
+
+    void validate() {
+      try {
+        validateInternal();
+      }
+      catch (AssertionError e) {
+        System.err.println(wormhole);
+        throw e;
+      }
+    }
+
+    private void validateInternal() {
+      List<LeafNode<T>> leafNodes = new ArrayList<>();
+      MetaTrieHashTable<T> table = wormhole.table;
+      for (Map.Entry<String, MetaTrieHashTable.NodeMeta<T>> entry : table.table.entrySet()) {
+        String key = entry.getKey();
+        MetaTrieHashTable.NodeMeta<T> nodeMeta = entry.getValue();
+        if (!nodeMeta.anchorPrefix.equals(key)) {
+          throw new AssertionError(
+              String.format(
+                  "The node metadata anchor key is different from the key of MetaTrieHashTable. Key: %s, Node metadata anchor key: %s",
+                  key, nodeMeta.anchorPrefix));
+        }
+        if (nodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf) {
+          LeafNode<T> leafNode = ((MetaTrieHashTable.NodeMetaLeaf<T>) nodeMeta).leafNode;
+          leafNode.validate();
+          leafNodes.add(leafNode);
+        }
+        else {
+          // TODO
+        }
+      }
+
+      leafNodes.sort(Comparator.comparing(a -> a.anchorKey));
+      for (int i = 0; i < leafNodes.size(); i++) {
+        LeafNode<T> leafNode = leafNodes.get(i);
+        if (i > 0) {
+          if (leafNode.getLeft() == leafNodes.get(i - 1)) {
+            throw new AssertionError(
+                String.format(
+                    "The left node of the leaf node is wrong. Leaf node: %s, Expected left node: %s", leafNode, leafNodes.get(i - 1)));
+          }
+        }
+        if (i < leafNodes.size() - 1) {
+          if (leafNode.getRight() == leafNodes.get(i + 1)) {
+            throw new AssertionError(
+                String.format(
+                    "The right node of the leaf node is wrong. Leaf node: %s, Expected right node: %s", leafNode, leafNodes.get(i + 1)));
+          }
+        }
+      }
+    }
   }
 }

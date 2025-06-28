@@ -3,24 +3,21 @@ package org.komamitsu.wormhole;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 class LeafNode<T> {
   public final String anchorKey;
   private final int maxSize;
   private final List<KeyValue<T>> keyValues;
   // All references are always sorted by hash.
-  // Visible for testing.
-  final Tags<T> tags;
+  private final Tags<T> tags;
   // Some references are sorted by key.
-  // Visible for testing.
-  final KeyReferences<T> keyReferences;
+  private final KeyReferences<T> keyReferences;
 
-  // Visible for testing.
   @Nullable
-  LeafNode<T> left;
-  // Visible for testing.
+  private LeafNode<T> left;
   @Nullable
-  LeafNode<T> right;
+  private LeafNode<T> right;
 
   static class KeyValue<T> {
     public final String key;
@@ -75,8 +72,7 @@ class LeafNode<T> {
     }
   }
 
-  // Visible for testing.
-  static class Tags<T> {
+  private static class Tags<T> {
     private final List<Tag<T>> values;
 
     private Tags(int maxSize) {
@@ -95,8 +91,7 @@ class LeafNode<T> {
       values.removeIf(predicate);
     }
 
-    // Visible for testing.
-    short getHashTagByIndex(int index) {
+    private short getHashTagByIndex(int index) {
       return values.get(index).hash;
     }
 
@@ -104,8 +99,7 @@ class LeafNode<T> {
       return values.get(index).keyValue;
     }
 
-    // Visible for testing.
-    int size() {
+    private int size() {
       return values.size();
     }
 
@@ -120,8 +114,7 @@ class LeafNode<T> {
   // Key reference
 
   // A pointer to key via Tag.
-  // Visible for testing.
-  static class KeyReference<T> implements Comparable<KeyReference<T>> {
+  private static class KeyReference<T> implements Comparable<KeyReference<T>> {
     private final Tag<T> tag;
 
     private KeyReference(Tag<T> tag) {
@@ -141,8 +134,7 @@ class LeafNode<T> {
     }
   }
 
-  // Visible for testing.
-  static class KeyReferences<T> {
+  private static class KeyReferences<T> {
     private final List<KeyReference<T>> values;
     private int numOfSortedValues;
 
@@ -166,13 +158,11 @@ class LeafNode<T> {
       return values.get(index).tag.keyValue;
     }
 
-    // Visible for testing.
-    String getKey(int index) {
+    private String getKey(int index) {
       return values.get(index).tag.keyValue.key;
     }
 
-    // Visible for testing.
-    int getNumOfSortedValues() {
+    private int getNumOfSortedValues() {
       return numOfSortedValues;
     }
 
@@ -243,8 +233,7 @@ class LeafNode<T> {
       numOfSortedValues = values.size();
     }
 
-    // Visible for testing.
-    int size() {
+    private int size() {
       return values.size();
     }
 
@@ -277,11 +266,11 @@ class LeafNode<T> {
     return right;
   }
 
-  void setLeft(@Nullable LeafNode<T> left) {
+  private void setLeft(@Nullable LeafNode<T> left) {
     this.left = left;
   }
 
-  void setRight(@Nullable LeafNode<T> right) {
+  private void setRight(@Nullable LeafNode<T> right) {
     this.right = right;
   }
 
@@ -341,6 +330,11 @@ class LeafNode<T> {
     // The original leaf node's key references were sorted. Therefore, the new leaf node's ones should be sorted.
     newLeafNode.keyReferences.markAsSorted();
 
+    LeafNode<T> rightLeafNode = getRight();
+    if (rightLeafNode != null) {
+      rightLeafNode.setLeft(newLeafNode);
+    }
+
     setRight(newLeafNode);
 
     return new Tuple<>(newLeafNode, keyValuesInNewLeafNode);
@@ -394,5 +388,42 @@ class LeafNode<T> {
 
     // Sorting this will be delayed until range scan or split.
     keyReferences.add(new KeyReference<>(tag));
+  }
+
+  void validate() {
+    if (tags.size() != size()) {
+      throw new AssertionError(
+          String.format(
+              "The number of tags is different from the number of keys. Keys: %s, Tags: %s",
+              keyValues.stream().map(kv -> kv.key).collect(Collectors.toList()), tags));
+    }
+    for (int i = 0; i < size(); i++) {
+      if (i < size() - 1) {
+        if (tags.getHashTagByIndex(i) > tags.getHashTagByIndex(i + 1)) {
+          throw new AssertionError(String.format("The tags are not sorted. Tags: %s", tags));
+        }
+      }
+    }
+
+    if (keyReferences.size() != size()) {
+      throw new AssertionError(
+          String.format(
+              "The number of key references is different from the number of keys. Keys: %s, Key references: %s",
+              keyValues.stream().map(kv -> kv.key).collect(Collectors.toList()), keyReferences));
+    }
+
+    if (keyReferences.numOfSortedValues > keyReferences.size()) {
+      throw new AssertionError(
+          String.format("The number of sorted key references is larger than the number of key references. Key references: %s",
+              keyReferences));
+    }
+
+    for (int i = 0; i < size(); i++) {
+      if (i > 0 && i < keyReferences.getNumOfSortedValues() - 1) {
+        if (keyReferences.getKey(i).compareTo(keyReferences.getKey(i + 1)) > 0) {
+          throw new AssertionError(String.format("The key references are not ordered. Key references: %s", keyReferences));
+        }
+      }
+    }
   }
 }
