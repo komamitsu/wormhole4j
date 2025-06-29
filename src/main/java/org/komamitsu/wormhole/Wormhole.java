@@ -83,7 +83,11 @@ public class Wormhole<T> {
     // The leaf type is INTERNAL.
     if (anchorPrefixLength == key.length()) {
       LeafNode<T> leafNode = nodeMetaInternal.getLeftMostLeafNode();
-      if (key.compareTo(leafNode.anchorKey) < 0) {
+      String leafNodeAnchorKey = leafNode.anchorKey;
+      if (leafNodeAnchorKey.endsWith(SMALLEST_TOKEN)) {
+        leafNodeAnchorKey = leafNodeAnchorKey.substring(0, leafNodeAnchorKey.length() - 1);
+      }
+      if (key.compareTo(leafNodeAnchorKey) < 0) {
         // For example, if the paper's example had key "J" in the second leaf node and the search key is "J",
         // this special treatment would be necessary.
         return leafNode.getLeft();
@@ -150,7 +154,7 @@ public class Wormhole<T> {
       String k2 = leafNode.getKeyByKeyRefIndex(i);
 
       String lcp = extractLongestCommonPrefix(k1, k2);
-      String newAnchor = lcp.length() == k2.length() ? k2 : lcp + k2.charAt(lcp.length());
+      String newAnchor = lcp + k2.charAt(lcp.length());
 
       // TODO: When to use the terminator character?
 

@@ -391,6 +391,34 @@ class LeafNode<T> {
   }
 
   void validate() {
+    String normalizedAnchorKey = anchorKey;
+    if (normalizedAnchorKey.endsWith(Wormhole.SMALLEST_TOKEN)) {
+      normalizedAnchorKey = normalizedAnchorKey.substring(0, normalizedAnchorKey.length() - 1);
+    }
+    String normalizedRightAnchorKey = null;
+    if (right != null) {
+      normalizedRightAnchorKey = right.anchorKey;
+      if (normalizedRightAnchorKey.endsWith(Wormhole.SMALLEST_TOKEN)) {
+        normalizedRightAnchorKey = normalizedRightAnchorKey.substring(0, normalizedRightAnchorKey.length() - 1);
+      }
+    }
+
+    for (int i = 0; i < size(); i++) {
+      KeyValue<T> kv = keyValues.get(i);
+      if (kv.key.compareTo(normalizedAnchorKey) < 0) {
+        throw new AssertionError(
+            String.format(
+                "The key is smaller than the anchor key. Key: %s, Anchor key: %s",
+                kv.key, normalizedAnchorKey));
+      }
+      if (normalizedRightAnchorKey != null && normalizedRightAnchorKey.compareTo(kv.key) < 0) {
+        throw new AssertionError(
+            String.format(
+                "The anchor key of the right leaf node is smaller than the key. Key: %s, Right leaf node's anchor key: %s",
+                kv.key, normalizedRightAnchorKey));
+      }
+    }
+
     if (tags.size() != size()) {
       throw new AssertionError(
           String.format(

@@ -2,6 +2,7 @@ package org.komamitsu.wormhole;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Nested;
+import org.opentest4j.AssertionFailedError;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -96,7 +97,7 @@ class WormholeTest {
       // Arrange
       Wormhole<Integer> wormhole = new Wormhole<>(3);
       int maxKeyLength = 8;
-      int recordCount = 700;
+      int recordCount = 10000;
       Map<String, Integer> expected = new LinkedHashMap<>(recordCount);
 
       // Act
@@ -117,7 +118,15 @@ class WormholeTest {
 
       // Assert
       for (Map.Entry<String, Integer> entry : expected.entrySet()) {
-        assertThat(wormhole.get(entry.getKey())).isEqualTo(entry.getValue());
+        try {
+          assertThat(wormhole.get(entry.getKey())).isEqualTo(entry.getValue());
+        }
+        catch (AssertionFailedError e) {
+          wormhole.validate();
+          Integer result = wormhole.get(entry.getKey());
+          System.out.println(result);
+          throw e;
+        }
       }
     }
   }
