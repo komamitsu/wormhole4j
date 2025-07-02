@@ -19,30 +19,14 @@ class LeafNode<T> {
   @Nullable
   private LeafNode<T> right;
 
-  static class KeyValue<T> {
-    public final String key;
-    private T value;
+  // FIXME
+  public List<KeyValue<T>> getKeyValuesEqualOrGreaterThan(String key, int remaining) {
+    return null;
+  }
 
-    private KeyValue(String key, T value) {
-      this.key = key;
-      this.value = value;
-    }
-
-    @Override
-    public String toString() {
-      return "KeyValue{" +
-          "key='" + Utils.printableKey(key) + '\'' +
-          ", value=" + value +
-          '}';
-    }
-
-    public T getValue() {
-      return value;
-    }
-
-    public void setValue(T value) {
-      this.value = value;
-    }
+  // FIXME
+  public List<KeyValue<T>> getKeyValues(int remaining) {
+    return null;
   }
 
   // Tag

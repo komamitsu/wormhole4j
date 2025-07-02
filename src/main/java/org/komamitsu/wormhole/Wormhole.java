@@ -1,14 +1,11 @@
 package org.komamitsu.wormhole;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public class Wormhole<T> {
   private static final int DEFAULT_LEAF_NODE_SIZE = 128;
@@ -29,7 +26,7 @@ public class Wormhole<T> {
 
   public void put(String key, T value) {
     LeafNode<T> leafNode = searchTrieHashTable(key);
-    LeafNode.KeyValue<T> existingKeyValue = leafNode.pointSearchLeaf(key);
+    KeyValue<T> existingKeyValue = leafNode.pointSearchLeaf(key);
     if (existingKeyValue != null) {
       existingKeyValue.setValue(value);
       return;
@@ -54,11 +51,37 @@ public class Wormhole<T> {
   @Nullable
   public T get(String key) {
     LeafNode<T> leafNode = searchTrieHashTable(key);
-    LeafNode.KeyValue<T> keyValue = leafNode.pointSearchLeaf(key);
+    KeyValue<T> keyValue = leafNode.pointSearchLeaf(key);
     if (keyValue == null) {
       return null;
     }
     return keyValue.getValue();
+  }
+
+  @Nullable
+  public List<KeyValue<T>> scan(String key, int count) {
+    LeafNode<T> leafNode = searchTrieHashTable(key);
+    leafNode.incSort();
+    List<KeyValue<T>> result = new ArrayList<>(count);
+    int remaining = count;
+    boolean isFirst = true;
+    while (leafNode != null && remaining > 0) {
+      List<KeyValue<T>> kvs;
+      if (isFirst) {
+        isFirst = false;
+        kvs = leafNode.getKeyValuesEqualOrGreaterThan(key, remaining);
+      }
+      else {
+        kvs = leafNode.getKeyValues(remaining);
+      }
+      result.addAll(kvs);
+      if (kvs.size() < remaining) {
+        return result;
+      }
+      remaining -= kvs.size();
+      leafNode = leafNode.getRight();
+    }
+    return result;
   }
 
   private void initialize() {
