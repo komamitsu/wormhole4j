@@ -1,6 +1,10 @@
 package org.komamitsu.wormhole;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -34,7 +38,7 @@ public class Wormhole<T> {
     if (leafNode.size() == leafNodeSize) {
       // Split the node and get a new right leaf node.
       LeafNode<T> newLeafNode = split(leafNode);
-      if (key.compareTo(newLeafNode.anchorKey) < 0) {
+      if (Utils.compareAnchorKeys(key, newLeafNode.anchorKey) < 0) {
         leafNode.add(key, value);
       }
       else {
@@ -83,11 +87,7 @@ public class Wormhole<T> {
     // The leaf type is INTERNAL.
     if (anchorPrefixLength == key.length()) {
       LeafNode<T> leafNode = nodeMetaInternal.getLeftMostLeafNode();
-      String leafNodeAnchorKey = leafNode.anchorKey;
-      if (leafNodeAnchorKey.endsWith(SMALLEST_TOKEN)) {
-        leafNodeAnchorKey = leafNodeAnchorKey.substring(0, leafNodeAnchorKey.length() - 1);
-      }
-      if (key.compareTo(leafNodeAnchorKey) < 0) {
+      if (Utils.compareAnchorKeys(key, leafNode.anchorKey) < 0) {
         // For example, if the paper's example had key "J" in the second leaf node and the search key is "J",
         // this special treatment would be necessary.
         return leafNode.getLeft();
@@ -174,7 +174,6 @@ public class Wormhole<T> {
           continue;
         }
       }
-
       return new Tuple<>(i, newAnchor);
     }
     throw new RuntimeException("Cannot split the leaf node. Leaf node: " + leafNode);

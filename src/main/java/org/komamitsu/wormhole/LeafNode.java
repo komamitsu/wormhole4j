@@ -31,7 +31,7 @@ class LeafNode<T> {
     @Override
     public String toString() {
       return "KeyValue{" +
-          "key='" + key + '\'' +
+          "key='" + Utils.printableKey(key) + '\'' +
           ", value=" + value +
           '}';
     }
@@ -366,13 +366,13 @@ class LeafNode<T> {
   @Override
   public String toString() {
     return "LeafNode{" +
-        "anchorKey='" + anchorKey + '\'' +
+        "anchorKey='" + Utils.printableKey(anchorKey) + '\'' +
         ", maxSize=" + maxSize +
         ", keyValues=" + keyValues +
         ", tags=" + tags +
         ", keyReferences=" + keyReferences +
-        ", left=" + (left == null ? "null" : left.anchorKey) +
-        ", right=" + (right == null ? "null" : right.anchorKey) +
+        ", left=" + (left == null ? "null" : Utils.printableKey(left.anchorKey)) +
+        ", right=" + (right == null ? "null" : Utils.printableKey(right.anchorKey)) +
         '}';
   }
 
@@ -409,13 +409,13 @@ class LeafNode<T> {
         throw new AssertionError(
             String.format(
                 "The key is smaller than the anchor key. Key: %s, Anchor key: %s",
-                kv.key, normalizedAnchorKey));
+                Utils.printableKey(kv.key), normalizedAnchorKey));
       }
       if (normalizedRightAnchorKey != null && normalizedRightAnchorKey.compareTo(kv.key) < 0) {
         throw new AssertionError(
             String.format(
                 "The anchor key of the right leaf node is smaller than the key. Key: %s, Right leaf node's anchor key: %s",
-                kv.key, normalizedRightAnchorKey));
+                Utils.printableKey(kv.key), normalizedRightAnchorKey));
       }
     }
 
@@ -423,7 +423,7 @@ class LeafNode<T> {
       throw new AssertionError(
           String.format(
               "The number of tags is different from the number of keys. Keys: %s, Tags: %s",
-              keyValues.stream().map(kv -> kv.key).collect(Collectors.toList()), tags));
+              keyValues.stream().map(kv -> Utils.printableKey(kv.key)).collect(Collectors.toList()), tags));
     }
     for (int i = 0; i < size(); i++) {
       if (i < size() - 1) {
@@ -437,7 +437,7 @@ class LeafNode<T> {
       throw new AssertionError(
           String.format(
               "The number of key references is different from the number of keys. Keys: %s, Key references: %s",
-              keyValues.stream().map(kv -> kv.key).collect(Collectors.toList()), keyReferences));
+              keyValues.stream().map(kv -> Utils.printableKey(kv.key)).collect(Collectors.toList()), keyReferences));
     }
 
     if (keyReferences.numOfSortedValues > keyReferences.size()) {

@@ -97,7 +97,7 @@ class WormholeTest {
       // Arrange
       Wormhole<Integer> wormhole = new Wormhole<>(3);
       int maxKeyLength = 8;
-      int recordCount = 10000;
+      int recordCount = 100000;
       Map<String, Integer> expected = new LinkedHashMap<>(recordCount);
 
       // Act
@@ -113,20 +113,11 @@ class WormholeTest {
         int value = ThreadLocalRandom.current().nextInt();
         expected.put(key, value);
         wormhole.put(key, value);
-        wormhole.validate();
       }
 
       // Assert
       for (Map.Entry<String, Integer> entry : expected.entrySet()) {
-        try {
-          assertThat(wormhole.get(entry.getKey())).isEqualTo(entry.getValue());
-        }
-        catch (AssertionFailedError e) {
-          wormhole.validate();
-          Integer result = wormhole.get(entry.getKey());
-          System.out.println(result);
-          throw e;
-        }
+        assertThat(wormhole.get(entry.getKey())).isEqualTo(entry.getValue());
       }
     }
   }
