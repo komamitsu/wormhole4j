@@ -1,10 +1,7 @@
 package org.komamitsu.wormhole;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
 public class Wormhole<T> {
@@ -60,12 +57,18 @@ public class Wormhole<T> {
 
   @Nullable
   public List<KeyValue<T>> scan(String key, int count) {
+    if (count < 0) {
+      throw new IllegalArgumentException("'count' should not be negative. Count: " + count);
+    }
+    if (count == 0) {
+      return Collections.emptyList();
+    }
     LeafNode<T> leafNode = searchTrieHashTable(key);
-    leafNode.incSort();
     List<KeyValue<T>> result = new ArrayList<>(count);
     int remaining = count;
     boolean isFirst = true;
     while (leafNode != null && remaining > 0) {
+      leafNode.incSort();
       List<KeyValue<T>> kvs;
       if (isFirst) {
         isFirst = false;

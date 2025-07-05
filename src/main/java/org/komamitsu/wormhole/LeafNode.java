@@ -19,14 +19,12 @@ class LeafNode<T> {
   @Nullable
   private LeafNode<T> right;
 
-  // FIXME
-  public List<KeyValue<T>> getKeyValuesEqualOrGreaterThan(String key, int remaining) {
-    return null;
+  List<KeyValue<T>> getKeyValuesEqualOrGreaterThan(String key, int count) {
+    return keyReferences.getKeyValuesEqualOrGreaterThan(key, count);
   }
 
-  // FIXME
-  public List<KeyValue<T>> getKeyValues(int remaining) {
-    return null;
+  List<KeyValue<T>> getKeyValues(int count) {
+    return keyReferences.getKeyValues(count);
   }
 
   // Tag
@@ -219,6 +217,33 @@ class LeafNode<T> {
 
     private int size() {
       return values.size();
+    }
+
+    private List<KeyValue<T>> getKeyValues(int count) {
+      return values.stream().limit(count).map(x -> x.tag.keyValue).collect(Collectors.toList());
+    }
+
+    private List<KeyValue<T>> getKeyValuesEqualOrGreaterThan(String key, int count) {
+      if (values.isEmpty()) {
+        return Collections.emptyList();
+      }
+      int l = 0;
+      int r = values.size();
+      int m = 0;
+      while (l < r) {
+        m = (l + r) / 2;
+        String k = values.get(m).tag.keyValue.key;
+        int compared = key.compareTo(k);
+        if (compared < 0) {
+          r = m;
+        } else if (compared > 0) {
+          l = m + 1;
+        }
+        else {
+          return values.subList(m, values.size()).stream().limit(count).map(x -> x.tag.keyValue).collect(Collectors.toList());
+        }
+      }
+      return values.subList(l, values.size()).stream().limit(count).map(x -> x.tag.keyValue).collect(Collectors.toList());
     }
 
     @Override
