@@ -77,10 +77,7 @@ public class Wormhole<T> {
       else {
         kvs = leafNode.getKeyValues(remaining);
       }
-      result.addAll(kvs);
-      if (kvs.size() < remaining) {
-        return result;
-      }
+      result.addAll(kvs.subList(0, Math.min(remaining, kvs.size())));
       remaining -= kvs.size();
       leafNode = leafNode.getRight();
     }

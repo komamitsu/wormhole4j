@@ -258,8 +258,16 @@ class WormholeTest {
       wormhole.put("Jason", "nosaj");
 
       // Act & Assert
-
-      // FIXME
+      KeyValue<String> firstItem = new KeyValue<>("Jacob", "bocaj");
+      KeyValue<String> secondItem = new KeyValue<>("James", "semaj");
+      KeyValue<String> thirdItem = new KeyValue<>("Jason", "nosaj");
+      KeyValue<String> fourthItem = new KeyValue<>("John", "nhoj");
+      KeyValue<String> fifthItem = new KeyValue<>("Joseph", "hpesoj");
+      assertThat(wormhole.scan("I", 1)).containsExactly(firstItem);
+      assertThat(wormhole.scan("I", 2)).containsExactly(firstItem, secondItem);
+      assertThat(wormhole.scan("I", 3)).containsExactly(firstItem, secondItem, thirdItem);
+      assertThat(wormhole.scan("I", 4)).containsExactly(firstItem, secondItem, thirdItem, fourthItem);
+      assertThat(wormhole.scan("I", 5)).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
     }
 
     @Test
