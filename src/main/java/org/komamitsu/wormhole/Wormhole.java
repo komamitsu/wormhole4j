@@ -55,7 +55,6 @@ public class Wormhole<T> {
     return keyValue.getValue();
   }
 
-  @Nullable
   public List<KeyValue<T>> scan(String key, int count) {
     if (count < 0) {
       throw new IllegalArgumentException("'count' should not be negative. Count: " + count);

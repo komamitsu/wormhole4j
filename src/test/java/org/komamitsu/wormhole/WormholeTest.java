@@ -3,9 +3,9 @@ package org.komamitsu.wormhole;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Nested;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -91,14 +91,7 @@ class WormholeTest {
       int recordCount = 50000;
       Map<String, Integer> expected = new LinkedHashMap<>(recordCount);
       for (int i = 0; i < recordCount; i++) {
-        // TODO: NPE occurs when the key length is 0.
-        int keyLength = ThreadLocalRandom.current().nextInt(1, maxKeyLength + 1);
-        StringBuilder sb = new StringBuilder(keyLength);
-        for (int j = 0; j < keyLength; j++) {
-          char c = (char) ThreadLocalRandom.current().nextInt('a', 'z' + 1);
-          sb.append(c);
-        }
-        String key = sb.toString();
+        String key = genRandomKey(maxKeyLength);
         int value = ThreadLocalRandom.current().nextInt();
         expected.put(key, value);
         wormhole.put(key, value);
@@ -368,24 +361,43 @@ class WormholeTest {
       Wormhole<Integer> wormhole = new Wormhole<>(3);
       int maxKeyLength = 8;
       int recordCount = 50000;
-      Map<String, Integer> expected = new LinkedHashMap<>(recordCount);
+      TreeMap<String, Integer> expected = new TreeMap<>();
       for (int i = 0; i < recordCount; i++) {
-        // TODO: NPE occurs when the key length is 0.
-        int keyLength = ThreadLocalRandom.current().nextInt(1, maxKeyLength + 1);
-        StringBuilder sb = new StringBuilder(keyLength);
-        for (int j = 0; j < keyLength; j++) {
-          char c = (char) ThreadLocalRandom.current().nextInt('a', 'z' + 1);
-          sb.append(c);
-        }
-        String key = sb.toString();
+        String key = genRandomKey(maxKeyLength);
         int value = ThreadLocalRandom.current().nextInt();
         expected.put(key, value);
         wormhole.put(key, value);
       }
 
       // Act & Assert
+      for (int i = 0; i < 1000; i++) {
+        String key = genRandomKey(maxKeyLength);
+        int count = ThreadLocalRandom.current().nextInt(10000);
+        List<Map.Entry<String, Integer>> expectedKeyValues = new ArrayList<>(count);
+        for (Map.Entry<String, Integer> entry : expected.subMap(key, "zzzzzzzzzzzz").entrySet()) {
+          expectedKeyValues.add(entry);
+          if (expectedKeyValues.size() >= count) {
+            break;
+          }
+        }
 
-      // FIXME
+        List<Map.Entry<String, Integer>> actual =
+          wormhole.scan(key, count).stream().map(kv ->
+            new AbstractMap.SimpleEntry<>(kv.key, kv.getValue())).collect(Collectors.toList());
+
+        assertThat(actual).containsExactlyElementsOf(expectedKeyValues);
+      }
     }
+  }
+
+  static String genRandomKey(int maxKeyLength) {
+    // TODO: NPE occurs when the key length is 0.
+    int keyLength = ThreadLocalRandom.current().nextInt(1, maxKeyLength + 1);
+    StringBuilder sb = new StringBuilder(keyLength);
+    for (int j = 0; j < keyLength; j++) {
+      char c = (char) ThreadLocalRandom.current().nextInt('a', 'z' + 1);
+      sb.append(c);
+    }
+    return sb.toString();
   }
 }
