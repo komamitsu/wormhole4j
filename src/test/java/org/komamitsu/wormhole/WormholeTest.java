@@ -329,8 +329,37 @@ class WormholeTest {
       wormhole.put("aa", 2);
 
       // Act & Assert
+      KeyValue<Integer> firstItem = new KeyValue<>("a", 1);
+      KeyValue<Integer> secondItem= new KeyValue<>("aa", 2);
+      KeyValue<Integer> thirdItem = new KeyValue<>("aaa", 3);
+      KeyValue<Integer> fourthItem = new KeyValue<>("aaaa", 4);
+      KeyValue<Integer> fifthItem = new KeyValue<>("aaaaa", 5);
 
-      // FIXME
+      assertThat(wormhole.scan("", 1)).containsExactly(firstItem);
+      assertThat(wormhole.scan("", 2)).containsExactly(firstItem, secondItem);
+      assertThat(wormhole.scan("", 3)).containsExactly(firstItem, secondItem, thirdItem);
+      assertThat(wormhole.scan("", 4)).containsExactly(firstItem, secondItem, thirdItem, fourthItem);
+      assertThat(wormhole.scan("", 5)).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
+      assertThat(wormhole.scan("a", 1)).containsExactly(firstItem);
+      assertThat(wormhole.scan("a", 2)).containsExactly(firstItem, secondItem);
+      assertThat(wormhole.scan("a", 3)).containsExactly(firstItem, secondItem, thirdItem);
+      assertThat(wormhole.scan("a", 4)).containsExactly(firstItem, secondItem, thirdItem, fourthItem);
+      assertThat(wormhole.scan("a", 5)).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
+      assertThat(wormhole.scan("aa", 1)).containsExactly(secondItem);
+      assertThat(wormhole.scan("aa", 2)).containsExactly(secondItem, thirdItem);
+      assertThat(wormhole.scan("aa", 3)).containsExactly(secondItem, thirdItem, fourthItem);
+      assertThat(wormhole.scan("aa", 4)).containsExactly(secondItem, thirdItem, fourthItem, fifthItem);
+      assertThat(wormhole.scan("ab", 1)).isEmpty();
+      assertThat(wormhole.scan("aaa", 1)).containsExactly(thirdItem);
+      assertThat(wormhole.scan("aaa", 2)).containsExactly(thirdItem, fourthItem);
+      assertThat(wormhole.scan("aaa", 3)).containsExactly(thirdItem, fourthItem, fifthItem);
+      assertThat(wormhole.scan("aab", 1)).isEmpty();
+      assertThat(wormhole.scan("aaaa", 1)).containsExactly(fourthItem);
+      assertThat(wormhole.scan("aaaa", 2)).containsExactly(fourthItem, fifthItem);
+      assertThat(wormhole.scan("aaab", 1)).isEmpty();
+      assertThat(wormhole.scan("aaaaa", 1)).containsExactly(fifthItem);
+      assertThat(wormhole.scan("aaaab", 1)).isEmpty();
+      assertThat(wormhole.scan("b", 1)).isEmpty();
     }
 
     @Test
