@@ -166,6 +166,13 @@ class MetaTrieHashTable<T> {
     return searchKey.substring(0, m);
   }
 
+  // FIXME
+  void removeLeafNodeMeta(String anchorKey) {
+  }
+
+  void removeInternalNodeMeta(String prefix) {
+  }
+
   // TODO: Memoize
   private int maxAnchorLength() {
     int max = 0;

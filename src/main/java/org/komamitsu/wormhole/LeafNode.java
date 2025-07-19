@@ -19,14 +19,6 @@ class LeafNode<T> {
   @Nullable
   private LeafNode<T> right;
 
-  List<KeyValue<T>> getKeyValuesEqualOrGreaterThan(String key, int count) {
-    return keyReferences.getKeyValuesEqualOrGreaterThan(key, count);
-  }
-
-  List<KeyValue<T>> getKeyValues(int count) {
-    return keyReferences.getKeyValues(count);
-  }
-
   // Tag
 
   // TODO: This can be replaced with Integer, using the first 16 bits for hash and the second 16 bits for index.
@@ -385,6 +377,14 @@ class LeafNode<T> {
         '}';
   }
 
+  List<KeyValue<T>> getKeyValuesEqualOrGreaterThan(String key, int count) {
+    return keyReferences.getKeyValuesEqualOrGreaterThan(key, count);
+  }
+
+  List<KeyValue<T>> getKeyValues(int count) {
+    return keyReferences.getKeyValues(count);
+  }
+
   void add(String key, T value) {
     KeyValue<T> keyValue = new KeyValue<>(key, value);
     keyValues.add(keyValue);
@@ -397,6 +397,14 @@ class LeafNode<T> {
 
     // Sorting this will be delayed until range scan or split.
     keyReferences.add(new KeyReference<>(tag));
+  }
+
+  // FIXME
+  boolean delete(String key) {
+    return false;
+  }
+
+  void addAll(LeafNode<T> other) {
   }
 
   void validate() {

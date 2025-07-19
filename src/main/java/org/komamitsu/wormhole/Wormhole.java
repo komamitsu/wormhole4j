@@ -2,7 +2,6 @@ package org.komamitsu.wormhole;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.function.Function;
 
 public class Wormhole<T> {
   private static final int DEFAULT_LEAF_NODE_SIZE = 128;
@@ -11,6 +10,7 @@ public class Wormhole<T> {
   // Visible for testing.
   final MetaTrieHashTable<T> table = new MetaTrieHashTable<>();
   private final int leafNodeSize;
+  private final int leafNodeMergeSize;
 
   public Wormhole() {
     this(DEFAULT_LEAF_NODE_SIZE);
@@ -18,6 +18,7 @@ public class Wormhole<T> {
 
   public Wormhole(int leafNodeSize) {
     this.leafNodeSize = leafNodeSize;
+    this.leafNodeMergeSize = leafNodeSize * 3 / 4;
     initialize();
   }
 
@@ -43,6 +44,22 @@ public class Wormhole<T> {
       assert leafNode.size() < leafNodeSize;
       leafNode.add(key, value);
     }
+  }
+
+  public boolean delete(String key) {
+    LeafNode<T> leafNode = searchTrieHashTable(key);
+    if (!leafNode.delete(key)) {
+      return false;
+    }
+
+    if (leafNode.getLeft() != null && leafNode.size() + leafNode.getLeft().size() < leafNodeMergeSize) {
+      merge(leafNode.getLeft(), leafNode);
+    }
+    else if (leafNode.getRight() != null && leafNode.size() + leafNode.getRight().size() < leafNodeMergeSize) {
+      merge(leafNode, leafNode.getRight());
+    }
+
+    return true;
   }
 
   @Nullable
@@ -214,16 +231,41 @@ public class Wormhole<T> {
     return newLeafNode;
   }
 
+  private void merge(LeafNode<T> left, LeafNode<T> victim) {
+    left.addAll(victim);
+    String anchorKey = victim.anchorKey;
+    table.removeLeafNodeMeta(anchorKey);
+    boolean childNodeRemoved = true;
+    for (int prefixlen = anchorKey.length() - 1; prefixlen >= 0; prefixlen++) {
+      String prefix = anchorKey.substring(0, prefixlen);
+      MetaTrieHashTable.NodeMeta<T> nodeMeta = table.get(prefix);
+      assert(nodeMeta instanceof MetaTrieHashTable.NodeMetaInternal);
+      MetaTrieHashTable.NodeMetaInternal<T> nodeMetaInternal = (MetaTrieHashTable.NodeMetaInternal<T>) nodeMeta;
+      if (childNodeRemoved) {
+        nodeMetaInternal.bitmap.clear(anchorKey.charAt(prefixlen));
+      }
+      if (nodeMetaInternal.bitmap.isEmpty()) {
+        table.removeInternalNodeMeta(prefix);
+        childNodeRemoved = true;
+      }
+      else {
+        childNodeRemoved = false;
+        if (nodeMetaInternal.getLeftMostLeafNode() == victim) {
+          nodeMetaInternal.setLeftMostLeafNode(victim.getRight());
+        }
+        if (nodeMetaInternal.getRightMostLeafNode() == victim) {
+          nodeMetaInternal.setRightMostLeafNode(victim.getLeft());
+        }
+      }
+    }
+  }
+
   @Override
   public String toString() {
     return "Wormhole{" +
         "table=" + table +
         ", leafNodeSize=" + leafNodeSize +
         '}';
-  }
-
-  void validate() {
-    new Validator<T>(this).validate();
   }
 
   private static class Validator<T> {

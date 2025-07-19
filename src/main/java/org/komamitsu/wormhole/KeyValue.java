@@ -2,8 +2,8 @@ package org.komamitsu.wormhole;
 
 import java.util.Objects;
 
-public class KeyValue<T> {
-  public final String key;
+class KeyValue<T> {
+  final String key;
   private T value;
 
   KeyValue(String key, T value) {
@@ -19,11 +19,11 @@ public class KeyValue<T> {
         '}';
   }
 
-  public T getValue() {
+  T getValue() {
     return value;
   }
 
-  public void setValue(T value) {
+  void setValue(T value) {
     this.value = value;
   }
 
