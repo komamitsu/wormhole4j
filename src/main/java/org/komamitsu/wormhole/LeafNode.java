@@ -104,7 +104,7 @@ class LeafNode<T> {
 
     @Override
     public int compareTo(KeyReference<T> other) {
-      return tag.keyValue.key.compareTo(other.tag.keyValue.key);
+      return tag.keyValue.getKey().compareTo(other.tag.keyValue.getKey());
     }
   }
 
@@ -133,7 +133,7 @@ class LeafNode<T> {
     }
 
     private String getKey(int index) {
-      return values.get(index).tag.keyValue.key;
+      return values.get(index).tag.keyValue.getKey();
     }
 
     private int getNumOfSortedValues() {
@@ -161,10 +161,10 @@ class LeafNode<T> {
       String keyFromUnsortedKeyRef = null;
       while (true) {
         if (keyFromSortedKeyRef == null && idxForSortedKeyRef < numOfSortedValues) {
-          keyFromSortedKeyRef = values.get(idxForSortedKeyRef).tag.keyValue.key;
+          keyFromSortedKeyRef = values.get(idxForSortedKeyRef).tag.keyValue.getKey();
         }
         if (keyFromUnsortedKeyRef == null && idxForUnsortedKeyRef < unsortedValues.size()) {
-          keyFromUnsortedKeyRef = unsortedValues.get(idxForUnsortedKeyRef).tag.keyValue.key;
+          keyFromUnsortedKeyRef = unsortedValues.get(idxForUnsortedKeyRef).tag.keyValue.getKey();
         }
 
         KeyReference<T> keyReference;
@@ -221,10 +221,10 @@ class LeafNode<T> {
       }
       int l = 0;
       int r = values.size();
-      int m = 0;
+      int m;
       while (l < r) {
         m = (l + r) / 2;
-        String k = values.get(m).tag.keyValue.key;
+        String k = values.get(m).tag.keyValue.getKey();
         int compared = key.compareTo(k);
         if (compared < 0) {
           r = m;
@@ -296,7 +296,7 @@ class LeafNode<T> {
     }
     while (tagIndex < leafSize && tags.getHashTagByIndex(tagIndex) == keyHash) {
       KeyValue<T> kv = tags.getKeyValueByIndex(tagIndex);
-      if (kv.key.equals(key)) {
+      if (kv.getKey().equals(key)) {
         return kv;
       }
       tagIndex++;
@@ -399,7 +399,6 @@ class LeafNode<T> {
     keyReferences.add(new KeyReference<>(tag));
   }
 
-  // FIXME
   boolean delete(String key) {
     return false;
   }
@@ -422,17 +421,17 @@ class LeafNode<T> {
 
     for (int i = 0; i < size(); i++) {
       KeyValue<T> kv = keyValues.get(i);
-      if (kv.key.compareTo(normalizedAnchorKey) < 0) {
+      if (kv.getKey().compareTo(normalizedAnchorKey) < 0) {
         throw new AssertionError(
             String.format(
                 "The key is smaller than the anchor key. Key: %s, Anchor key: %s",
-                Utils.printableKey(kv.key), normalizedAnchorKey));
+                Utils.printableKey(kv.getKey()), normalizedAnchorKey));
       }
-      if (normalizedRightAnchorKey != null && normalizedRightAnchorKey.compareTo(kv.key) < 0) {
+      if (normalizedRightAnchorKey != null && normalizedRightAnchorKey.compareTo(kv.getKey()) < 0) {
         throw new AssertionError(
             String.format(
                 "The anchor key of the right leaf node is smaller than the key. Key: %s, Right leaf node's anchor key: %s",
-                Utils.printableKey(kv.key), normalizedRightAnchorKey));
+                Utils.printableKey(kv.getKey()), normalizedRightAnchorKey));
       }
     }
 
@@ -440,7 +439,7 @@ class LeafNode<T> {
       throw new AssertionError(
           String.format(
               "The number of tags is different from the number of keys. Keys: %s, Tags: %s",
-              keyValues.stream().map(kv -> Utils.printableKey(kv.key)).collect(Collectors.toList()), tags));
+              keyValues.stream().map(kv -> Utils.printableKey(kv.getKey())).collect(Collectors.toList()), tags));
     }
     for (int i = 0; i < size(); i++) {
       if (i < size() - 1) {
@@ -454,7 +453,7 @@ class LeafNode<T> {
       throw new AssertionError(
           String.format(
               "The number of key references is different from the number of keys. Keys: %s, Key references: %s",
-              keyValues.stream().map(kv -> Utils.printableKey(kv.key)).collect(Collectors.toList()), keyReferences));
+              keyValues.stream().map(kv -> Utils.printableKey(kv.getKey())).collect(Collectors.toList()), keyReferences));
     }
 
     if (keyReferences.numOfSortedValues > keyReferences.size()) {

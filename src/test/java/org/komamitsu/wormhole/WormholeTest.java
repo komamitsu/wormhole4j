@@ -383,7 +383,7 @@ class WormholeTest {
 
         List<Map.Entry<String, Integer>> actual =
           wormhole.scan(key, count).stream().map(kv ->
-            new AbstractMap.SimpleEntry<>(kv.key, kv.getValue())).collect(Collectors.toList());
+            new AbstractMap.SimpleEntry<>(kv.getKey(), kv.getValue())).collect(Collectors.toList());
 
         assertThat(actual).containsExactlyElementsOf(expectedKeyValues);
       }
