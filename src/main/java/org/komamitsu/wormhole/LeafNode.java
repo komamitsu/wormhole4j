@@ -2,6 +2,7 @@ package org.komamitsu.wormhole;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -57,12 +58,20 @@ class LeafNode<T> {
       values.add(value);
     }
 
+    private void addAll(Tags<T> tags) {
+      this.values.addAll(tags.values);
+    }
+
     private void sort() {
       Collections.sort(values);
     }
 
     private void removeIf(Predicate<Tag<T>> predicate) {
       values.removeIf(predicate);
+    }
+
+    private void remove(Tag<T> tag) {
+      values.remove(tag);
     }
 
     private short getHashTagByIndex(int index) {
@@ -120,6 +129,10 @@ class LeafNode<T> {
       values.add(value);
     }
 
+    private void addAll(KeyReferences<T> keyReferences) {
+      values.addAll(keyReferences.values);
+    }
+
     private KeyReference<T> get(int index) {
       return values.get(index);
     }
@@ -144,6 +157,13 @@ class LeafNode<T> {
       values.removeIf(predicate);
       // The original values should be sorted, then the current values should be sorted after removing values.
       markAsSorted();
+    }
+
+    private void remove(int index) {
+      if (index < numOfSortedValues) {
+        numOfSortedValues--;
+      }
+      values.remove(index);
     }
 
     private void sort() {
@@ -215,9 +235,9 @@ class LeafNode<T> {
       return values.stream().limit(count).map(x -> x.tag.keyValue).collect(Collectors.toList());
     }
 
-    private List<KeyValue<T>> getKeyValuesEqualOrGreaterThan(String key, int count) {
+    private <R> Tuple<Integer,List<R>> getKeyValuesEqualOrGreaterThan(String key, int count, Function<KeyReference<T>, R> resultConv) {
       if (values.isEmpty()) {
-        return Collections.emptyList();
+        return new Tuple<>(null, Collections.emptyList());
       }
       int l = 0;
       int r = values.size();
@@ -232,10 +252,10 @@ class LeafNode<T> {
           l = m + 1;
         }
         else {
-          return values.subList(m, values.size()).stream().limit(count).map(x -> x.tag.keyValue).collect(Collectors.toList());
+          return new Tuple<>(m, values.subList(m, values.size()).stream().limit(count).map(resultConv).collect(Collectors.toList()));
         }
       }
-      return values.subList(l, values.size()).stream().limit(count).map(x -> x.tag.keyValue).collect(Collectors.toList());
+      return new Tuple<>(null, values.subList(l, values.size()).stream().limit(count).map(resultConv).collect(Collectors.toList()));
     }
 
     @Override
@@ -378,7 +398,7 @@ class LeafNode<T> {
   }
 
   List<KeyValue<T>> getKeyValuesEqualOrGreaterThan(String key, int count) {
-    return keyReferences.getKeyValuesEqualOrGreaterThan(key, count);
+    return keyReferences.getKeyValuesEqualOrGreaterThan(key, count, x -> x.tag.keyValue).second;
   }
 
   List<KeyValue<T>> getKeyValues(int count) {
@@ -400,10 +420,31 @@ class LeafNode<T> {
   }
 
   boolean delete(String key) {
-    return false;
+    incSort();
+    Tuple<Integer, List<Tag<T>>> keyRefIndexAndTags = keyReferences.getKeyValuesEqualOrGreaterThan(key, 1, x -> x.tag);
+    Integer keyRefIndex = keyRefIndexAndTags.first;
+    List<Tag<T>> tags = keyRefIndexAndTags.second;
+    if (keyRefIndex == null) {
+      return false;
+    }
+    assert !tags.isEmpty();
+    Tag<T> tag = tags.get(0);
+    assert tag.keyValue.getKey().equals(key);
+    KeyValue<T> keyValue = tag.keyValue;
+
+    keyValues.remove(keyValue);
+    this.tags.remove(tag);
+    keyReferences.remove(keyRefIndex);
+
+    return true;
   }
 
-  void addAll(LeafNode<T> other) {
+  void merge(LeafNode<T> right) {
+    keyValues.addAll(right.keyValues);
+    tags.addAll(right.tags);
+    tags.sort();
+    keyReferences.addAll(right.keyReferences);
+    setRight(right.getRight());
   }
 
   void validate() {

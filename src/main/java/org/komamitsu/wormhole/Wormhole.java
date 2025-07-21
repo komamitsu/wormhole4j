@@ -195,8 +195,6 @@ public class Wormhole<T> {
       String lcp = extractLongestCommonPrefix(k1, k2);
       String newAnchor = lcp + k2.charAt(lcp.length());
 
-      // TODO: When to use the terminator character?
-
       // Check the anchor key ordering condition: left-key < anchor-key ≤ node-key
       if (newAnchor.compareTo(k1) <= 0) {
         continue;
@@ -232,11 +230,11 @@ public class Wormhole<T> {
   }
 
   private void merge(LeafNode<T> left, LeafNode<T> victim) {
-    left.addAll(victim);
+    left.merge(victim);
     String anchorKey = victim.anchorKey;
     table.removeLeafNodeMeta(anchorKey);
     boolean childNodeRemoved = true;
-    for (int prefixlen = anchorKey.length() - 1; prefixlen >= 0; prefixlen++) {
+    for (int prefixlen = anchorKey.length() - 1; prefixlen >= 0; prefixlen--) {
       String prefix = anchorKey.substring(0, prefixlen);
       MetaTrieHashTable.NodeMeta<T> nodeMeta = table.get(prefix);
       assert(nodeMeta instanceof MetaTrieHashTable.NodeMetaInternal);

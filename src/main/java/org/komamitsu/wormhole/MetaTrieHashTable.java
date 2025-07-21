@@ -166,11 +166,24 @@ class MetaTrieHashTable<T> {
     return searchKey.substring(0, m);
   }
 
-  // FIXME
   void removeLeafNodeMeta(String anchorKey) {
+    NodeMeta<T> removed = table.remove(anchorKey);
+    if (!(removed instanceof NodeMetaLeaf)) {
+      throw new AssertionError(
+          String.format(
+              "Removed node meta is an unexpected type. Expected: %s, Actual: %s",
+              NodeMetaLeaf.class.getName(), removed.getClass().getName()));
+    }
   }
 
-  void removeInternalNodeMeta(String prefix) {
+  void removeInternalNodeMeta(String anchorKey) {
+    NodeMeta<T> removed = table.remove(anchorKey);
+    if (!(removed instanceof NodeMetaInternal)) {
+      throw new AssertionError(
+          String.format(
+              "Removed node meta is an unexpected type. Expected: %s, Actual: %s",
+              NodeMetaInternal.class.getName(), removed.getClass().getName()));
+    }
   }
 
   // TODO: Memoize
