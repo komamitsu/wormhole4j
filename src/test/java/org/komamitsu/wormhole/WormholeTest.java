@@ -593,6 +593,53 @@ class WormholeTest {
       assertThat(wormhole.get("aaaaa")).isNull();
     }
 
+    @Test
+    void withTwoLeafNodes_UsingSameCharForKey_WhenDeletingFromLastLeaf_ShouldDeleteThem() {
+      // Arrange
+      Wormhole<Integer> wormhole = new Wormhole<>(3, true);
+      wormhole.put("aaaaa", 5);
+      wormhole.put("a", 1);
+      wormhole.put("aaa", 3);
+      wormhole.put("aaaa", 4);
+      wormhole.put("aa", 2);
+
+      // Act & Assert
+      assertThat(wormhole.delete("aaaaa")).isTrue();
+      assertThat(wormhole.get("a")).isEqualTo(1);
+      assertThat(wormhole.get("aa")).isEqualTo(2);
+      assertThat(wormhole.get("aaa")).isEqualTo(3);
+      assertThat(wormhole.get("aaaa")).isEqualTo(4);
+      assertThat(wormhole.get("aaaaa")).isNull();
+
+      assertThat(wormhole.delete("aaaa")).isTrue();
+      assertThat(wormhole.get("a")).isEqualTo(1);
+      assertThat(wormhole.get("aa")).isEqualTo(2);
+      assertThat(wormhole.get("aaa")).isEqualTo(3);
+      assertThat(wormhole.get("aaaa")).isNull();
+      assertThat(wormhole.get("aaaaa")).isNull();
+
+      assertThat(wormhole.delete("aaa")).isTrue();
+      assertThat(wormhole.get("a")).isEqualTo(1);
+      assertThat(wormhole.get("aa")).isEqualTo(2);
+      assertThat(wormhole.get("aaa")).isNull();
+      assertThat(wormhole.get("aaaa")).isNull();
+      assertThat(wormhole.get("aaaaa")).isNull();
+
+      assertThat(wormhole.delete("aa")).isTrue();
+      assertThat(wormhole.get("a")).isEqualTo(1);
+      assertThat(wormhole.get("aa")).isNull();
+      assertThat(wormhole.get("aaa")).isNull();
+      assertThat(wormhole.get("aaaa")).isNull();
+      assertThat(wormhole.get("aaaaa")).isNull();
+
+      assertThat(wormhole.delete("a")).isTrue();
+      assertThat(wormhole.get("a")).isNull();
+      assertThat(wormhole.get("aa")).isNull();
+      assertThat(wormhole.get("aaa")).isNull();
+      assertThat(wormhole.get("aaaa")).isNull();
+      assertThat(wormhole.get("aaaaa")).isNull();
+    }
+
     /*
     @Test
     void withManyLeafNodes_ShouldReturnIt() {

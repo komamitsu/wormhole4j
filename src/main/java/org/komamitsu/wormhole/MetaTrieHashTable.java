@@ -1,5 +1,6 @@
 package org.komamitsu.wormhole;
 
+import javax.annotation.Nullable;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -166,24 +167,78 @@ class MetaTrieHashTable<T> {
     return searchKey.substring(0, m);
   }
 
-  void removeLeafNodeMeta(String anchorKey) {
-    NodeMeta<T> removed = table.remove(anchorKey);
-    if (!(removed instanceof NodeMetaLeaf)) {
-      throw new AssertionError(
-          String.format(
-              "Removed node meta is an unexpected type. Expected: %s, Actual: %s",
-              NodeMetaLeaf.class.getName(), removed.getClass().getName()));
+  @Nullable
+  NodeMetaLeaf<T> findNodeMetaLeaf(String anchorKey) {
+    {
+      NodeMeta<T> nodeMeta = table.get(anchorKey);
+      if (nodeMeta instanceof NodeMetaLeaf) {
+        return (NodeMetaLeaf<T>) nodeMeta;
+      }
     }
+
+    {
+      String anchorKeyWithSmallestToken = anchorKey + Wormhole.SMALLEST_TOKEN;
+      NodeMeta<T> nodeMeta = table.get(anchorKeyWithSmallestToken);
+      if (nodeMeta instanceof NodeMetaLeaf) {
+        return (NodeMetaLeaf<T>) nodeMeta;
+      }
+    }
+    
+    return null;
   }
 
-  void removeInternalNodeMeta(String anchorKey) {
-    NodeMeta<T> removed = table.remove(anchorKey);
-    if (!(removed instanceof NodeMetaInternal)) {
-      throw new AssertionError(
-          String.format(
-              "Removed node meta is an unexpected type. Expected: %s, Actual: %s",
-              NodeMetaInternal.class.getName(), removed.getClass().getName()));
+  @Nullable
+  NodeMetaInternal<T> findNodeMetaInternal(String anchorKey) {
+    {
+      NodeMeta<T> nodeMeta = table.get(anchorKey);
+      if (nodeMeta instanceof NodeMetaInternal) {
+        return (NodeMetaInternal<T>) nodeMeta;
+      }
     }
+
+    {
+      String anchorKeyWithSmallestToken = anchorKey + Wormhole.SMALLEST_TOKEN;
+      NodeMeta<T> nodeMeta = table.get(anchorKeyWithSmallestToken);
+      if (nodeMeta instanceof NodeMetaInternal) {
+        return (NodeMetaInternal<T>) nodeMeta;
+      }
+    }
+
+    return null;
+  }
+
+  String removeNodeMetaLeaf(String origAnchorKey) {
+    NodeMeta<T> nodeMeta = table.get(origAnchorKey);
+    String anchorKey = nodeMeta instanceof NodeMetaLeaf ?
+        origAnchorKey :
+        origAnchorKey + Wormhole.SMALLEST_TOKEN;
+
+    NodeMeta<T> removed = table.remove(anchorKey);
+    if (removed instanceof NodeMetaLeaf) {
+      return anchorKey;
+    }
+
+    throw new AssertionError(
+        String.format(
+            "Removed node meta is an unexpected type. Expected: %s, Actual: %s",
+            NodeMetaLeaf.class.getName(), removed.getClass().getName()));
+  }
+
+  String removeNodeMetaInternal(String origAnchorKey) {
+    NodeMeta<T> nodeMeta = table.get(origAnchorKey);
+    String anchorKey = nodeMeta instanceof NodeMetaInternal ?
+        origAnchorKey :
+        origAnchorKey + Wormhole.SMALLEST_TOKEN;
+
+    NodeMeta<T> removed = table.remove(anchorKey);
+    if (removed instanceof NodeMetaInternal) {
+      return anchorKey;
+    }
+
+    throw new AssertionError(
+        String.format(
+            "Removed node meta is an unexpected type. Expected: %s, Actual: %s",
+            NodeMetaInternal.class.getName(), removed.getClass().getName()));
   }
 
   // TODO: Memoize

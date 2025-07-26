@@ -444,6 +444,10 @@ class LeafNode<T> {
     tags.addAll(right.tags);
     tags.sort();
     keyReferences.addAll(right.keyReferences);
+
+    if (right.getRight() != null) {
+      right.getRight().setLeft(this);
+    }
     setRight(right.getRight());
   }
 

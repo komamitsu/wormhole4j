@@ -248,19 +248,17 @@ public class Wormhole<T> {
 
   private void merge(LeafNode<T> left, LeafNode<T> victim) {
     left.merge(victim);
-    String anchorKey = victim.anchorKey;
-    table.removeLeafNodeMeta(anchorKey);
+    String anchorKey = table.removeNodeMetaLeaf(victim.anchorKey);
     boolean childNodeRemoved = true;
     for (int prefixlen = anchorKey.length() - 1; prefixlen >= 0; prefixlen--) {
       String prefix = anchorKey.substring(0, prefixlen);
-      MetaTrieHashTable.NodeMeta<T> nodeMeta = table.get(prefix);
-      assert(nodeMeta instanceof MetaTrieHashTable.NodeMetaInternal);
-      MetaTrieHashTable.NodeMetaInternal<T> nodeMetaInternal = (MetaTrieHashTable.NodeMetaInternal<T>) nodeMeta;
+      MetaTrieHashTable.NodeMetaInternal<T> nodeMetaInternal = table.findNodeMetaInternal(prefix);
+      assert nodeMetaInternal != null;
       if (childNodeRemoved) {
         nodeMetaInternal.bitmap.clear(anchorKey.charAt(prefixlen));
       }
       if (nodeMetaInternal.bitmap.isEmpty()) {
-        table.removeInternalNodeMeta(prefix);
+        table.removeNodeMetaInternal(prefix);
         childNodeRemoved = true;
       }
       else {
