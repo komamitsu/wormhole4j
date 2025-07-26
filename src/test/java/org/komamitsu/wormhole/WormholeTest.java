@@ -15,25 +15,10 @@ class WormholeTest {
     @Test
     void withOneLeafNodeWithOneRecord_ShouldReturnIt() {
       // Arrange
-      Wormhole<String> wormhole = new Wormhole<>(3);
+      Wormhole<String> wormhole = new Wormhole<>(3, true);
       wormhole.put("James", "semaj");
 
       // Act & Assert
-      assertThat(wormhole.get("James")).isEqualTo("semaj");
-      assertThat(wormhole.get("Jame")).isNull();
-      assertThat(wormhole.get("Jamez")).isNull();
-      assertThat(wormhole.get("Jamesa")).isNull();
-    }
-
-    @Test
-    void withOneLeafNodeWithOneRecord_WhenTheyAreDeleted_ShouldNotReturnIt() {
-      // Arrange
-      Wormhole<String> wormhole = new Wormhole<>(3);
-      wormhole.put("James", "semaj");
-
-      // Act & Assert
-      assertThat(wormhole.delete("James")).isTrue();
-
       assertThat(wormhole.get("James")).isEqualTo("semaj");
       assertThat(wormhole.get("Jame")).isNull();
       assertThat(wormhole.get("Jamez")).isNull();
@@ -43,7 +28,7 @@ class WormholeTest {
     @Test
     void withOneLeafNodeWithMaxRecords_ShouldReturnIt() {
       // Arrange
-      Wormhole<String> wormhole = new Wormhole<>(3);
+      Wormhole<String> wormhole = new Wormhole<>(3, true);
       wormhole.put("James", "semaj");
       wormhole.put("John", "nhoj");
       wormhole.put("Jason", "nosaj");
@@ -60,7 +45,7 @@ class WormholeTest {
     @Test
     void withTwoLeafNodes_ShouldReturnIt() {
       // Arrange
-      Wormhole<String> wormhole = new Wormhole<>(3);
+      Wormhole<String> wormhole = new Wormhole<>(3, true);
       wormhole.put("James", "semaj");
       wormhole.put("Joseph", "hpesoj");
       wormhole.put("John", "nhoj");
@@ -83,7 +68,7 @@ class WormholeTest {
     @Test
     void withTwoLeafNodes_UsingSameCharForKey_ShouldReturnIt() {
       // Arrange
-      Wormhole<Integer> wormhole = new Wormhole<>(3);
+      Wormhole<Integer> wormhole = new Wormhole<>(3, true);
       wormhole.put("aaaaa", 5);
       wormhole.put("a", 1);
       wormhole.put("aaa", 3);
@@ -99,9 +84,10 @@ class WormholeTest {
     }
 
     @Test
-    void withManyLeafNodes_ShouldReturnIt() {
+    void withManyLeafNodes_ShouldReturnThem() {
       // Arrange
       Wormhole<Integer> wormhole = new Wormhole<>(3);
+      Wormhole.Validator<Integer> validator = new Wormhole.Validator<>(wormhole);
       int maxKeyLength = 8;
       int recordCount = 50000;
       Map<String, Integer> expected = new LinkedHashMap<>(recordCount);
@@ -111,6 +97,7 @@ class WormholeTest {
         expected.put(key, value);
         wormhole.put(key, value);
       }
+      validator.validate();
 
       // Act & Assert
       for (Map.Entry<String, Integer> entry : expected.entrySet()) {
@@ -124,7 +111,7 @@ class WormholeTest {
     @Test
     void withOneLeafNodeWithOneRecord_ShouldReturnIt() {
       // Arrange
-      Wormhole<String> wormhole = new Wormhole<>(3);
+      Wormhole<String> wormhole = new Wormhole<>(3, true);
       wormhole.put("James", "semaj");
 
       // Act & Assert
@@ -158,7 +145,7 @@ class WormholeTest {
     @Test
     void withOneLeafNodeWithMaxRecords_ShouldReturnIt() {
       // Arrange
-      Wormhole<String> wormhole = new Wormhole<>(3);
+      Wormhole<String> wormhole = new Wormhole<>(3, true);
       wormhole.put("James", "semaj");
       wormhole.put("John", "nhoj");
       wormhole.put("Jason", "nosaj");
@@ -258,7 +245,7 @@ class WormholeTest {
     @Test
     void withTwoLeafNodes_ShouldReturnIt() {
       // Arrange
-      Wormhole<String> wormhole = new Wormhole<>(3);
+      Wormhole<String> wormhole = new Wormhole<>(3, true);
       wormhole.put("James", "semaj");
       wormhole.put("Joseph", "hpesoj");
       wormhole.put("John", "nhoj");
@@ -329,7 +316,7 @@ class WormholeTest {
     @Test
     void withTwoLeafNodes_UsingSameCharForKey_ShouldReturnIt() {
       // Arrange
-      Wormhole<Integer> wormhole = new Wormhole<>(3);
+      Wormhole<Integer> wormhole = new Wormhole<>(3, true);
       wormhole.put("aaaaa", 5);
       wormhole.put("a", 1);
       wormhole.put("aaa", 3);
@@ -371,9 +358,10 @@ class WormholeTest {
     }
 
     @Test
-    void withManyLeafNodes_ShouldReturnIt() {
+    void withManyLeafNodes_ShouldReturnThem() {
       // Arrange
       Wormhole<Integer> wormhole = new Wormhole<>(3);
+      Wormhole.Validator<Integer> validator = new Wormhole.Validator<>(wormhole);
       int maxKeyLength = 8;
       int recordCount = 50000;
       TreeMap<String, Integer> expected = new TreeMap<>();
@@ -383,6 +371,7 @@ class WormholeTest {
         expected.put(key, value);
         wormhole.put(key, value);
       }
+      validator.validate();
 
       // Act & Assert
       for (int i = 0; i < 1000; i++) {
@@ -410,12 +399,15 @@ class WormholeTest {
     @Test
     void withOneRecord_GivenSameKey_ShouldReturnTrueAndDeleteIt() {
       // Arrange
-      Wormhole<String> wormhole = new Wormhole<>(3);
+      Wormhole<String> wormhole = new Wormhole<>(3, true);
       wormhole.put("James", "semaj");
 
       // Act & Assert
       assertThat(wormhole.delete("James")).isTrue();
       assertThat(wormhole.get("James")).isNull();
+      assertThat(wormhole.get("Jame")).isNull();
+      assertThat(wormhole.get("Jamez")).isNull();
+      assertThat(wormhole.get("Jamesa")).isNull();
 
       // TODO: Check with scan().
     }
@@ -423,7 +415,7 @@ class WormholeTest {
     @Test
     void withOneRecord_GivenDifferentKey_ShouldReturnFalseAndNotDeleteIt() {
       // Arrange
-      Wormhole<String> wormhole = new Wormhole<>(3);
+      Wormhole<String> wormhole = new Wormhole<>(3, true);
       wormhole.put("James", "semaj");
 
       // Act & Assert
@@ -438,7 +430,7 @@ class WormholeTest {
     @Test
     void withOneLeafNodeWithMaxRecords_ShouldDeleteThem() {
       // Arrange
-      Wormhole<String> wormhole = new Wormhole<>(3);
+      Wormhole<String> wormhole = new Wormhole<>(3, true);
       wormhole.put("James", "semaj");
       wormhole.put("John", "nhoj");
       wormhole.put("Jason", "nosaj");
@@ -463,7 +455,7 @@ class WormholeTest {
     @Test
     void withTwoLeafNodes_WhenDeletingFromFirstLeaf_ShouldDeleteThem() {
       // Arrange
-      Wormhole<String> wormhole = new Wormhole<>(3);
+      Wormhole<String> wormhole = new Wormhole<>(3, true);
       wormhole.put("James", "semaj");
       wormhole.put("Joseph", "hpesoj");
       wormhole.put("John", "nhoj");
@@ -510,7 +502,7 @@ class WormholeTest {
     @Test
     void withTwoLeafNodes_WhenDeletingFromLastLeaf_ShouldDeleteThem() {
       // Arrange
-      Wormhole<String> wormhole = new Wormhole<>(3);
+      Wormhole<String> wormhole = new Wormhole<>(3, true);
       wormhole.put("James", "semaj");
       wormhole.put("Joseph", "hpesoj");
       wormhole.put("John", "nhoj");
@@ -554,11 +546,10 @@ class WormholeTest {
       assertThat(wormhole.get("Joseph")).isNull();
     }
 
-    /*
     @Test
-    void withTwoLeafNodes_UsingSameCharForKey_ShouldDeleteThem() {
+    void withTwoLeafNodes_UsingSameCharForKey_WhenDeletingFromFirstLeaf_ShouldDeleteThem() {
       // Arrange
-      Wormhole<Integer> wormhole = new Wormhole<>(3);
+      Wormhole<Integer> wormhole = new Wormhole<>(3, true);
       wormhole.put("aaaaa", 5);
       wormhole.put("a", 1);
       wormhole.put("aaa", 3);
@@ -566,17 +557,48 @@ class WormholeTest {
       wormhole.put("aa", 2);
 
       // Act & Assert
-      assertThat(wormhole.get("a")).isEqualTo(1);
+      assertThat(wormhole.delete("a")).isTrue();
+      assertThat(wormhole.get("a")).isNull();
       assertThat(wormhole.get("aa")).isEqualTo(2);
       assertThat(wormhole.get("aaa")).isEqualTo(3);
       assertThat(wormhole.get("aaaa")).isEqualTo(4);
       assertThat(wormhole.get("aaaaa")).isEqualTo(5);
+
+      assertThat(wormhole.delete("aa")).isTrue();
+      assertThat(wormhole.get("a")).isNull();
+      assertThat(wormhole.get("aa")).isNull();
+      assertThat(wormhole.get("aaa")).isEqualTo(3);
+      assertThat(wormhole.get("aaaa")).isEqualTo(4);
+      assertThat(wormhole.get("aaaaa")).isEqualTo(5);
+
+      assertThat(wormhole.delete("aaa")).isTrue();
+      assertThat(wormhole.get("a")).isNull();
+      assertThat(wormhole.get("aa")).isNull();
+      assertThat(wormhole.get("aaa")).isNull();
+      assertThat(wormhole.get("aaaa")).isEqualTo(4);
+      assertThat(wormhole.get("aaaaa")).isEqualTo(5);
+
+      assertThat(wormhole.delete("aaaa")).isTrue();
+      assertThat(wormhole.get("a")).isNull();
+      assertThat(wormhole.get("aa")).isNull();
+      assertThat(wormhole.get("aaa")).isNull();
+      assertThat(wormhole.get("aaaa")).isNull();
+      assertThat(wormhole.get("aaaaa")).isEqualTo(5);
+
+      assertThat(wormhole.delete("aaaaa")).isTrue();
+      assertThat(wormhole.get("a")).isNull();
+      assertThat(wormhole.get("aa")).isNull();
+      assertThat(wormhole.get("aaa")).isNull();
+      assertThat(wormhole.get("aaaa")).isNull();
+      assertThat(wormhole.get("aaaaa")).isNull();
     }
 
+    /*
     @Test
     void withManyLeafNodes_ShouldReturnIt() {
       // Arrange
       Wormhole<Integer> wormhole = new Wormhole<>(3);
+      Wormhole.Validator<Integer> validator = new Wormhole.Validator<>(wormhole);
       int maxKeyLength = 8;
       int recordCount = 50000;
       Map<String, Integer> expected = new LinkedHashMap<>(recordCount);
@@ -586,6 +608,7 @@ class WormholeTest {
         expected.put(key, value);
         wormhole.put(key, value);
       }
+      validator.validate();
 
       // Act & Assert
       for (Map.Entry<String, Integer> entry : expected.entrySet()) {

@@ -11,15 +11,29 @@ public class Wormhole<T> {
   final MetaTrieHashTable<T> table = new MetaTrieHashTable<>();
   private final int leafNodeSize;
   private final int leafNodeMergeSize;
+  @Nullable
+  private final Validator<T> validator;
 
   public Wormhole() {
     this(DEFAULT_LEAF_NODE_SIZE);
   }
 
   public Wormhole(int leafNodeSize) {
+    this(leafNodeSize, false);
+  }
+
+  public Wormhole(int leafNodeSize, boolean debugMode) {
     this.leafNodeSize = leafNodeSize;
     this.leafNodeMergeSize = leafNodeSize * 3 / 4;
     initialize();
+    validator = debugMode ? new Validator<>(this) : null;
+  }
+
+  private void validateIfNeeded() {
+    if (validator == null) {
+      return;
+    }
+    validator.validate();
   }
 
   public void put(String key, T value) {
@@ -27,6 +41,7 @@ public class Wormhole<T> {
     KeyValue<T> existingKeyValue = leafNode.pointSearchLeaf(key);
     if (existingKeyValue != null) {
       existingKeyValue.setValue(value);
+      validateIfNeeded();
       return;
     }
 
@@ -44,6 +59,7 @@ public class Wormhole<T> {
       assert leafNode.size() < leafNodeSize;
       leafNode.add(key, value);
     }
+    validateIfNeeded();
   }
 
   public boolean delete(String key) {
@@ -59,6 +75,7 @@ public class Wormhole<T> {
       merge(leafNode, leafNode.getRight());
     }
 
+    validateIfNeeded();
     return true;
   }
 
@@ -266,7 +283,7 @@ public class Wormhole<T> {
         '}';
   }
 
-  private static class Validator<T> {
+  static class Validator<T> {
     private final Wormhole<T> wormhole;
 
     Validator(Wormhole<T> wormhole) {
