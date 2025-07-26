@@ -507,9 +507,56 @@ class WormholeTest {
       assertThat(wormhole.get("Joseph")).isNull();
     }
 
+    @Test
+    void withTwoLeafNodes_WhenDeletingFromLastLeaf_ShouldDeleteThem() {
+      // Arrange
+      Wormhole<String> wormhole = new Wormhole<>(3);
+      wormhole.put("James", "semaj");
+      wormhole.put("Joseph", "hpesoj");
+      wormhole.put("John", "nhoj");
+      wormhole.put("Jacob", "bocaj");
+      wormhole.put("Jason", "nosaj");
+
+      // Act & Assert
+      assertThat(wormhole.delete("Joseph")).isTrue();
+      assertThat(wormhole.get("Jacob")).isEqualTo("bocaj");
+      assertThat(wormhole.get("James")).isEqualTo("semaj");
+      assertThat(wormhole.get("Jason")).isEqualTo("nosaj");
+      assertThat(wormhole.get("John")).isEqualTo("nhoj");
+      assertThat(wormhole.get("Joseph")).isNull();
+
+      assertThat(wormhole.delete("John")).isTrue();
+      assertThat(wormhole.get("Jacob")).isEqualTo("bocaj");
+      assertThat(wormhole.get("James")).isEqualTo("semaj");
+      assertThat(wormhole.get("Jason")).isEqualTo("nosaj");
+      assertThat(wormhole.get("John")).isNull();
+      assertThat(wormhole.get("Joseph")).isNull();
+
+      assertThat(wormhole.delete("Jason")).isTrue();
+      assertThat(wormhole.get("Jacob")).isEqualTo("bocaj");
+      assertThat(wormhole.get("James")).isEqualTo("semaj");
+      assertThat(wormhole.get("Jason")).isNull();
+      assertThat(wormhole.get("John")).isNull();
+      assertThat(wormhole.get("Joseph")).isNull();
+
+      assertThat(wormhole.delete("James")).isTrue();
+      assertThat(wormhole.get("Jacob")).isEqualTo("bocaj");
+      assertThat(wormhole.get("James")).isNull();
+      assertThat(wormhole.get("Jason")).isNull();
+      assertThat(wormhole.get("John")).isNull();
+      assertThat(wormhole.get("Joseph")).isNull();
+
+      assertThat(wormhole.delete("Jacob")).isTrue();
+      assertThat(wormhole.get("Jacob")).isNull();
+      assertThat(wormhole.get("James")).isNull();
+      assertThat(wormhole.get("Jason")).isNull();
+      assertThat(wormhole.get("John")).isNull();
+      assertThat(wormhole.get("Joseph")).isNull();
+    }
+
     /*
     @Test
-    void withTwoLeafNodes_UsingSameCharForKey_ShouldReturnIt() {
+    void withTwoLeafNodes_UsingSameCharForKey_ShouldDeleteThem() {
       // Arrange
       Wormhole<Integer> wormhole = new Wormhole<>(3);
       wormhole.put("aaaaa", 5);
