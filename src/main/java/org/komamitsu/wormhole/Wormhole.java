@@ -327,6 +327,9 @@ public class Wormhole<T> {
         String anchorKey = anchorKeyQueue.removeFirst();
         MetaTrieHashTable.NodeMeta<T> nodeMeta = wormhole.table.table.get(anchorKey);
         if (!(nodeMeta instanceof MetaTrieHashTable.NodeMetaInternal)) {
+          if (!nodeMetas.remove(nodeMeta)) {
+            throw new AssertionError(String.format("Unexpected node meta. Node meta: %s", nodeMeta));
+          }
           continue;
         }
 
@@ -370,8 +373,10 @@ public class Wormhole<T> {
           }
         }
 
-        nodeMetas.remove(nodeMetaInternal);
-        nodeMetaInternal.bitmap.stream().forEach(childHeadChar -> anchorKeyQueue.addLast(anchorKey + childHeadChar));
+        if (!nodeMetas.remove(nodeMetaInternal)) {
+          throw new AssertionError(String.format("Unexpected node meta. Node meta: %s", nodeMeta));
+        }
+        nodeMetaInternal.bitmap.stream().forEach(childHeadChar -> anchorKeyQueue.addLast(anchorKey + ((char)childHeadChar)));
       }
     }
 
@@ -392,7 +397,6 @@ public class Wormhole<T> {
         if (nodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf) {
           LeafNode<T> leafNode = ((MetaTrieHashTable.NodeMetaLeaf<T>) nodeMeta).leafNode;
           leafNodes.add(leafNode);
-          nodeMetas.remove(nodeMeta);
         }
         // Node meta internals are validated later.
       }
