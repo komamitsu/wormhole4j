@@ -640,29 +640,71 @@ class WormholeTest {
       assertThat(wormhole.get("aaaaa")).isNull();
     }
 
-    /*
     @Test
     void withManyLeafNodes_ShouldReturnIt() {
       // Arrange
       Wormhole<Integer> wormhole = new Wormhole<>(3);
       Wormhole.Validator<Integer> validator = new Wormhole.Validator<>(wormhole);
       int maxKeyLength = 8;
-      int recordCount = 50000;
-      Map<String, Integer> expected = new LinkedHashMap<>(recordCount);
+      int recordCount = 30000;
+      List<String> expectedKeys = new ArrayList<>(recordCount);
+      Map<String, Integer> expected = new HashMap<>(recordCount);
       for (int i = 0; i < recordCount; i++) {
         String key = genRandomKey(maxKeyLength);
         int value = ThreadLocalRandom.current().nextInt();
         expected.put(key, value);
+        expectedKeys.add(key);
         wormhole.put(key, value);
+      }
+
+      // Act & Assert
+
+      // 100% -> 50%
+      for (int i = 0; i < expected.size() - recordCount * 0.5; i++) {
+        int keyIndex = ThreadLocalRandom.current().nextInt(expectedKeys.size());
+        String key = expectedKeys.get(keyIndex);
+        assertThat(wormhole.delete(key)).isTrue();
+        expected.remove(key);
+        expectedKeys.remove(keyIndex);
       }
       validator.validate();
 
-      // Act & Assert
       for (Map.Entry<String, Integer> entry : expected.entrySet()) {
         assertThat(wormhole.get(entry.getKey())).isEqualTo(entry.getValue());
       }
+
+      // 50% -> 5%
+      for (int i = 0; i < expected.size() - recordCount * 0.05; i++) {
+        int keyIndex = ThreadLocalRandom.current().nextInt(expectedKeys.size());
+        String key = expectedKeys.get(keyIndex);
+        assertThat(wormhole.delete(key)).isTrue();
+        expected.remove(key);
+        expectedKeys.remove(keyIndex);
+      }
+      validator.validate();
+
+      Map<String, Integer> scanned = wormhole.scan("", 100000).stream()
+          .collect(Collectors.toMap(KeyValue::getKey, KeyValue::getValue));
+
+      for (Map.Entry<String, Integer> entry : expected.entrySet()) {
+        String key = entry.getKey();
+        Integer actualValue = wormhole.get(key);
+        assertThat(actualValue).isEqualTo(entry.getValue());
+        assertThat(scanned.get(key)).isEqualTo(entry.getValue());
+      }
+
+      // 100 -> 0
+      for (int i = 0; i < expected.size(); i++) {
+        int keyIndex = ThreadLocalRandom.current().nextInt(expectedKeys.size());
+        String key = expectedKeys.get(keyIndex);
+        assertThat(wormhole.delete(key)).isTrue();
+        expected.remove(key);
+        expectedKeys.remove(keyIndex);
+      }
+      validator.validate();
+
+      assertThat(wormhole.scan("", 100000)).isEmpty();
     }
-     */
   }
 
   static String genRandomKey(int maxKeyLength) {
