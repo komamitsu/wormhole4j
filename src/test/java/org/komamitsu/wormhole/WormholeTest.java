@@ -647,15 +647,14 @@ class WormholeTest {
       Wormhole.Validator<Integer> validator = new Wormhole.Validator<>(wormhole);
       int maxKeyLength = 8;
       int recordCount = 30000;
-      List<String> expectedKeys = new ArrayList<>(recordCount);
       Map<String, Integer> expected = new HashMap<>(recordCount);
       for (int i = 0; i < recordCount; i++) {
         String key = genRandomKey(maxKeyLength);
         int value = ThreadLocalRandom.current().nextInt();
         expected.put(key, value);
-        expectedKeys.add(key);
         wormhole.put(key, value);
       }
+      List<String> expectedKeys = new ArrayList<>(expected.keySet());
 
       // Act & Assert
 
