@@ -694,7 +694,8 @@ class WormholeTest {
       }
 
       // 100 -> 0
-      for (int i = 0; i < expected.size(); i++) {
+      int remainingCount = expected.size();
+      for (int i = 0; i < remainingCount; i++) {
         int keyIndex = ThreadLocalRandom.current().nextInt(expectedKeys.size());
         String key = expectedKeys.get(keyIndex);
         assertThat(wormhole.delete(key)).isTrue();
