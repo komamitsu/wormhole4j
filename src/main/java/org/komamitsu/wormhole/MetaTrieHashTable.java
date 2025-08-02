@@ -1,13 +1,12 @@
 package org.komamitsu.wormhole;
 
 import javax.annotation.Nullable;
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 class MetaTrieHashTable<T> {
   // Visible for testing
-  final Map<String, NodeMeta<T>> table = new HashMap<>();
+  private final Map<String, NodeMeta<T>> table = new HashMap<>();
+  int maxAnchorLength;
 
   static abstract class NodeMeta<T> {
     final String anchorPrefix;
@@ -92,6 +91,15 @@ class MetaTrieHashTable<T> {
 
   void put(String key, NodeMeta<T> nodeMeta) {
     table.put(key, nodeMeta);
+    maxAnchorLength = Math.max(maxAnchorLength, key.length());
+  }
+
+  Collection<NodeMeta<T>> values() {
+    return table.values();
+  }
+
+  Set<Map.Entry<String, NodeMeta<T>>> entrySet() {
+    return table.entrySet();
   }
 
   void handleSplitNodes(String key, LeafNode<T> newLeafNode) {
@@ -109,7 +117,7 @@ class MetaTrieHashTable<T> {
       String prefix = key.substring(0, prefixLen);
       NodeMeta<T> node = table.get(prefix);
       if (node == null) {
-        table.put(prefix, new NodeMetaInternal<>(prefix, newLeafNode, newLeafNode, key.charAt(prefixLen)));
+        put(prefix, new NodeMetaInternal<>(prefix, newLeafNode, newLeafNode, key.charAt(prefixLen)));
         continue;
       }
 
@@ -120,10 +128,10 @@ class MetaTrieHashTable<T> {
         // and add an internal node with the same prefix instead of the original leaf node.
         String prefixWithSmallestToken = prefix + Wormhole.SMALLEST_TOKEN;
         NodeMetaLeaf<T> updatedNode = new NodeMetaLeaf<>(prefixWithSmallestToken, leafNode);
-        table.put(prefixWithSmallestToken, updatedNode);
+        put(prefixWithSmallestToken, updatedNode);
 
         NodeMetaInternal<T> parent = new NodeMetaInternal<>(prefix, leafNode, leafNode, Wormhole.BITMAP_ID_OF_SMALLEST_TOKEN);
-        table.put(prefix, parent);
+        put(prefix, parent);
 
         node = parent;
       }
@@ -214,6 +222,7 @@ class MetaTrieHashTable<T> {
         origAnchorKey + Wormhole.SMALLEST_TOKEN;
 
     NodeMeta<T> removed = table.remove(anchorKey);
+    maxAnchorLength = maxAnchorLength();
     if (removed instanceof NodeMetaLeaf) {
       return anchorKey;
     }
@@ -231,6 +240,7 @@ class MetaTrieHashTable<T> {
         origAnchorKey + Wormhole.SMALLEST_TOKEN;
 
     NodeMeta<T> removed = table.remove(anchorKey);
+    maxAnchorLength = maxAnchorLength();
     if (removed instanceof NodeMetaInternal) {
       return anchorKey;
     }
@@ -241,7 +251,6 @@ class MetaTrieHashTable<T> {
             NodeMetaInternal.class.getName(), removed.getClass().getName()));
   }
 
-  // TODO: Memoize
   private int maxAnchorLength() {
     int max = 0;
     for (String key : table.keySet()) {

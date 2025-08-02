@@ -325,7 +325,7 @@ public class Wormhole<T> {
       anchorKeyQueue.addLast("");
       while (!anchorKeyQueue.isEmpty()) {
         String anchorKey = anchorKeyQueue.removeFirst();
-        MetaTrieHashTable.NodeMeta<T> nodeMeta = wormhole.table.table.get(anchorKey);
+        MetaTrieHashTable.NodeMeta<T> nodeMeta = wormhole.table.get(anchorKey);
         if (!(nodeMeta instanceof MetaTrieHashTable.NodeMetaInternal)) {
           if (!nodeMetas.remove(nodeMeta)) {
             throw new AssertionError(String.format("Unexpected node meta. Node meta: %s", nodeMeta));
@@ -383,9 +383,9 @@ public class Wormhole<T> {
     private void validateInternal() {
       List<LeafNode<T>> leafNodes = new ArrayList<>();
       MetaTrieHashTable<T> table = wormhole.table;
-      Collection<MetaTrieHashTable.NodeMeta<T>> nodeMetas = new HashSet<>(table.table.values());
+      Collection<MetaTrieHashTable.NodeMeta<T>> nodeMetas = new HashSet<>(table.values());
       // Collect leaf nodes.
-      for (Map.Entry<String, MetaTrieHashTable.NodeMeta<T>> entry : table.table.entrySet()) {
+      for (Map.Entry<String, MetaTrieHashTable.NodeMeta<T>> entry : table.entrySet()) {
         String key = entry.getKey();
         MetaTrieHashTable.NodeMeta<T> nodeMeta = entry.getValue();
         if (!nodeMeta.anchorPrefix.equals(key)) {
