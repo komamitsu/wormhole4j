@@ -11,6 +11,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.komamitsu.wormhole.TestHelpers.genRandomKey;
 
 @ParameterizedClass
 @ValueSource(ints = {3, 128})
@@ -770,15 +771,5 @@ class WormholeTest {
 
       assertThat(wormhole.scan("", 100000)).isEmpty();
     }
-  }
-
-  static String genRandomKey(int maxKeyLength) {
-    int keyLength = ThreadLocalRandom.current().nextInt(0, maxKeyLength);
-    StringBuilder sb = new StringBuilder(keyLength);
-    for (int j = 0; j < keyLength; j++) {
-      char c = (char) ThreadLocalRandom.current().nextInt('a', 'z' + 1);
-      sb.append(c);
-    }
-    return sb.toString();
   }
 }
