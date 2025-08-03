@@ -13,6 +13,16 @@ class WormholeTest {
   @Nested
   class Get {
     @Test
+    void withOneLeafNodeWithOneEmptyRecord_ShouldReturnIt() {
+      // Arrange
+      Wormhole<String> wormhole = new Wormhole<>(3, true);
+      wormhole.put("", "foo");
+
+      // Act & Assert
+      assertThat(wormhole.get("")).isEqualTo("foo");
+    }
+
+    @Test
     void withOneLeafNodeWithOneRecord_ShouldReturnIt() {
       // Arrange
       Wormhole<String> wormhole = new Wormhole<>(3, true);
@@ -108,6 +118,16 @@ class WormholeTest {
 
   @Nested
   class Scan {
+    @Test
+    void withOneLeafNodeWithOneEmptyRecord_ShouldReturnIt() {
+      // Arrange
+      Wormhole<String> wormhole = new Wormhole<>(3, true);
+      wormhole.put("", "foo");
+
+      // Act & Assert
+      assertThat(wormhole.scan("", 2)).containsExactly(new KeyValue<>("", "foo"));
+    }
+
     @Test
     void withOneLeafNodeWithOneRecord_ShouldReturnIt() {
       // Arrange
@@ -397,6 +417,18 @@ class WormholeTest {
   @Nested
   class Delete {
     @Test
+    void withOneRecord_GivenSameEmptyKey_ShouldReturnTrueAndDeleteIt() {
+      // Arrange
+      Wormhole<String> wormhole = new Wormhole<>(3, true);
+      wormhole.put("", "foo");
+
+      // Act & Assert
+      assertThat(wormhole.delete("")).isTrue();
+
+      assertThat(wormhole.scan("", 100000)).isEmpty();
+    }
+
+    @Test
     void withOneRecord_GivenSameKey_ShouldReturnTrueAndDeleteIt() {
       // Arrange
       Wormhole<String> wormhole = new Wormhole<>(3, true);
@@ -409,7 +441,7 @@ class WormholeTest {
       assertThat(wormhole.get("Jamez")).isNull();
       assertThat(wormhole.get("Jamesa")).isNull();
 
-      // TODO: Check with scan().
+      assertThat(wormhole.scan("", 100000)).isEmpty();
     }
 
     @Test
@@ -425,6 +457,8 @@ class WormholeTest {
       assertThat(wormhole.delete("Jame")).isFalse();
       assertThat(wormhole.delete("Jamesa")).isFalse();
       assertThat(wormhole.get("James")).isEqualTo("semaj");
+
+      assertThat(wormhole.scan("", 100000)).containsExactly(new KeyValue<>("James", "semaj"));
     }
 
     @Test
@@ -440,16 +474,19 @@ class WormholeTest {
       assertThat(wormhole.get("Jason")).isNull();
       assertThat(wormhole.get("James")).isEqualTo("semaj");
       assertThat(wormhole.get("John")).isEqualTo("nhoj");
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(2);
 
       assertThat(wormhole.delete("John")).isTrue();
       assertThat(wormhole.get("Jason")).isNull();
       assertThat(wormhole.get("John")).isNull();
       assertThat(wormhole.get("James")).isEqualTo("semaj");
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(1);
 
       assertThat(wormhole.delete("James")).isTrue();
       assertThat(wormhole.get("Jason")).isNull();
       assertThat(wormhole.get("John")).isNull();
       assertThat(wormhole.get("James")).isNull();
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(0);
     }
 
     @Test
@@ -469,6 +506,7 @@ class WormholeTest {
       assertThat(wormhole.get("Jason")).isEqualTo("nosaj");
       assertThat(wormhole.get("John")).isEqualTo("nhoj");
       assertThat(wormhole.get("Joseph")).isEqualTo("hpesoj");
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(4);
 
       assertThat(wormhole.delete("James")).isTrue();
       assertThat(wormhole.get("Jacob")).isNull();
@@ -476,6 +514,7 @@ class WormholeTest {
       assertThat(wormhole.get("Jason")).isEqualTo("nosaj");
       assertThat(wormhole.get("John")).isEqualTo("nhoj");
       assertThat(wormhole.get("Joseph")).isEqualTo("hpesoj");
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(3);
 
       assertThat(wormhole.delete("Jason")).isTrue();
       assertThat(wormhole.get("Jacob")).isNull();
@@ -483,6 +522,7 @@ class WormholeTest {
       assertThat(wormhole.get("Jason")).isNull();
       assertThat(wormhole.get("John")).isEqualTo("nhoj");
       assertThat(wormhole.get("Joseph")).isEqualTo("hpesoj");
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(2);
 
       assertThat(wormhole.delete("John")).isTrue();
       assertThat(wormhole.get("Jacob")).isNull();
@@ -490,6 +530,7 @@ class WormholeTest {
       assertThat(wormhole.get("Jason")).isNull();
       assertThat(wormhole.get("John")).isNull();
       assertThat(wormhole.get("Joseph")).isEqualTo("hpesoj");
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(1);
 
       assertThat(wormhole.delete("Joseph")).isTrue();
       assertThat(wormhole.get("Jacob")).isNull();
@@ -497,6 +538,7 @@ class WormholeTest {
       assertThat(wormhole.get("Jason")).isNull();
       assertThat(wormhole.get("John")).isNull();
       assertThat(wormhole.get("Joseph")).isNull();
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(0);
     }
 
     @Test
@@ -516,6 +558,7 @@ class WormholeTest {
       assertThat(wormhole.get("Jason")).isEqualTo("nosaj");
       assertThat(wormhole.get("John")).isEqualTo("nhoj");
       assertThat(wormhole.get("Joseph")).isNull();
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(4);
 
       assertThat(wormhole.delete("John")).isTrue();
       assertThat(wormhole.get("Jacob")).isEqualTo("bocaj");
@@ -523,6 +566,7 @@ class WormholeTest {
       assertThat(wormhole.get("Jason")).isEqualTo("nosaj");
       assertThat(wormhole.get("John")).isNull();
       assertThat(wormhole.get("Joseph")).isNull();
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(3);
 
       assertThat(wormhole.delete("Jason")).isTrue();
       assertThat(wormhole.get("Jacob")).isEqualTo("bocaj");
@@ -530,6 +574,7 @@ class WormholeTest {
       assertThat(wormhole.get("Jason")).isNull();
       assertThat(wormhole.get("John")).isNull();
       assertThat(wormhole.get("Joseph")).isNull();
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(2);
 
       assertThat(wormhole.delete("James")).isTrue();
       assertThat(wormhole.get("Jacob")).isEqualTo("bocaj");
@@ -537,6 +582,7 @@ class WormholeTest {
       assertThat(wormhole.get("Jason")).isNull();
       assertThat(wormhole.get("John")).isNull();
       assertThat(wormhole.get("Joseph")).isNull();
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(1);
 
       assertThat(wormhole.delete("Jacob")).isTrue();
       assertThat(wormhole.get("Jacob")).isNull();
@@ -544,6 +590,7 @@ class WormholeTest {
       assertThat(wormhole.get("Jason")).isNull();
       assertThat(wormhole.get("John")).isNull();
       assertThat(wormhole.get("Joseph")).isNull();
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(0);
     }
 
     @Test
@@ -563,6 +610,7 @@ class WormholeTest {
       assertThat(wormhole.get("aaa")).isEqualTo(3);
       assertThat(wormhole.get("aaaa")).isEqualTo(4);
       assertThat(wormhole.get("aaaaa")).isEqualTo(5);
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(4);
 
       assertThat(wormhole.delete("aa")).isTrue();
       assertThat(wormhole.get("a")).isNull();
@@ -570,6 +618,7 @@ class WormholeTest {
       assertThat(wormhole.get("aaa")).isEqualTo(3);
       assertThat(wormhole.get("aaaa")).isEqualTo(4);
       assertThat(wormhole.get("aaaaa")).isEqualTo(5);
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(3);
 
       assertThat(wormhole.delete("aaa")).isTrue();
       assertThat(wormhole.get("a")).isNull();
@@ -577,6 +626,7 @@ class WormholeTest {
       assertThat(wormhole.get("aaa")).isNull();
       assertThat(wormhole.get("aaaa")).isEqualTo(4);
       assertThat(wormhole.get("aaaaa")).isEqualTo(5);
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(2);
 
       assertThat(wormhole.delete("aaaa")).isTrue();
       assertThat(wormhole.get("a")).isNull();
@@ -584,6 +634,7 @@ class WormholeTest {
       assertThat(wormhole.get("aaa")).isNull();
       assertThat(wormhole.get("aaaa")).isNull();
       assertThat(wormhole.get("aaaaa")).isEqualTo(5);
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(1);
 
       assertThat(wormhole.delete("aaaaa")).isTrue();
       assertThat(wormhole.get("a")).isNull();
@@ -591,6 +642,7 @@ class WormholeTest {
       assertThat(wormhole.get("aaa")).isNull();
       assertThat(wormhole.get("aaaa")).isNull();
       assertThat(wormhole.get("aaaaa")).isNull();
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(0);
     }
 
     @Test
@@ -610,6 +662,7 @@ class WormholeTest {
       assertThat(wormhole.get("aaa")).isEqualTo(3);
       assertThat(wormhole.get("aaaa")).isEqualTo(4);
       assertThat(wormhole.get("aaaaa")).isNull();
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(4);
 
       assertThat(wormhole.delete("aaaa")).isTrue();
       assertThat(wormhole.get("a")).isEqualTo(1);
@@ -617,6 +670,7 @@ class WormholeTest {
       assertThat(wormhole.get("aaa")).isEqualTo(3);
       assertThat(wormhole.get("aaaa")).isNull();
       assertThat(wormhole.get("aaaaa")).isNull();
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(3);
 
       assertThat(wormhole.delete("aaa")).isTrue();
       assertThat(wormhole.get("a")).isEqualTo(1);
@@ -624,6 +678,7 @@ class WormholeTest {
       assertThat(wormhole.get("aaa")).isNull();
       assertThat(wormhole.get("aaaa")).isNull();
       assertThat(wormhole.get("aaaaa")).isNull();
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(2);
 
       assertThat(wormhole.delete("aa")).isTrue();
       assertThat(wormhole.get("a")).isEqualTo(1);
@@ -631,6 +686,7 @@ class WormholeTest {
       assertThat(wormhole.get("aaa")).isNull();
       assertThat(wormhole.get("aaaa")).isNull();
       assertThat(wormhole.get("aaaaa")).isNull();
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(1);
 
       assertThat(wormhole.delete("a")).isTrue();
       assertThat(wormhole.get("a")).isNull();
@@ -638,6 +694,7 @@ class WormholeTest {
       assertThat(wormhole.get("aaa")).isNull();
       assertThat(wormhole.get("aaaa")).isNull();
       assertThat(wormhole.get("aaaaa")).isNull();
+      assertThat(wormhole.scan("", 100000)).size().isEqualTo(0);
     }
 
     @Test
@@ -708,8 +765,7 @@ class WormholeTest {
   }
 
   static String genRandomKey(int maxKeyLength) {
-    // TODO: NPE occurs when the key length is 0.
-    int keyLength = ThreadLocalRandom.current().nextInt(1, maxKeyLength + 1);
+    int keyLength = ThreadLocalRandom.current().nextInt(0, maxKeyLength);
     StringBuilder sb = new StringBuilder(keyLength);
     for (int j = 0; j < keyLength; j++) {
       char c = (char) ThreadLocalRandom.current().nextInt('a', 'z' + 1);
