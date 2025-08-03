@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 import static org.komamitsu.wormhole.TestHelpers.genRandomKey;
@@ -18,10 +19,10 @@ class Benchmark {
   private static final String DEFAULT_RECORD_COUNT = "100000";
   private static final String DEFAULT_WARMUP_COUNT = "4";
   private static final String DEFAULT_ATTEMPT_COUNT = "4";
-  private int maxKeyLength;
-  private int recordCount;
-  private int warmupCount;
-  private int attemptCount;
+  private final int maxKeyLength;
+  private final int recordCount;
+  private final int warmupCount;
+  private final int attemptCount;
 
   public Benchmark() {
     this.maxKeyLength = Integer.parseInt(System.getProperty(PROP_MAX_KEY_LENGTH, DEFAULT_MAX_KEY_LENGTH));
@@ -44,30 +45,29 @@ class Benchmark {
     return durationMillis;
   }
 
-  @Test
-  void insert() {
-    List<String> keys = new ArrayList<>(recordCount);
-    for (int i = 0; i < recordCount; i++) {
-      keys.add(genRandomKey(maxKeyLength));
-    }
+  private interface TestCase<T> {
+    String label();
 
-    Runnable task = () -> {
-      Wormhole<Integer> wormhole = new Wormhole<>();
-      for (int i = 0; i < recordCount; i++) {
-        wormhole.put(keys.get(i), i);
-      }
-    };
+    T init();
+
+    Runnable createTask(T resource);
+  }
+
+  <T> void execute(TestCase<T> testCase) {
+    T resource = testCase.init();
+
+    System.out.printf("Starting: %s%n", testCase.label());
 
     // Warmups
     for (int i = 0; i < warmupCount; i++) {
-      long durationMillis = measure(task);
+      long durationMillis = measure(testCase.createTask(resource));
       System.out.printf("Warmup #%d: %d ms%n", i, durationMillis);
     }
 
     // Attempts
     List<Long> durationsMillis = new ArrayList<>();
     for (int i = 0; i < attemptCount; i++) {
-      long durationMillis = measure(task);
+      long durationMillis = measure(testCase.createTask(resource));
       durationsMillis.add(durationMillis);
       System.out.printf("Attempt #%d: %d ms%n", i, durationMillis);
     }
@@ -78,5 +78,67 @@ class Benchmark {
             .reduce(0L, Long::sum));
     System.out.printf("Average: %d ms%n", averageMillis);
     System.out.printf("StdDev: %f ms%n", stdDev);
+  }
+
+  @Test
+  void insertToWormhole() {
+    execute(
+        new TestCase<List<String>>() {
+          @Override
+          public String label() {
+            return "Insert to Wormhole";
+          }
+
+          @Override
+          public List<String> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            for (int i = 0; i < recordCount; i++) {
+              keys.add(genRandomKey(maxKeyLength));
+            }
+            return keys;
+          }
+
+          @Override
+          public Runnable createTask(List<String> keys) {
+            return () -> {
+              Wormhole<Integer> wormhole = new Wormhole<>(256);
+              for (int i = 0; i < recordCount; i++) {
+                wormhole.put(keys.get(i), i);
+              }
+            };
+          }
+        }
+    );
+  }
+
+  @Test
+  void insertToTreeMap() {
+    execute(
+        new TestCase<List<String>>() {
+          @Override
+          public String label() {
+            return "Insert to TreeMap";
+          }
+
+          @Override
+          public List<String> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            for (int i = 0; i < recordCount; i++) {
+              keys.add(genRandomKey(maxKeyLength));
+            }
+            return keys;
+          }
+
+          @Override
+          public Runnable createTask(List<String> keys) {
+            return () -> {
+              TreeMap<String, Integer> treeMap = new TreeMap<>();
+              for (int i = 0; i < recordCount; i++) {
+                treeMap.put(keys.get(i), i);
+              }
+            };
+          }
+        }
+    );
   }
 }
