@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import static org.komamitsu.wormhole.TestHelpers.genRandomKey;
@@ -48,6 +49,8 @@ class Benchmark {
   private interface TestCase<T> {
     String label();
 
+    int count();
+
     T init();
 
     Runnable createTask(T resource);
@@ -61,23 +64,25 @@ class Benchmark {
     // Warmups
     for (int i = 0; i < warmupCount; i++) {
       long durationMillis = measure(testCase.createTask(resource));
-      System.out.printf("Warmup #%d: %d ms%n", i, durationMillis);
+      long throughput = testCase.count() * 1000L / durationMillis;
+      System.out.printf("Warmup #%d: %d per second%n", i, throughput);
     }
 
     // Attempts
-    List<Long> durationsMillis = new ArrayList<>();
+    List<Long> throughputs = new ArrayList<>();
     for (int i = 0; i < attemptCount; i++) {
       long durationMillis = measure(testCase.createTask(resource));
-      durationsMillis.add(durationMillis);
-      System.out.printf("Attempt #%d: %d ms%n", i, durationMillis);
+      long throughput = testCase.count() * 1000L / durationMillis;
+      throughputs.add(throughput);
+      System.out.printf("Attempt #%d: %d per second%n", i, throughput);
     }
-    long averageMillis = durationsMillis.stream().reduce(0L, Long::sum) / durationsMillis.size();
+    long averageThroughput = throughputs.stream().reduce(0L, Long::sum) / throughputs.size();
     double stdDev = Math.sqrt(
-        durationsMillis.stream()
-            .map(durationMillis -> (long)Math.pow(durationMillis - averageMillis, 2.0))
+        throughputs.stream()
+            .map(throughput -> (long)Math.pow(throughput - averageThroughput, 2.0))
             .reduce(0L, Long::sum));
-    System.out.printf("Average: %d ms%n", averageMillis);
-    System.out.printf("StdDev: %f ms%n", stdDev);
+    System.out.printf("Average throughput: %d per second%n", averageThroughput);
+    System.out.printf("StdDev: %f per second%n", stdDev);
   }
 
   @Test
@@ -87,6 +92,11 @@ class Benchmark {
           @Override
           public String label() {
             return "Insert to Wormhole";
+          }
+
+          @Override
+          public int count() {
+            return recordCount;
           }
 
           @Override
@@ -121,6 +131,11 @@ class Benchmark {
           }
 
           @Override
+          public int count() {
+            return recordCount;
+          }
+
+          @Override
           public List<String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             for (int i = 0; i < recordCount; i++) {
@@ -135,6 +150,98 @@ class Benchmark {
               TreeMap<String, Integer> treeMap = new TreeMap<>();
               for (int i = 0; i < recordCount; i++) {
                 treeMap.put(keys.get(i), i);
+              }
+            };
+          }
+        }
+    );
+  }
+
+  private static class MapAndKeys<T> {
+    private final T map;
+    private final List<String> keys;
+
+    public MapAndKeys(T map, List<String> keys) {
+      this.map = map;
+      this.keys = keys;
+    }
+  }
+
+  @Test
+  void getFromWormhole() {
+    execute(
+        new TestCase<MapAndKeys<Wormhole<Integer>>>() {
+          @Override
+          public String label() {
+            return "Get from Wormhole";
+          }
+
+          @Override
+          public int count() {
+            return recordCount * 2;
+          }
+
+          @Override
+          public MapAndKeys<Wormhole<Integer>> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            Wormhole<Integer> wormhole = new Wormhole<>();
+            for (int i = 0; i < recordCount; i++) {
+              String key = genRandomKey(maxKeyLength);
+              keys.add(key);
+              wormhole.put(key, i);
+            }
+            return new MapAndKeys<>(wormhole, keys);
+          }
+
+          @Override
+          public Runnable createTask(MapAndKeys<Wormhole<Integer>> mapAndKeys) {
+            return () -> {
+              Wormhole<Integer> wormhole = mapAndKeys.map;
+              List<String> keys = mapAndKeys.keys;
+              for (int i = 0; i < count(); i++) {
+                int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
+                wormhole.get(keys.get(keyIndex));
+              }
+            };
+          }
+        }
+    );
+  }
+
+  @Test
+  void getFromTreeMap() {
+    execute(
+        new TestCase<MapAndKeys<TreeMap<String, Integer>>>() {
+          @Override
+          public String label() {
+            return "Get from TreeMap";
+          }
+
+          @Override
+          public int count() {
+            return recordCount * 2;
+          }
+
+          @Override
+          public MapAndKeys<TreeMap<String, Integer>> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            TreeMap<String, Integer> treeMap = new TreeMap<>();
+            for (int i = 0; i < recordCount; i++) {
+              String key = genRandomKey(maxKeyLength);
+              keys.add(key);
+              treeMap.put(key, i);
+            }
+            return new MapAndKeys<>(treeMap, keys);
+          }
+
+          @Override
+          public Runnable createTask(MapAndKeys<TreeMap<String, Integer>> mapAndKeys) {
+            return () -> {
+              TreeMap<String, Integer> treeMap = mapAndKeys.map;
+              List<String> keys = mapAndKeys.keys;
+              for (int i = 0; i < count(); i++) {
+                int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
+                treeMap.get(keys.get(keyIndex));
               }
             };
           }
