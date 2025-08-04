@@ -116,7 +116,7 @@ class Benchmark {
           @Override
           public Runnable createTask(List<String> keys) {
             return () -> {
-              Wormhole<Integer> wormhole = new Wormhole<>(256);
+              Wormhole<Integer> wormhole = new Wormhole<>();
               for (int i = 0; i < recordCount; i++) {
                 wormhole.put(keys.get(i), i);
               }
@@ -190,6 +190,7 @@ class Benchmark {
             return () -> {
               File tmpDir = FileUtils.getTempDir();
               File tmpFile = new File(tmpDir, "btree.idx");
+              tmpFile.delete();
               try {
                 BTree btree = new BTree(tmpFile);
                 // TODO: Introduce something like ThrowableRunnable.
@@ -320,6 +321,7 @@ class Benchmark {
             File tmpDir = FileUtils.getTempDir();
             // TODO: Remove this file.
             File tmpFile = new File(tmpDir, "btree.idx");
+            tmpFile.delete();
             try {
               BTree btree = new BTree(tmpFile);
               // TODO: Introduce something like ThrowableRunnable.
