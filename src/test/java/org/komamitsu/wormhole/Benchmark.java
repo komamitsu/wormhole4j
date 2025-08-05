@@ -7,6 +7,7 @@ import btree4j.utils.io.FileUtils;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
@@ -37,7 +38,12 @@ class Benchmark {
     this.attemptCount = Integer.parseInt(System.getProperty(PROP_ATTEMPT_COUNT, DEFAULT_ATTEMPT_COUNT));
   }
 
-  private long measure(Runnable task) {
+  @FunctionalInterface
+  private interface ThrowableRunnable<E extends Throwable> {
+    void run() throws E, IOException;
+  }
+
+  private <E extends Throwable> long measure(ThrowableRunnable<E> task) throws E, IOException {
     long startMillis = System.currentTimeMillis();
     task.run();
     long durationMillis = System.currentTimeMillis() - startMillis;
@@ -51,17 +57,17 @@ class Benchmark {
     return durationMillis;
   }
 
-  private interface TestCase<T> {
+  private interface TestCase<T, E extends Throwable> {
     String label();
 
     int count();
 
-    T init();
+    T init() throws E, IOException;
 
-    Runnable createTask(T resource);
+     ThrowableRunnable<E> createTask(T resource);
   }
 
-  <T> void execute(TestCase<T> testCase) {
+  <T, E extends Throwable> void execute(TestCase<T, E> testCase) throws Throwable {
     T resource = testCase.init();
 
     System.out.printf("Starting: %s%n", testCase.label());
@@ -91,9 +97,9 @@ class Benchmark {
   }
 
   @Test
-  void insertToWormhole() {
+  void insertToWormhole() throws Throwable {
     execute(
-        new TestCase<List<String>>() {
+        new TestCase<List<String>, RuntimeException>() {
           @Override
           public String label() {
             return "Insert to Wormhole";
@@ -114,7 +120,7 @@ class Benchmark {
           }
 
           @Override
-          public Runnable createTask(List<String> keys) {
+          public ThrowableRunnable<RuntimeException> createTask(List<String> keys) {
             return () -> {
               Wormhole<Integer> wormhole = new Wormhole<>();
               for (int i = 0; i < recordCount; i++) {
@@ -127,9 +133,9 @@ class Benchmark {
   }
 
   @Test
-  void insertToTreeMap() {
+  void insertToTreeMap() throws Throwable {
     execute(
-        new TestCase<List<String>>() {
+        new TestCase<List<String>, RuntimeException>() {
           @Override
           public String label() {
             return "Insert to TreeMap";
@@ -150,7 +156,7 @@ class Benchmark {
           }
 
           @Override
-          public Runnable createTask(List<String> keys) {
+          public ThrowableRunnable<RuntimeException> createTask(List<String> keys) {
             return () -> {
               TreeMap<String, Integer> treeMap = new TreeMap<>();
               for (int i = 0; i < recordCount; i++) {
@@ -163,9 +169,9 @@ class Benchmark {
   }
 
   @Test
-  void insertToBTreePlus() {
+  void insertToBTreePlus() throws Throwable {
     execute(
-        new TestCase<List<String>>() {
+        new TestCase<List<String>, BTreeException>() {
           @Override
           public String label() {
             return "Insert to BTree+";
@@ -186,22 +192,15 @@ class Benchmark {
           }
 
           @Override
-          public Runnable createTask(List<String> keys) {
+          public ThrowableRunnable<BTreeException> createTask(List<String> keys) {
             return () -> {
               File tmpDir = FileUtils.getTempDir();
-              File tmpFile = new File(tmpDir, "btree.idx");
-              tmpFile.delete();
-              try {
-                BTree btree = new BTree(tmpFile);
-                // TODO: Introduce something like ThrowableRunnable.
-                btree.init(false);
-                for (int i = 0; i < recordCount; i++) {
-                  btree.addValue(new Value(keys.get(i)), i);
-                }
-              } catch (BTreeException e) {
-                throw new RuntimeException(e);
-              } finally {
-                tmpFile.delete();
+              File tmpFile = new File(tmpDir, "btree-" + System.nanoTime() + ".idx");
+              tmpFile.deleteOnExit();
+              BTree btree = new BTree(tmpFile);
+              btree.init(false);
+              for (int i = 0; i < recordCount; i++) {
+                btree.addValue(new Value(keys.get(i)), i);
               }
             };
           }
@@ -220,9 +219,9 @@ class Benchmark {
   }
 
   @Test
-  void getFromWormhole() {
+  void getFromWormhole() throws Throwable {
     execute(
-        new TestCase<MapAndKeys<Wormhole<Integer>>>() {
+        new TestCase<MapAndKeys<Wormhole<Integer>>, RuntimeException>() {
           @Override
           public String label() {
             return "Get from Wormhole";
@@ -246,7 +245,7 @@ class Benchmark {
           }
 
           @Override
-          public Runnable createTask(MapAndKeys<Wormhole<Integer>> mapAndKeys) {
+          public ThrowableRunnable<RuntimeException> createTask(MapAndKeys<Wormhole<Integer>> mapAndKeys) {
             return () -> {
               Wormhole<Integer> wormhole = mapAndKeys.map;
               List<String> keys = mapAndKeys.keys;
@@ -261,9 +260,9 @@ class Benchmark {
   }
 
   @Test
-  void getFromTreeMap() {
+  void getFromTreeMap() throws Throwable {
     execute(
-        new TestCase<MapAndKeys<TreeMap<String, Integer>>>() {
+        new TestCase<MapAndKeys<TreeMap<String, Integer>>, RuntimeException>() {
           @Override
           public String label() {
             return "Get from TreeMap";
@@ -287,7 +286,7 @@ class Benchmark {
           }
 
           @Override
-          public Runnable createTask(MapAndKeys<TreeMap<String, Integer>> mapAndKeys) {
+          public ThrowableRunnable<RuntimeException> createTask(MapAndKeys<TreeMap<String, Integer>> mapAndKeys) {
             return () -> {
               TreeMap<String, Integer> treeMap = mapAndKeys.map;
               List<String> keys = mapAndKeys.keys;
@@ -302,9 +301,9 @@ class Benchmark {
   }
 
   @Test
-  void getFromBTreePlus() {
+  void getFromBTreePlus() throws Throwable {
     execute(
-        new TestCase<MapAndKeys<BTree>>() {
+        new TestCase<MapAndKeys<BTree>, BTreeException>() {
           @Override
           public String label() {
             return "Get from BTree+";
@@ -316,39 +315,29 @@ class Benchmark {
           }
 
           @Override
-          public MapAndKeys<BTree> init() {
+          public MapAndKeys<BTree> init() throws BTreeException, IOException {
             List<String> keys = new ArrayList<>(recordCount);
             File tmpDir = FileUtils.getTempDir();
-            // TODO: Remove this file.
-            File tmpFile = new File(tmpDir, "btree.idx");
-            tmpFile.delete();
-            try {
-              BTree btree = new BTree(tmpFile);
-              // TODO: Introduce something like ThrowableRunnable.
-              btree.init(false);
-              for (int i = 0; i < recordCount; i++) {
-                String key = genRandomKey(maxKeyLength);
-                keys.add(key);
-                btree.addValue(new Value(key), i);
-              }
-              return new MapAndKeys<>(btree, keys);
-            } catch (Exception e) {
-              throw new RuntimeException();
+            File tmpFile = new File(tmpDir, "btree-" + System.nanoTime() + ".idx");
+            tmpFile.deleteOnExit();
+            BTree btree = new BTree(tmpFile);
+            btree.init(false);
+            for (int i = 0; i < recordCount; i++) {
+              String key = genRandomKey(maxKeyLength);
+              keys.add(key);
+              btree.addValue(new Value(key), i);
             }
+            return new MapAndKeys<>(btree, keys);
           }
 
           @Override
-          public Runnable createTask(MapAndKeys<BTree> mapAndKeys) {
+          public ThrowableRunnable<BTreeException> createTask(MapAndKeys<BTree> mapAndKeys) {
             return () -> {
               BTree bTree = mapAndKeys.map;
               List<String> keys = mapAndKeys.keys;
-              try {
-                for (int i = 0; i < count(); i++) {
-                  int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
-                  bTree.findValue(new Value(keys.get(keyIndex)));
-                }
-              } catch (BTreeException e) {
-                throw new RuntimeException(e);
+              for (int i = 0; i < count(); i++) {
+                int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
+                bTree.findValue(new Value(keys.get(keyIndex)));
               }
             };
           }
