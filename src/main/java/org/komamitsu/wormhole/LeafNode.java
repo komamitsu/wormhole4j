@@ -43,17 +43,23 @@ class LeafNode<T> {
 
     private void addWithSort(int keyValueIndex, KeyValue<T> keyValue) {
       int tag = calcTag(keyValueIndex, keyValue);
-      int index = Arrays.binarySearch(values, tag);
-      if (index < 0) {
-        index = (-index) + 1;
+      int index;
+      if (count == 0) {
+        index = 0;
       }
-      System.arraycopy(values, index, values, index + 1, count - index);
+      else {
+        index = Arrays.binarySearch(values, 0, count, tag);
+        if (index < 0) {
+          index = -(index + 1);
+        }
+        System.arraycopy(values, index, values, index + 1, count - index);
+      }
       values[index] = tag;
       count++;
     }
 
     private void sort() {
-      Arrays.sort(values);
+      Arrays.sort(values, 0, count);
     }
 
     private void remove(int index) {
@@ -99,7 +105,7 @@ class LeafNode<T> {
     }
 
     private int getLastIndex() {
-      return size();
+      return count - 1;
     }
 
     @Override
@@ -112,11 +118,11 @@ class LeafNode<T> {
           isFirst = false;
         }
         else {
-          sb.append(",");
+          sb.append(", ");
         }
         sb.append("{hash=");
         sb.append(getHashTag(i));
-        sb.append(",kv=");
+        sb.append(", kv=");
         sb.append(getKeyValue(i));
         sb.append("}");
       }
@@ -159,7 +165,12 @@ class LeafNode<T> {
     }
 
     void sort() {
-      Arrays.sort(values, numOfSortedValues, count);
+      // TODO: Optimize this.
+      Integer[] unsortedValues = Arrays.stream(values, numOfSortedValues, count).boxed().toArray(Integer[]::new);
+      Arrays.sort(unsortedValues, (a, b) -> getKey(a).compareTo(getKey(b)));
+      for (int i = 0; i < unsortedValues.length; i++) {
+        values[numOfSortedValues + i] = unsortedValues[i];
+      }
 
       // Merge sorted and unsorted key references.
       int[] mergedValues = new int[count];
@@ -281,7 +292,7 @@ class LeafNode<T> {
     @Override
     public String toString() {
       return "KeyReferences{" +
-          "kvs=" + Arrays.stream(values).limit(count).mapToObj(tags::getKeyValue).collect(Collectors.toList()) +
+          "kvs=" + Arrays.stream(values).limit(count).mapToObj(this::getKeyValue).collect(Collectors.toList()) +
           ", numOfSortedValues=" + numOfSortedValues +
           '}';
     }
@@ -376,6 +387,7 @@ class LeafNode<T> {
 
     setRight(newLeafNode);
 
+    // TODO: How about returning the set of key value indexes?
     return new Tuple<>(newLeafNode, keyValuesInNewLeafNode);
   }
 

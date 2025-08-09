@@ -230,7 +230,7 @@ public class Wormhole<T> {
       }
       return new Tuple<>(i, newAnchor);
     }
-    throw new RuntimeException("Cannot split the leaf node. Leaf node: " + leafNode);
+    throw new IllegalStateException("Cannot split the leaf node. Leaf node: " + leafNode);
   }
 
   private LeafNode<T> split(LeafNode<T> leafNode) {
