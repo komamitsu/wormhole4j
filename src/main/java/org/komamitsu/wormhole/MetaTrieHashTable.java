@@ -162,7 +162,7 @@ class MetaTrieHashTable<T> {
   
   private String searchLongestPrefixMatchKey(String searchKey) {
     int m = 0;
-    int n = Math.min(searchKey.length(), maxAnchorLength()) + 1;
+    int n = Math.min(searchKey.length(), maxAnchorLength) + 1;
     while (m + 1 < n) {
       int prefixLen = (m + n) / 2;
       if (table.containsKey(searchKey.substring(0, prefixLen))) {
@@ -222,7 +222,7 @@ class MetaTrieHashTable<T> {
         origAnchorKey + Wormhole.SMALLEST_TOKEN;
 
     NodeMeta<T> removed = table.remove(anchorKey);
-    maxAnchorLength = maxAnchorLength();
+    maxAnchorLength = calcMaxAnchorLength();
     if (removed instanceof NodeMetaLeaf) {
       return anchorKey;
     }
@@ -240,7 +240,7 @@ class MetaTrieHashTable<T> {
         origAnchorKey + Wormhole.SMALLEST_TOKEN;
 
     NodeMeta<T> removed = table.remove(anchorKey);
-    maxAnchorLength = maxAnchorLength();
+    maxAnchorLength = calcMaxAnchorLength();
     if (removed instanceof NodeMetaInternal) {
       return anchorKey;
     }
@@ -251,7 +251,7 @@ class MetaTrieHashTable<T> {
             NodeMetaInternal.class.getName(), removed.getClass().getName()));
   }
 
-  private int maxAnchorLength() {
+  private int calcMaxAnchorLength() {
     int max = 0;
     for (String key : table.keySet()) {
       if (max < key.length()) {
