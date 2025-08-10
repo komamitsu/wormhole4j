@@ -70,6 +70,7 @@ class Benchmark {
   <T, E extends Throwable> void execute(TestCase<T, E> testCase) throws Throwable {
     T resource = testCase.init();
 
+    System.out.println("----------------------------------------------------------------");
     System.out.printf("Starting: %s%n", testCase.label());
 
     // Warmups
