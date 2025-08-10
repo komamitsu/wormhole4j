@@ -74,7 +74,7 @@ class LeafNode<T> {
       for (int i = 0; i < count; i++) {
         int kvIndex = getKeyValueIndex(i);
         assert kvIndex != keyValueIndex;
-        if (kvIndex < keyValueIndex) {
+        if (kvIndex > keyValueIndex) {
           values[i] = (values[i] & 0xFFFF0000) | ((kvIndex - 1) & 0x0000FFFF);
         }
       }
@@ -234,12 +234,19 @@ class LeafNode<T> {
     }
 
     private void remove(int index) {
+      int tagIndex = values[index];
       if (index < count - 1) {
         System.arraycopy(values, index + 1, values, index, (count - 1) - index);
       }
       count--;
       if (index < numOfSortedValues) {
         numOfSortedValues--;
+      }
+      // Decrement tag indexes if needed.
+      for (int i = 0; i < count; i++) {
+        if (values[i] > tagIndex) {
+          values[i]--;
+        }
       }
     }
 
@@ -452,13 +459,13 @@ class LeafNode<T> {
     incSort();
     int keyReferenceIndex = keyReferences.search(key);
     KeyValue<T> keyValue = keyReferences.getKeyValue(keyReferenceIndex);
-    if (keyValue == null) {
+    if (keyValue == null || !keyValue.getKey().equals(key)) {
       return false;
     }
-    keyReferences.remove(keyReferenceIndex);
-
     int tagIndex = keyReferences.getTagIndex(keyReferenceIndex);
     int keyValueIndex = tags.getKeyValueIndex(tagIndex);
+
+    keyReferences.remove(keyReferenceIndex);
     tags.remove(tagIndex);
     keyValues.remove(keyValueIndex);
 
@@ -518,11 +525,19 @@ class LeafNode<T> {
               "The number of tags is different from the number of keys. Keys: %s, Tags: %s",
               keyValues.stream().map(kv -> Utils.printableKey(kv.getKey())).collect(Collectors.toList()), tags));
     }
+    Set<Integer> keyValueIndexes = new HashSet<>(size());
     for (int i = 0; i < size(); i++) {
       if (i < size() - 1) {
         if (tags.getHashTag(i) > tags.getHashTag(i + 1)) {
           throw new AssertionError(String.format("The tags are not sorted. Tags: %s", tags));
         }
+      }
+      int keyValueIndex = tags.getKeyValueIndex(i);
+      if (keyValueIndex < 0 || keyValueIndex >= size()) {
+        throw new AssertionError(String.format("The key-value index is out-of-range. Tags: %s, Index: %d, Key-value index: %d", tags, i, keyValueIndex));
+      }
+      if (!keyValueIndexes.add(keyValueIndex)) {
+        throw new AssertionError(String.format("The tags contains duplicated key-value index. Tags: %s, Index: %d, Key-value index: %d", tags, i, keyValueIndex));
       }
     }
 
