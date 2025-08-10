@@ -480,9 +480,7 @@ class LeafNode<T> {
       tags.addWithoutSort(i, keyValues.get(i));
       keyReferences.add(tags.getLastIndex());
     }
-
     tags.sort();
-    keyReferences.addAll(right.keyReferences);
 
     if (right.getRight() != null) {
       right.getRight().setLeft(this);
