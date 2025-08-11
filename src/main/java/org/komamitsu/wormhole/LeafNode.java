@@ -2,6 +2,8 @@ package org.komamitsu.wormhole;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 class LeafNode<T> {
@@ -262,15 +264,13 @@ class LeafNode<T> {
       return count;
     }
 
-    private List<KeyValue<T>> getKeyValues(int index, int count) {
-      List<KeyValue<T>> result = new ArrayList<>();
+    private boolean iterateKeyValues(int index, Function<KeyValue<T>, Boolean> function) {
       for (int i = index; i < this.count; i++) {
-        result.add(getKeyValue(i));
-        if (result.size() >= count) {
-          break;
+        if (!function.apply(getKeyValue(i))) {
+          return false;
         }
       }
-      return result;
+      return true;
     }
 
     private int search(String key) {
@@ -438,13 +438,13 @@ class LeafNode<T> {
         '}';
   }
 
-  List<KeyValue<T>> getKeyValuesEqualOrGreaterThan(String key, int count) {
+  boolean iterateKeyValuesEqualOrGreaterThan(String key, Function<KeyValue<T>, Boolean> function) {
     int keyReferencesIndex = keyReferences.search(key);
-    return keyReferences.getKeyValues(keyReferencesIndex, count);
+    return keyReferences.iterateKeyValues(keyReferencesIndex, function);
   }
 
-  List<KeyValue<T>> getKeyValues(int count) {
-    return keyReferences.getKeyValues(0, count);
+  boolean iterateKeyValues(Function<KeyValue<T>, Boolean> function) {
+    return keyReferences.iterateKeyValues(0, function);
   }
 
   void add(String key, T value) {
