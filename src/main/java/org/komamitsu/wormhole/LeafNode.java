@@ -2,6 +2,8 @@ package org.komamitsu.wormhole;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 class LeafNode<T> {
@@ -262,15 +264,13 @@ class LeafNode<T> {
       return count;
     }
 
-    private List<KeyValue<T>> getKeyValues(int index, int count) {
-      List<KeyValue<T>> result = new ArrayList<>();
-      for (int i = index; i < this.count; i++) {
-        result.add(getKeyValue(i));
-        if (result.size() >= count) {
-          break;
+    private boolean iterateKeyValues(int startIndexInclusive, int endIndexExclusive, Function<KeyValue<T>, Boolean> function) {
+      for (int i = startIndexInclusive; i < endIndexExclusive; i++) {
+        if (!function.apply(getKeyValue(i))) {
+          return false;
         }
       }
-      return result;
+      return true;
     }
 
     private int search(String key) {
@@ -438,13 +438,28 @@ class LeafNode<T> {
         '}';
   }
 
-  List<KeyValue<T>> getKeyValuesEqualOrGreaterThan(String key, int count) {
-    int keyReferencesIndex = keyReferences.search(key);
-    return keyReferences.getKeyValues(keyReferencesIndex, count);
-  }
+  boolean iterateKeyValues(@Nullable String startKey, @Nullable String endKey, Function<KeyValue<T>, Boolean> function) {
+    int startIndexInclusive;
+    if (startKey == null) {
+      startIndexInclusive = 0;
+    }
+    else {
+      startIndexInclusive = keyReferences.search(startKey);
+    }
 
-  List<KeyValue<T>> getKeyValues(int count) {
-    return keyReferences.getKeyValues(0, count);
+    int endIndexExclusive;
+    if (endKey == null) {
+      endIndexExclusive = size();
+    }
+    else {
+      endIndexExclusive = keyReferences.search(endKey);
+    }
+
+    boolean fullyIterated = keyReferences.iterateKeyValues(startIndexInclusive, endIndexExclusive, function);
+    if (!fullyIterated) {
+      return false;
+    }
+    return endIndexExclusive >= size();
   }
 
   void add(String key, T value) {
