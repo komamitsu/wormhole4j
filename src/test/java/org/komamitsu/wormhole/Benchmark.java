@@ -1,16 +1,16 @@
 package org.komamitsu.wormhole;
 
 import btree4j.BTree;
-import btree4j.BTreeCallback;
 import btree4j.BTreeException;
 import btree4j.Value;
-import btree4j.indexer.BasicIndexQuery;
 import btree4j.utils.io.FileUtils;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -22,24 +22,20 @@ class Benchmark {
   private static final String PROP_RECORD_COUNT = PROP_PREFIX + "record_count";
   private static final String PROP_WARMUP_COUNT = PROP_PREFIX + "warmup_count";
   private static final String PROP_ATTEMPT_COUNT = PROP_PREFIX + "attempt_count";
-  private static final String PROP_MAX_SCAN_SIZE = PROP_PREFIX + "max_scan_size";
   private static final String DEFAULT_MAX_KEY_LENGTH = "64";
   private static final String DEFAULT_RECORD_COUNT = "100000";
   private static final String DEFAULT_WARMUP_COUNT = "4";
   private static final String DEFAULT_ATTEMPT_COUNT = "4";
-  private static final String DEFAULT_MAX_SCAN_SIZE = "1024";
   private final int maxKeyLength;
   private final int recordCount;
   private final int warmupCount;
   private final int attemptCount;
-  private final int maxScanSize;
 
   public Benchmark() {
     this.maxKeyLength = Integer.parseInt(System.getProperty(PROP_MAX_KEY_LENGTH, DEFAULT_MAX_KEY_LENGTH));
     this.recordCount = Integer.parseInt(System.getProperty(PROP_RECORD_COUNT, DEFAULT_RECORD_COUNT));
     this.warmupCount = Integer.parseInt(System.getProperty(PROP_WARMUP_COUNT, DEFAULT_WARMUP_COUNT));
     this.attemptCount = Integer.parseInt(System.getProperty(PROP_ATTEMPT_COUNT, DEFAULT_ATTEMPT_COUNT));
-    this.maxScanSize = Integer.parseInt(System.getProperty(PROP_MAX_SCAN_SIZE, DEFAULT_MAX_SCAN_SIZE));
   }
 
   @FunctionalInterface
@@ -343,157 +339,6 @@ class Benchmark {
               for (int i = 0; i < count(); i++) {
                 int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
                 bTree.findValue(new Value(keys.get(keyIndex)));
-              }
-            };
-          }
-        }
-    );
-  }
-
-  @Test
-  void scanFromWormhole() throws Throwable {
-    execute(
-        new TestCase<MapAndKeys<Wormhole<Integer>>, RuntimeException>() {
-          @Override
-          public String label() {
-            return "Scan from Wormhole";
-          }
-
-          @Override
-          public int count() {
-            return recordCount;
-          }
-
-          @Override
-          public MapAndKeys<Wormhole<Integer>> init() {
-            List<String> keys = new ArrayList<>(recordCount);
-            Wormhole<Integer> wormhole = new Wormhole<>();
-            for (int i = 0; i < recordCount; i++) {
-              String key = genRandomKey(maxKeyLength);
-              keys.add(key);
-              wormhole.put(key, i);
-            }
-            return new MapAndKeys<>(wormhole, keys);
-          }
-
-          @Override
-          public ThrowableRunnable<RuntimeException> createTask(MapAndKeys<Wormhole<Integer>> mapAndKeys) {
-            return () -> {
-              Wormhole<Integer> wormhole = mapAndKeys.map;
-              List<String> keys = mapAndKeys.keys;
-              for (int i = 0; i < count(); i++) {
-                int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
-                int keyIndex2 = Math.min(keys.size() -1, keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
-                String key1 = keys.get(keyIndex1);
-                String key2 = keys.get(keyIndex2);
-                wormhole.scan(key1, key2, kv -> {});
-              }
-            };
-          }
-        }
-    );
-  }
-
-  @Test
-  void scanFromTreeMap() throws Throwable {
-    execute(
-        new TestCase<MapAndKeys<TreeMap<String, Integer>>, RuntimeException>() {
-          @Override
-          public String label() {
-            return "Scan from TreeMap";
-          }
-
-          @Override
-          public int count() {
-            return recordCount;
-          }
-
-          @Override
-          public MapAndKeys<TreeMap<String, Integer>> init() {
-            List<String> keys = new ArrayList<>(recordCount);
-            TreeMap<String, Integer> treeMap = new TreeMap<>();
-            for (int i = 0; i < recordCount; i++) {
-              String key = genRandomKey(maxKeyLength);
-              keys.add(key);
-              treeMap.put(key, i);
-            }
-            Collections.sort(keys);
-            return new MapAndKeys<>(treeMap, keys);
-          }
-
-          @Override
-          public ThrowableRunnable<RuntimeException> createTask(MapAndKeys<TreeMap<String, Integer>> mapAndKeys) {
-            return () -> {
-              TreeMap<String, Integer> treeMap = mapAndKeys.map;
-              List<String> keys = mapAndKeys.keys;
-              for (int i = 0; i < count(); i++) {
-                int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
-                int keyIndex2 = Math.min(keys.size() -1, keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
-                String key1 = keys.get(keyIndex1);
-                String key2 = keys.get(keyIndex2);
-                for (Map.Entry<String, Integer> ignored: treeMap.subMap(key1, key2).entrySet()) {
-                  // Nothing to do.
-                }
-              }
-            };
-          }
-        }
-    );
-  }
-
-  @Test
-  void scanFromBTreePlus() throws Throwable {
-    execute(
-        new TestCase<MapAndKeys<BTree>, BTreeException>() {
-          @Override
-          public String label() {
-            return "Scan from BTree+";
-          }
-
-          @Override
-          public int count() {
-            return recordCount * 2;
-          }
-
-          @Override
-          public MapAndKeys<BTree> init() throws BTreeException, IOException {
-            List<String> keys = new ArrayList<>(recordCount);
-            File tmpDir = FileUtils.getTempDir();
-            File tmpFile = new File(tmpDir, "btree-" + System.nanoTime() + ".idx");
-            tmpFile.deleteOnExit();
-            BTree btree = new BTree(tmpFile);
-            btree.init(false);
-            for (int i = 0; i < recordCount; i++) {
-              String key = genRandomKey(maxKeyLength);
-              keys.add(key);
-              btree.addValue(new Value(key), i);
-            }
-            Collections.sort(keys);
-            return new MapAndKeys<>(btree, keys);
-          }
-
-          @Override
-          public ThrowableRunnable<BTreeException> createTask(MapAndKeys<BTree> mapAndKeys) {
-            BTreeCallback callback = new BTreeCallback() {
-              @Override
-              public boolean indexInfo(Value value, long pointer) {
-                return true;
-              }
-
-              @Override
-              public boolean indexInfo(Value key, byte[] value) {
-                return true;
-              }
-            };
-            return () -> {
-              BTree bTree = mapAndKeys.map;
-              List<String> keys = mapAndKeys.keys;
-              for (int i = 0; i < count(); i++) {
-                int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
-                int keyIndex2 = Math.min(keys.size() -1, keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
-                String key1 = keys.get(keyIndex1);
-                String key2 = keys.get(keyIndex2);
-                bTree.search(new BasicIndexQuery.IndexConditionBW(new Value(key1), new Value(key2)), callback);
               }
             };
           }
