@@ -2,6 +2,9 @@ package org.komamitsu.wormhole;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class Wormhole<T> {
   private static final int DEFAULT_LEAF_NODE_SIZE = 128;
@@ -89,32 +92,40 @@ public class Wormhole<T> {
     return keyValue.getValue();
   }
 
-  public List<KeyValue<T>> scan(String key, int count) {
-    if (count < 0) {
-      throw new IllegalArgumentException("'count' should not be negative. Count: " + count);
+  private void scanInternal(String startKey, @Nullable String endKey, @Nullable Integer count, Function<KeyValue<T>, Boolean> function) {
+    Function<KeyValue<T>, Boolean> actualFunction = function;
+    if (count != null) {
+      AtomicInteger counter = new AtomicInteger();
+      actualFunction = kv -> {
+        if (counter.getAndIncrement() >= count) {
+          return false;
+        }
+        return function.apply(kv);
+      };
     }
-    if (count == 0) {
-      return Collections.emptyList();
-    }
-    LeafNode<T> leafNode = searchTrieHashTable(key);
-    List<KeyValue<T>> result = new ArrayList<>(count);
-    int remaining = count;
-    boolean isFirst = true;
-    while (leafNode != null && remaining > 0) {
+
+    LeafNode<T> leafNode = searchTrieHashTable(startKey);
+    while (leafNode != null) {
       leafNode.incSort();
-      List<KeyValue<T>> kvs;
-      if (isFirst) {
-        isFirst = false;
-        kvs = leafNode.getKeyValuesEqualOrGreaterThan(key, remaining);
+      if (!leafNode.iterateKeyValues(startKey, endKey, actualFunction)) {
+        return;
       }
-      else {
-        kvs = leafNode.getKeyValues(remaining);
-      }
-      result.addAll(kvs.subList(0, Math.min(remaining, kvs.size())));
-      remaining -= kvs.size();
       leafNode = leafNode.getRight();
+      startKey = null;
     }
+  }
+
+  public List<KeyValue<T>> scan(String startKey, int count) {
+    List<KeyValue<T>> result = new ArrayList<>(count);
+    scanInternal(startKey, null, count, kv -> {
+      result.add(kv);
+      return true;
+    });
     return result;
+  }
+
+  public void scan(String startKey, String endKey, Function<KeyValue<T>, Boolean> function) {
+    scanInternal(startKey, endKey, null, function);
   }
 
   private void initialize() {
