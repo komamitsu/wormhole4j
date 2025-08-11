@@ -2,6 +2,8 @@ package org.komamitsu.wormhole;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class Wormhole<T> {
   private static final int DEFAULT_LEAF_NODE_SIZE = 128;
@@ -89,32 +91,46 @@ public class Wormhole<T> {
     return keyValue.getValue();
   }
 
-  public List<KeyValue<T>> scan(String key, int count) {
-    if (count < 0) {
-      throw new IllegalArgumentException("'count' should not be negative. Count: " + count);
-    }
-    if (count == 0) {
-      return Collections.emptyList();
-    }
+  private void scanInternal(String key, Function<KeyValue<T>, Boolean> function) {
     LeafNode<T> leafNode = searchTrieHashTable(key);
-    List<KeyValue<T>> result = new ArrayList<>(count);
-    int remaining = count;
     boolean isFirst = true;
-    while (leafNode != null && remaining > 0) {
+    while (leafNode != null) {
       leafNode.incSort();
-      List<KeyValue<T>> kvs;
+      boolean hasNext;
       if (isFirst) {
         isFirst = false;
-        kvs = leafNode.getKeyValuesEqualOrGreaterThan(key, remaining);
+        hasNext = leafNode.iterateKeyValuesEqualOrGreaterThan(key, function);
       }
       else {
-        kvs = leafNode.getKeyValues(remaining);
+        hasNext = leafNode.iterateKeyValues(function);
       }
-      result.addAll(kvs.subList(0, Math.min(remaining, kvs.size())));
-      remaining -= kvs.size();
+      if (!hasNext) {
+        break;
+      }
       leafNode = leafNode.getRight();
     }
+  }
+
+  public List<KeyValue<T>> scan(String key, int count) {
+    List<KeyValue<T>> result = new ArrayList<>();
+    scanInternal(key, kv -> {
+      if (result.size() >= count) {
+        return false;
+      }
+      result.add(kv);
+      return true;
+    });
     return result;
+  }
+
+  public void scan(String firstKeyInclusive, String lastKeyInclusive, Consumer<KeyValue<T>> consumer) {
+    scanInternal(firstKeyInclusive, kv -> {
+      if (kv.getKey().compareTo(lastKeyInclusive) > 0) {
+        return false;
+      }
+      consumer.accept(kv);
+      return true;
+    });
   }
 
   private void initialize() {
