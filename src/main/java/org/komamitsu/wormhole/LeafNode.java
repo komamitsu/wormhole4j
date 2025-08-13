@@ -166,13 +166,34 @@ class LeafNode<T> {
       return tags.getKeyValue(values[index]);
     }
 
-    void sort() {
-      // TODO: Optimize this.
-      Integer[] unsortedValues = Arrays.stream(values, numOfSortedValues, count).boxed().toArray(Integer[]::new);
-      Arrays.sort(unsortedValues, (a, b) -> getKey(a).compareTo(getKey(b)));
-      for (int i = 0; i < unsortedValues.length; i++) {
-        values[numOfSortedValues + i] = unsortedValues[i];
+    private void partialSort(int low, int high) {
+      if (low >= high) {
+        return;
       }
+      String pivot = getKey(low + high >> 1);
+      int l = low;
+      int h = high;
+      while (l <= h) {
+        while (getKey(l).compareTo(pivot) < 0) {
+          l++;
+        }
+        while (getKey(h).compareTo(pivot) > 0) {
+          h--;
+        }
+        if (l <= h) {
+          int tmp = values[l];
+          values[l] = values[h];
+          values[h] = tmp;
+          l++;
+          h--;
+        }
+      }
+      partialSort(low, h);
+      partialSort(l, high);
+    }
+
+    void sort() {
+      partialSort(numOfSortedValues, count - 1);
 
       // Merge sorted and unsorted key references.
       int[] mergedValues = new int[count];
@@ -363,7 +384,9 @@ class LeafNode<T> {
   }
 
   void incSort() {
-    keyReferences.sort();
+    if (!keyReferences.isSorted()) {
+      keyReferences.sort();
+    }
   }
 
   private Tuple<LeafNode<T>, Set<KeyValue<T>>> copyToNewLeafNode(String newAnchor, int startKeyRefIndex) {
