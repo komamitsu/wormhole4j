@@ -408,10 +408,10 @@ class WormholeTest {
         int count = ThreadLocalRandom.current().nextInt(10000);
         List<Map.Entry<String, Integer>> expectedKeyValues = new ArrayList<>(count);
         for (Map.Entry<String, Integer> entry : expected.subMap(key, "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz").entrySet()) {
-          expectedKeyValues.add(entry);
           if (expectedKeyValues.size() >= count) {
             break;
           }
+          expectedKeyValues.add(entry);
         }
 
         List<Map.Entry<String, Integer>> actual =
