@@ -285,8 +285,8 @@ class LeafNode<T> {
       return count;
     }
 
-    private boolean iterateKeyValues(int startIndexInclusive, int endIndexExclusive, Function<KeyValue<T>, Boolean> function) {
-      for (int i = startIndexInclusive; i < endIndexExclusive; i++) {
+    private boolean iterateKeyValues(int startIndexInclusive, int endIndexInclusive, Function<KeyValue<T>, Boolean> function) {
+      for (int i = startIndexInclusive; i <= endIndexInclusive; i++) {
         if (!function.apply(getKeyValue(i))) {
           return false;
         }
@@ -294,6 +294,20 @@ class LeafNode<T> {
       return true;
     }
 
+
+    /**
+     * Binary search. The specification of return value follows {@link Arrays#binarySearch(int[], int)}
+     *
+     * @param key the target key
+     * @return index of the search key, if it is contained in the array;
+     *         otherwise, <tt>(-(<i>insertion point</i>) - 1)</tt>.  The
+     *         <i>insertion point</i> is defined as the point at which the
+     *         key would be inserted into the array: the index of the first
+     *         element greater than the key, or <tt>a.length</tt> if all
+     *         elements in the array are less than the specified key.  Note
+     *         that this guarantees that the return value will be &gt;= 0 if
+     *         and only if the key is found.
+     */
     private int search(String key) {
       if (count == 0) {
         return 0;
@@ -314,7 +328,7 @@ class LeafNode<T> {
           return m;
         }
       }
-      return l;
+      return -l - 1;
     }
 
     @Override
@@ -468,21 +482,28 @@ class LeafNode<T> {
     }
     else {
       startIndexInclusive = keyReferences.search(startKey);
+      if (startIndexInclusive < 0) {
+        startIndexInclusive = -startIndexInclusive - 1;
+      }
     }
 
-    int endIndexExclusive;
+    int endIndexInclusive;
     if (endKey == null) {
-      endIndexExclusive = size();
+      endIndexInclusive = size() - 1;
     }
     else {
-      endIndexExclusive = keyReferences.search(endKey);
+      endIndexInclusive = keyReferences.search(endKey);
+      if (endIndexInclusive < 0) {
+        endIndexInclusive = -endIndexInclusive - 1;
+        endIndexInclusive--;
+      }
     }
 
-    boolean fullyIterated = keyReferences.iterateKeyValues(startIndexInclusive, endIndexExclusive, function);
+    boolean fullyIterated = keyReferences.iterateKeyValues(startIndexInclusive, endIndexInclusive, function);
     if (!fullyIterated) {
       return false;
     }
-    return endIndexExclusive >= size();
+    return endIndexInclusive >= size() - 1;
   }
 
   void add(String key, T value) {
@@ -496,8 +517,7 @@ class LeafNode<T> {
   boolean delete(String key) {
     incSort();
     int keyReferenceIndex = keyReferences.search(key);
-    KeyValue<T> keyValue = keyReferences.getKeyValue(keyReferenceIndex);
-    if (keyValue == null || !keyValue.getKey().equals(key)) {
+    if (keyReferenceIndex < 0) {
       return false;
     }
     int tagIndex = keyReferences.getTagIndex(keyReferenceIndex);

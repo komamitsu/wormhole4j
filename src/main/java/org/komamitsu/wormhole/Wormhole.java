@@ -124,8 +124,8 @@ public class Wormhole<T> {
     return result;
   }
 
-  public void scan(String startKey, String endKey, Function<KeyValue<T>, Boolean> function) {
-    scanInternal(startKey, endKey, null, function);
+  public void scan(@Nullable String startKey, @Nullable String endKey, Function<KeyValue<T>, Boolean> function) {
+    scanInternal(startKey == null ? "" : startKey, endKey, null, function);
   }
 
   private void initialize() {
