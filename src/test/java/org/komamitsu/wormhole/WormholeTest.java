@@ -134,7 +134,39 @@ class WormholeTest {
       wormhole.put("", "foo");
 
       // Act & Assert
-      assertThat(wormhole.scan("", 2)).containsExactly(new KeyValue<>("", "foo"));
+      KeyValue<String> firstItem = new KeyValue<>("", "foo");
+      assertThat(wormhole.scan("", 2)).containsExactly(firstItem);
+
+      {
+        List<KeyValue<String>> result = new ArrayList<>();
+        wormhole.scan("", "", result::add);
+        assertThat(result).containsExactly(firstItem);
+      }
+      {
+        List<KeyValue<String>> result = new ArrayList<>();
+        wormhole.scan("", null, result::add);
+        assertThat(result).containsExactly(firstItem);
+      }
+      {
+        List<KeyValue<String>> result = new ArrayList<>();
+        wormhole.scan(null, "", result::add);
+        assertThat(result).containsExactly(firstItem);
+      }
+      {
+        List<KeyValue<String>> result = new ArrayList<>();
+        wormhole.scan(null, null, result::add);
+        assertThat(result).containsExactly(firstItem);
+      }
+      {
+        List<KeyValue<String>> result = new ArrayList<>();
+        wormhole.scan("a", "z", result::add);
+        assertThat(result).isEmpty();
+      }
+      {
+        List<KeyValue<String>> result = new ArrayList<>();
+        wormhole.scan("a", null, result::add);
+        assertThat(result).isEmpty();
+      }
     }
 
     @Test
@@ -169,6 +201,36 @@ class WormholeTest {
       assertThat(wormhole.scan("Jan", 2)).isEmpty();
       assertThat(wormhole.scan("Jamf", 2)).isEmpty();
       assertThat(wormhole.scan("Jamet", 2)).isEmpty();
+      {
+        List<KeyValue<String>> result = new ArrayList<>();
+        wormhole.scan("James", "James", result::add);
+        assertThat(result).containsExactly(firstItem);
+      }
+      {
+        List<KeyValue<String>> result = new ArrayList<>();
+        wormhole.scan(null, "James", result::add);
+        assertThat(result).containsExactly(firstItem);
+      }
+      {
+        List<KeyValue<String>> result = new ArrayList<>();
+        wormhole.scan("James", null, result::add);
+        assertThat(result).containsExactly(firstItem);
+      }
+      {
+        List<KeyValue<String>> result = new ArrayList<>();
+        wormhole.scan("Jamesa", "Jamesa", result::add);
+        assertThat(result).isEmpty();
+      }
+      {
+        List<KeyValue<String>> result = new ArrayList<>();
+        wormhole.scan(null, "Jamer", result::add);
+        assertThat(result).isEmpty();
+      }
+      {
+        List<KeyValue<String>> result = new ArrayList<>();
+        wormhole.scan("Jamesa", null, result::add);
+        assertThat(result).isEmpty();
+      }
     }
 
     @Test
@@ -269,6 +331,21 @@ class WormholeTest {
       assertThat(wormhole.scan("John", 2)).containsExactly(thirdItem);
       assertThat(wormhole.scan("Joho", 1)).isEmpty();
       assertThat(wormhole.scan("K", 1)).isEmpty();
+      {
+        List<KeyValue<String>> result = new ArrayList<>();
+        wormhole.scan("James", "John", result::add);
+        assertThat(result).containsExactly(firstItem, secondItem, thirdItem);
+      }
+      {
+        List<KeyValue<String>> result = new ArrayList<>();
+        wormhole.scan("Jamer", "Johna", result::add);
+        assertThat(result).containsExactly(firstItem, secondItem, thirdItem);
+      }
+      {
+        List<KeyValue<String>> result = new ArrayList<>();
+        wormhole.scan("Jamesa", "Johm", result::add);
+        assertThat(result).containsExactly(secondItem);
+      }
     }
 
     @Test
@@ -340,6 +417,21 @@ class WormholeTest {
       assertThat(wormhole.scan("Jot", 1)).isEmpty();
       assertThat(wormhole.scan("Jp", 1)).isEmpty();
       assertThat(wormhole.scan("K", 1)).isEmpty();
+      {
+        List<KeyValue<String>> result = new ArrayList<>();
+        wormhole.scan("Jacob", "Joseph", result::add);
+        assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
+      }
+      {
+        List<KeyValue<String>> result = new ArrayList<>();
+        wormhole.scan("Jacoa", "Josepha", result::add);
+        assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
+      }
+      {
+        List<KeyValue<String>> result = new ArrayList<>();
+        wormhole.scan("Jacoba", "Josepg", result::add);
+        assertThat(result).containsExactly(secondItem, thirdItem, fourthItem);
+      }
     }
 
     @Test
@@ -384,6 +476,16 @@ class WormholeTest {
       assertThat(wormhole.scan("aaaaa", 1)).containsExactly(fifthItem);
       assertThat(wormhole.scan("aaaab", 1)).isEmpty();
       assertThat(wormhole.scan("b", 1)).isEmpty();
+      {
+        List<KeyValue<Integer>> result = new ArrayList<>();
+        wormhole.scan("a", "aaaaa", result::add);
+        assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
+      }
+      {
+        List<KeyValue<Integer>> result = new ArrayList<>();
+        wormhole.scan("", "aaaab", result::add);
+        assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
+      }
     }
 
     @Test
