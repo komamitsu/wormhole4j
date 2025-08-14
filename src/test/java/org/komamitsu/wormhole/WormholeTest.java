@@ -496,31 +496,64 @@ class WormholeTest {
       int maxKeyLength = 16;
       int recordCount = 50000;
       TreeMap<String, Integer> expected = new TreeMap<>();
+      List<String> keys = new ArrayList<>(recordCount);
       for (int i = 0; i < recordCount; i++) {
         String key = genRandomKey(maxKeyLength);
         int value = ThreadLocalRandom.current().nextInt();
         expected.put(key, value);
+        keys.add(key);
         wormhole.put(key, value);
       }
       validator.validate();
+      Collections.sort(keys);
 
       // Act & Assert
+      List<Map.Entry<String, Integer>> expectedKeyValues = new ArrayList<>();
       for (int i = 0; i < 1000; i++) {
-        String key = genRandomKey(maxKeyLength);
         int count = ThreadLocalRandom.current().nextInt(10000);
-        List<Map.Entry<String, Integer>> expectedKeyValues = new ArrayList<>(count);
-        for (Map.Entry<String, Integer> entry : expected.subMap(key, "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz").entrySet()) {
-          if (expectedKeyValues.size() >= count) {
-            break;
+        {
+          String key = genRandomKey(maxKeyLength);
+          expectedKeyValues.clear();
+          for (Map.Entry<String, Integer> entry : expected.subMap(key, "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz").entrySet()) {
+            if (expectedKeyValues.size() >= count) {
+              break;
+            }
+            expectedKeyValues.add(entry);
           }
-          expectedKeyValues.add(entry);
+
+          List<Map.Entry<String, Integer>> actual =
+              wormhole.scan(key, count).stream().map(kv ->
+                  new AbstractMap.SimpleEntry<>(kv.getKey(), kv.getValue())).collect(Collectors.toList());
+
+          assertThat(actual).containsExactlyElementsOf(expectedKeyValues);
         }
+        {
+          int startIndex = ThreadLocalRandom.current().nextInt(keys.size());
+          int endIndex = Math.min(startIndex + count, keys.size() - 1);
+          String startKey = keys.get(startIndex);
+          if (i % 2 == 0) {
+            startKey += 'a';
+          }
+          String endKey = keys.get(endIndex);
+          if (i % 3 == 0) {
+            endKey += 'a';
+          }
+          if (startKey.compareTo(endKey) > 0) {
+            endKey = startKey;
+          }
+          expectedKeyValues.clear();
+          for (Map.Entry<String, Integer> entry : expected.subMap(startKey, true, endKey, true).entrySet()) {
+            expectedKeyValues.add(entry);
+          }
 
-        List<Map.Entry<String, Integer>> actual =
-            wormhole.scan(key, count).stream().map(kv ->
-                new AbstractMap.SimpleEntry<>(kv.getKey(), kv.getValue())).collect(Collectors.toList());
+          List<Map.Entry<String, Integer>> actualKeyValues = new ArrayList<>(expectedKeyValues.size());
+          wormhole.scan(startKey, endKey, kv -> {
+            actualKeyValues.add(new AbstractMap.SimpleEntry<>(kv.getKey(), kv.getValue()));
+            return true;
+          });
 
-        assertThat(actual).containsExactlyElementsOf(expectedKeyValues);
+          assertThat(actualKeyValues).containsExactlyElementsOf(expectedKeyValues);
+        }
       }
     }
   }
