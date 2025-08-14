@@ -475,7 +475,7 @@ class LeafNode<T> {
         '}';
   }
 
-  boolean iterateKeyValues(@Nullable String startKey, @Nullable String endKey, Function<KeyValue<T>, Boolean> function) {
+  boolean iterateKeyValues(@Nullable String startKey, @Nullable String endKey, boolean isEndKeyExclusive, Function<KeyValue<T>, Boolean> function) {
     int startIndexInclusive;
     if (startKey == null) {
       startIndexInclusive = 0;
@@ -493,7 +493,12 @@ class LeafNode<T> {
     }
     else {
       endIndexInclusive = keyReferences.search(endKey);
-      if (endIndexInclusive < 0) {
+      if (endIndexInclusive >= 0) {
+        if (isEndKeyExclusive) {
+          endIndexInclusive--;
+        }
+      }
+      else {
         endIndexInclusive = -endIndexInclusive - 1;
         endIndexInclusive--;
       }
