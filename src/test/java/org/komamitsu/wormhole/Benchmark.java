@@ -6,6 +6,8 @@ import btree4j.BTreeException;
 import btree4j.Value;
 import btree4j.indexer.BasicIndexQuery;
 import btree4j.utils.io.FileUtils;
+import it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectSortedMap;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -143,7 +145,7 @@ class Benchmark {
         new TestCase<List<String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Insert to TreeMap";
+            return "Insert to TreeMap (Red-Black tree)";
           }
 
           @Override
@@ -163,9 +165,45 @@ class Benchmark {
           @Override
           public ThrowableRunnable<RuntimeException> createTask(List<String> keys) {
             return () -> {
-              TreeMap<String, Integer> treeMap = new TreeMap<>();
+              TreeMap<String, Integer> map = new TreeMap<>();
               for (int i = 0; i < recordCount; i++) {
-                treeMap.put(keys.get(i), i);
+                map.put(keys.get(i), i);
+              }
+            };
+          }
+        }
+    );
+  }
+
+  @Test
+  void insertToAVLTreeMap() throws Throwable {
+    execute(
+        new TestCase<List<String>, RuntimeException>() {
+          @Override
+          public String label() {
+            return "Insert to AVL tree map";
+          }
+
+          @Override
+          public int count() {
+            return recordCount;
+          }
+
+          @Override
+          public List<String> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            for (int i = 0; i < recordCount; i++) {
+              keys.add(genRandomKey(maxKeyLength));
+            }
+            return keys;
+          }
+
+          @Override
+          public ThrowableRunnable<RuntimeException> createTask(List<String> keys) {
+            return () -> {
+              Object2ObjectSortedMap<String, Integer> map = new Object2ObjectAVLTreeMap<>();
+              for (int i = 0; i < recordCount; i++) {
+                map.put(keys.get(i), i);
               }
             };
           }
@@ -270,7 +308,7 @@ class Benchmark {
         new TestCase<MapAndKeys<TreeMap<String, Integer>>, RuntimeException>() {
           @Override
           public String label() {
-            return "Get from TreeMap";
+            return "Get from TreeMap (Red-Black tree)";
           }
 
           @Override
@@ -281,23 +319,64 @@ class Benchmark {
           @Override
           public MapAndKeys<TreeMap<String, Integer>> init() {
             List<String> keys = new ArrayList<>(recordCount);
-            TreeMap<String, Integer> treeMap = new TreeMap<>();
+            TreeMap<String, Integer> map = new TreeMap<>();
             for (int i = 0; i < recordCount; i++) {
               String key = genRandomKey(maxKeyLength);
               keys.add(key);
-              treeMap.put(key, i);
+              map.put(key, i);
             }
-            return new MapAndKeys<>(treeMap, keys);
+            return new MapAndKeys<>(map, keys);
           }
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(MapAndKeys<TreeMap<String, Integer>> mapAndKeys) {
             return () -> {
-              TreeMap<String, Integer> treeMap = mapAndKeys.map;
+              TreeMap<String, Integer> map = mapAndKeys.map;
               List<String> keys = mapAndKeys.keys;
               for (int i = 0; i < count(); i++) {
                 int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
-                treeMap.get(keys.get(keyIndex));
+                map.get(keys.get(keyIndex));
+              }
+            };
+          }
+        }
+    );
+  }
+
+  @Test
+  void getFromAVLTreeMap() throws Throwable {
+    execute(
+        new TestCase<MapAndKeys<Object2ObjectSortedMap<String, Integer>>, RuntimeException>() {
+          @Override
+          public String label() {
+            return "Get from AVL tree map";
+          }
+
+          @Override
+          public int count() {
+            return recordCount * 2;
+          }
+
+          @Override
+          public MapAndKeys<Object2ObjectSortedMap<String, Integer>> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            Object2ObjectSortedMap<String, Integer> map = new Object2ObjectAVLTreeMap<>();
+            for (int i = 0; i < recordCount; i++) {
+              String key = genRandomKey(maxKeyLength);
+              keys.add(key);
+              map.put(key, i);
+            }
+            return new MapAndKeys<>(map, keys);
+          }
+
+          @Override
+          public ThrowableRunnable<RuntimeException> createTask(MapAndKeys<Object2ObjectSortedMap<String, Integer>> mapAndKeys) {
+            return () -> {
+              Object2ObjectSortedMap<String, Integer> map = mapAndKeys.map;
+              List<String> keys = mapAndKeys.keys;
+              for (int i = 0; i < count(); i++) {
+                int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
+                map.get(keys.get(keyIndex));
               }
             };
           }
@@ -401,7 +480,7 @@ class Benchmark {
         new TestCase<MapAndKeys<TreeMap<String, Integer>>, RuntimeException>() {
           @Override
           public String label() {
-            return "Scan from TreeMap";
+            return "Scan from TreeMap (Red-Black tree)";
           }
 
           @Override
@@ -412,27 +491,74 @@ class Benchmark {
           @Override
           public MapAndKeys<TreeMap<String, Integer>> init() {
             List<String> keys = new ArrayList<>(recordCount);
-            TreeMap<String, Integer> treeMap = new TreeMap<>();
+            TreeMap<String, Integer> map = new TreeMap<>();
             for (int i = 0; i < recordCount; i++) {
               String key = genRandomKey(maxKeyLength);
               keys.add(key);
-              treeMap.put(key, i);
+              map.put(key, i);
             }
             Collections.sort(keys);
-            return new MapAndKeys<>(treeMap, keys);
+            return new MapAndKeys<>(map, keys);
           }
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(MapAndKeys<TreeMap<String, Integer>> mapAndKeys) {
             return () -> {
-              TreeMap<String, Integer> treeMap = mapAndKeys.map;
+              TreeMap<String, Integer> map = mapAndKeys.map;
               List<String> keys = mapAndKeys.keys;
               for (int i = 0; i < count(); i++) {
                 int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
                 int keyIndex2 = Math.min(keys.size() -1, keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
                 String key1 = keys.get(keyIndex1);
                 String key2 = keys.get(keyIndex2);
-                for (Map.Entry<String, Integer> ignored: treeMap.subMap(key1, key2).entrySet()) {
+                for (Map.Entry<String, Integer> ignored: map.subMap(key1, key2).entrySet()) {
+                  // Nothing to do.
+                }
+              }
+            };
+          }
+        }
+    );
+  }
+
+  @Test
+  void scanFromAVLTreeMap() throws Throwable {
+    execute(
+        new TestCase<MapAndKeys<Object2ObjectSortedMap<String, Integer>>, RuntimeException>() {
+          @Override
+          public String label() {
+            return "Scan from AVL tree map";
+          }
+
+          @Override
+          public int count() {
+            return recordCount;
+          }
+
+          @Override
+          public MapAndKeys<Object2ObjectSortedMap<String, Integer>> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            Object2ObjectSortedMap<String, Integer> map = new Object2ObjectAVLTreeMap<>();
+            for (int i = 0; i < recordCount; i++) {
+              String key = genRandomKey(maxKeyLength);
+              keys.add(key);
+              map.put(key, i);
+            }
+            Collections.sort(keys);
+            return new MapAndKeys<>(map, keys);
+          }
+
+          @Override
+          public ThrowableRunnable<RuntimeException> createTask(MapAndKeys<Object2ObjectSortedMap<String, Integer>> mapAndKeys) {
+            return () -> {
+              Object2ObjectSortedMap<String, Integer> map = mapAndKeys.map;
+              List<String> keys = mapAndKeys.keys;
+              for (int i = 0; i < count(); i++) {
+                int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
+                int keyIndex2 = Math.min(keys.size() -1, keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
+                String key1 = keys.get(keyIndex1);
+                String key2 = keys.get(keyIndex2);
+                for (Map.Entry<String, Integer> ignored: map.subMap(key1, key2).entrySet()) {
                   // Nothing to do.
                 }
               }
