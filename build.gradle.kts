@@ -17,6 +17,7 @@ dependencies {
     testImplementation("org.assertj:assertj-core:3.27.2")
     testImplementation("io.github.myui:btree4j:0.9.1")
     testImplementation("it.unimi.dsi:fastutil:8.5.16")
+    testImplementation("org.mapdb:mapdb:3.0.9")
 }
 
 tasks.test {
