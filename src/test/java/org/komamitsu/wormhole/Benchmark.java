@@ -1,5 +1,11 @@
 package org.komamitsu.wormhole;
 
+import btree4j.BTree;
+import btree4j.BTreeCallback;
+import btree4j.BTreeException;
+import btree4j.Value;
+import btree4j.indexer.BasicIndexQuery;
+import btree4j.utils.io.FileUtils;
 import it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectSortedMap;
 import org.junit.jupiter.api.Test;
@@ -8,6 +14,7 @@ import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -113,7 +120,7 @@ class Benchmark {
         new TestCase<List<String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Insert to Wormhole";
+            return "Insert to Wormhole (Wormhole4j)";
           }
 
           @Override
@@ -185,7 +192,7 @@ class Benchmark {
         new TestCase<List<String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Insert to AVL tree map";
+            return "Insert to AVL tree map (Fastutil)";
           }
 
           @Override
@@ -216,7 +223,7 @@ class Benchmark {
   }
 
   @Test
-  void insertToBPlusTree() throws Throwable {
+  void insertToInMemoryBPlusTree() throws Throwable {
     execute(
         new TestCase<ResourceAndKeys<DB>, RuntimeException>() {
           @Override
@@ -261,6 +268,46 @@ class Benchmark {
     );
   }
 
+  @Test
+  void insertToPersistentBPlusTree() throws Throwable {
+    execute(
+        new TestCase<List<String>, BTreeException>() {
+          @Override
+          public String label() {
+            return "Insert to persistent B+Tree (Btree4j)";
+          }
+
+          @Override
+          public int count() {
+            return recordCount;
+          }
+
+          @Override
+          public List<String> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            for (int i = 0; i < recordCount; i++) {
+              keys.add(genRandomKey(maxKeyLength));
+            }
+            return keys;
+          }
+
+          @Override
+          public ThrowableRunnable<BTreeException> createTask(List<String> keys) {
+            return () -> {
+              File tmpDir = FileUtils.getTempDir();
+              File tmpFile = new File(tmpDir, "btree-" + System.nanoTime() + ".idx");
+              tmpFile.deleteOnExit();
+              BTree btree = new BTree(tmpFile);
+              btree.init(false);
+              for (int i = 0; i < recordCount; i++) {
+                btree.addValue(new Value(keys.get(i)), i);
+              }
+            };
+          }
+        }
+    );
+  }
+
   private static class ResourceAndKeys<T> {
     private final T resource;
     private final List<String> keys;
@@ -277,7 +324,7 @@ class Benchmark {
         new TestCase<ResourceAndKeys<Wormhole<Integer>>, RuntimeException>() {
           @Override
           public String label() {
-            return "Get from Wormhole";
+            return "Get from Wormhole (Wormhole4j)";
           }
 
           @Override
@@ -359,7 +406,7 @@ class Benchmark {
         new TestCase<ResourceAndKeys<Object2ObjectSortedMap<String, Integer>>, RuntimeException>() {
           @Override
           public String label() {
-            return "Get from AVL tree map";
+            return "Get from AVL tree map (Fastutil)";
           }
 
           @Override
@@ -447,12 +494,57 @@ class Benchmark {
   }
 
   @Test
+  void getFromPersistentBPlusTree() throws Throwable {
+    execute(
+        new TestCase<ResourceAndKeys<BTree>, BTreeException>() {
+          @Override
+          public String label() {
+            return "Get from persistent B+Tree (Btree4j)";
+          }
+
+          @Override
+          public int count() {
+            return recordCount * 2;
+          }
+
+          @Override
+          public ResourceAndKeys<BTree> init() throws BTreeException, IOException {
+            List<String> keys = new ArrayList<>(recordCount);
+            File tmpDir = FileUtils.getTempDir();
+            File tmpFile = new File(tmpDir, "btree-" + System.nanoTime() + ".idx");
+            tmpFile.deleteOnExit();
+            BTree btree = new BTree(tmpFile);
+            btree.init(false);
+            for (int i = 0; i < recordCount; i++) {
+              String key = genRandomKey(maxKeyLength);
+              keys.add(key);
+              btree.addValue(new Value(key), i);
+            }
+            return new ResourceAndKeys<>(btree, keys);
+          }
+
+          @Override
+          public ThrowableRunnable<BTreeException> createTask(ResourceAndKeys<BTree> mapAndKeys) {
+            return () -> {
+              BTree bTree = mapAndKeys.resource;
+              List<String> keys = mapAndKeys.keys;
+              for (int i = 0; i < count(); i++) {
+                int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
+                bTree.findValue(new Value(keys.get(keyIndex)));
+              }
+            };
+          }
+        }
+    );
+  }
+
+  @Test
   void scanFromWormhole() throws Throwable {
     execute(
         new TestCase<ResourceAndKeys<Wormhole<Integer>>, RuntimeException>() {
           @Override
           public String label() {
-            return "Scan from Wormhole";
+            return "Scan from Wormhole (Wormhole4j)";
           }
 
           @Override
@@ -544,7 +636,7 @@ class Benchmark {
         new TestCase<ResourceAndKeys<Object2ObjectSortedMap<String, Integer>>, RuntimeException>() {
           @Override
           public String label() {
-            return "Scan from AVL tree map";
+            return "Scan from AVL tree map (Fastutil)";
           }
 
           @Override
@@ -637,6 +729,66 @@ class Benchmark {
           @Override
           public void release(ResourceAndKeys<Tuple<DB, BTreeMap<String, Integer>>> resource) {
             resource.resource.first.close();
+          }
+        }
+    );
+  }
+
+  @Test
+  void scanFromPersistentBPlusTree() throws Throwable {
+    execute(
+        new TestCase<ResourceAndKeys<BTree>, BTreeException>() {
+          @Override
+          public String label() {
+            return "Scan from persistent B+Tree (Btree4j)";
+          }
+
+          @Override
+          public int count() {
+            return recordCount * 2;
+          }
+
+          @Override
+          public ResourceAndKeys<BTree> init() throws BTreeException, IOException {
+            List<String> keys = new ArrayList<>(recordCount);
+            File tmpDir = FileUtils.getTempDir();
+            File tmpFile = new File(tmpDir, "btree-" + System.nanoTime() + ".idx");
+            tmpFile.deleteOnExit();
+            BTree btree = new BTree(tmpFile);
+            btree.init(false);
+            for (int i = 0; i < recordCount; i++) {
+              String key = genRandomKey(maxKeyLength);
+              keys.add(key);
+              btree.addValue(new Value(key), i);
+            }
+            Collections.sort(keys);
+            return new ResourceAndKeys<>(btree, keys);
+          }
+
+          @Override
+          public ThrowableRunnable<BTreeException> createTask(ResourceAndKeys<BTree> mapAndKeys) {
+            BTreeCallback callback = new BTreeCallback() {
+              @Override
+              public boolean indexInfo(Value value, long pointer) {
+                return true;
+              }
+
+              @Override
+              public boolean indexInfo(Value key, byte[] value) {
+                return true;
+              }
+            };
+            return () -> {
+              BTree bTree = mapAndKeys.resource;
+              List<String> keys = mapAndKeys.keys;
+              for (int i = 0; i < count(); i++) {
+                int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
+                int keyIndex2 = Math.min(keys.size() -1, keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
+                String key1 = keys.get(keyIndex1);
+                String key2 = keys.get(keyIndex2);
+                bTree.search(new BasicIndexQuery.IndexConditionBW(new Value(key1), new Value(key2)), callback);
+              }
+            };
           }
         }
     );
