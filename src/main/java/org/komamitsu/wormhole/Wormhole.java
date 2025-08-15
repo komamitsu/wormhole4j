@@ -3,7 +3,6 @@ package org.komamitsu.wormhole;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class Wormhole<T> {
@@ -92,7 +91,7 @@ public class Wormhole<T> {
     return keyValue.getValue();
   }
 
-  private void scanInternal(String startKey, @Nullable String endKey, @Nullable Integer count, Function<KeyValue<T>, Boolean> function) {
+  private void scanInternal(String startKey, @Nullable String endKey, boolean isEndKeyExclusive, @Nullable Integer count, Function<KeyValue<T>, Boolean> function) {
     Function<KeyValue<T>, Boolean> actualFunction = function;
     if (count != null) {
       AtomicInteger counter = new AtomicInteger();
@@ -107,7 +106,7 @@ public class Wormhole<T> {
     LeafNode<T> leafNode = searchTrieHashTable(startKey);
     while (leafNode != null) {
       leafNode.incSort();
-      if (!leafNode.iterateKeyValues(startKey, endKey, actualFunction)) {
+      if (!leafNode.iterateKeyValues(startKey, endKey, isEndKeyExclusive, actualFunction)) {
         return;
       }
       leafNode = leafNode.getRight();
@@ -115,17 +114,25 @@ public class Wormhole<T> {
     }
   }
 
-  public List<KeyValue<T>> scan(String startKey, int count) {
+  public List<KeyValue<T>> scanWithCount(String startKey, int count) {
     List<KeyValue<T>> result = new ArrayList<>(count);
-    scanInternal(startKey, null, count, kv -> {
+    scanInternal(startKey, null, /* Not used */ false, count, kv -> {
       result.add(kv);
       return true;
     });
     return result;
   }
 
-  public void scan(@Nullable String startKey, @Nullable String endKey, Function<KeyValue<T>, Boolean> function) {
-    scanInternal(startKey == null ? "" : startKey, endKey, null, function);
+  public void scan(@Nullable String startKey, @Nullable String endKey, boolean isEndKeyExclusive, Function<KeyValue<T>, Boolean> function) {
+    scanInternal(startKey == null ? "" : startKey, endKey, isEndKeyExclusive, null, function);
+  }
+
+  public void scanWithExclusiveEndKey(@Nullable String startKey, @Nullable String endKey, Function<KeyValue<T>, Boolean> function) {
+    scanInternal(startKey == null ? "" : startKey, endKey, true, null, function);
+  }
+
+  public void scanWithInclusiveEndKey(@Nullable String startKey, @Nullable String endKey, Function<KeyValue<T>, Boolean> function) {
+    scanInternal(startKey == null ? "" : startKey, endKey, false, null, function);
   }
 
   private void initialize() {

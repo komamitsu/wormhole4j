@@ -387,7 +387,7 @@ class Benchmark {
                 int keyIndex2 = Math.min(keys.size() -1, keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
                 String key1 = keys.get(keyIndex1);
                 String key2 = keys.get(keyIndex2);
-                wormhole.scan(key1, key2, kv -> true);
+                wormhole.scanWithExclusiveEndKey(key1, key2, kv -> true);
               }
             };
           }
