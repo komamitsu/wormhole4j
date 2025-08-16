@@ -1,8 +1,9 @@
 plugins {
     id("java")
+    id("com.diffplug.spotless") version "6.13.0"
 }
 
-group = "org.example"
+group = "org.komamitsu"
 version = "1.0-SNAPSHOT"
 
 repositories {
@@ -22,4 +23,14 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+spotless {
+    java {
+        googleJavaFormat()
+        importOrder()
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
 }

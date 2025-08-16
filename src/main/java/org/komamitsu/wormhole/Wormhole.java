@@ -1,9 +1,9 @@
 package org.komamitsu.wormhole;
 
-import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import javax.annotation.Nullable;
 
 public class Wormhole<T> {
   private static final int DEFAULT_LEAF_NODE_SIZE = 128;
@@ -13,8 +13,7 @@ public class Wormhole<T> {
   final MetaTrieHashTable<T> table = new MetaTrieHashTable<>();
   private final int leafNodeSize;
   private final int leafNodeMergeSize;
-  @Nullable
-  private final Validator<T> validator;
+  @Nullable private final Validator<T> validator;
 
   public Wormhole() {
     this(DEFAULT_LEAF_NODE_SIZE);
@@ -52,12 +51,10 @@ public class Wormhole<T> {
       LeafNode<T> newLeafNode = split(leafNode);
       if (Utils.compareAnchorKeys(key, newLeafNode.anchorKey) < 0) {
         leafNode.add(key, value);
-      }
-      else {
+      } else {
         newLeafNode.add(key, value);
       }
-    }
-    else {
+    } else {
       assert leafNode.size() < leafNodeSize;
       leafNode.add(key, value);
     }
@@ -70,10 +67,11 @@ public class Wormhole<T> {
       return false;
     }
 
-    if (leafNode.getLeft() != null && leafNode.size() + leafNode.getLeft().size() < leafNodeMergeSize) {
+    if (leafNode.getLeft() != null
+        && leafNode.size() + leafNode.getLeft().size() < leafNodeMergeSize) {
       merge(leafNode.getLeft(), leafNode);
-    }
-    else if (leafNode.getRight() != null && leafNode.size() + leafNode.getRight().size() < leafNodeMergeSize) {
+    } else if (leafNode.getRight() != null
+        && leafNode.size() + leafNode.getRight().size() < leafNodeMergeSize) {
       merge(leafNode, leafNode.getRight());
     }
 
@@ -91,16 +89,22 @@ public class Wormhole<T> {
     return keyValue.getValue();
   }
 
-  private void scanInternal(String startKey, @Nullable String endKey, boolean isEndKeyExclusive, @Nullable Integer count, Function<KeyValue<T>, Boolean> function) {
+  private void scanInternal(
+      String startKey,
+      @Nullable String endKey,
+      boolean isEndKeyExclusive,
+      @Nullable Integer count,
+      Function<KeyValue<T>, Boolean> function) {
     Function<KeyValue<T>, Boolean> actualFunction = function;
     if (count != null) {
       AtomicInteger counter = new AtomicInteger();
-      actualFunction = kv -> {
-        if (counter.getAndIncrement() >= count) {
-          return false;
-        }
-        return function.apply(kv);
-      };
+      actualFunction =
+          kv -> {
+            if (counter.getAndIncrement() >= count) {
+              return false;
+            }
+            return function.apply(kv);
+          };
     }
 
     LeafNode<T> leafNode = searchTrieHashTable(startKey);
@@ -116,22 +120,33 @@ public class Wormhole<T> {
 
   public List<KeyValue<T>> scanWithCount(String startKey, int count) {
     List<KeyValue<T>> result = new ArrayList<>(count);
-    scanInternal(startKey, null, /* Not used */ false, count, kv -> {
-      result.add(kv);
-      return true;
-    });
+    scanInternal(
+        startKey,
+        null, /* Not used */
+        false,
+        count,
+        kv -> {
+          result.add(kv);
+          return true;
+        });
     return result;
   }
 
-  public void scan(@Nullable String startKey, @Nullable String endKey, boolean isEndKeyExclusive, Function<KeyValue<T>, Boolean> function) {
+  public void scan(
+      @Nullable String startKey,
+      @Nullable String endKey,
+      boolean isEndKeyExclusive,
+      Function<KeyValue<T>, Boolean> function) {
     scanInternal(startKey == null ? "" : startKey, endKey, isEndKeyExclusive, null, function);
   }
 
-  public void scanWithExclusiveEndKey(@Nullable String startKey, @Nullable String endKey, Function<KeyValue<T>, Boolean> function) {
+  public void scanWithExclusiveEndKey(
+      @Nullable String startKey, @Nullable String endKey, Function<KeyValue<T>, Boolean> function) {
     scanInternal(startKey == null ? "" : startKey, endKey, true, null, function);
   }
 
-  public void scanWithInclusiveEndKey(@Nullable String startKey, @Nullable String endKey, Function<KeyValue<T>, Boolean> function) {
+  public void scanWithInclusiveEndKey(
+      @Nullable String startKey, @Nullable String endKey, Function<KeyValue<T>, Boolean> function) {
     scanInternal(startKey == null ? "" : startKey, endKey, false, null, function);
   }
 
@@ -140,7 +155,10 @@ public class Wormhole<T> {
     {
       // Add the root.
       String key = "";
-      table.put(key, new MetaTrieHashTable.NodeMetaInternal<>(key, rootLeafNode, rootLeafNode, BITMAP_ID_OF_SMALLEST_TOKEN));
+      table.put(
+          key,
+          new MetaTrieHashTable.NodeMetaInternal<>(
+              key, rootLeafNode, rootLeafNode, BITMAP_ID_OF_SMALLEST_TOKEN));
     }
     {
       // Add the first node.
@@ -155,24 +173,26 @@ public class Wormhole<T> {
       return ((MetaTrieHashTable.NodeMetaLeaf<T>) nodeMeta).leafNode;
     }
 
-    MetaTrieHashTable.NodeMetaInternal<T> nodeMetaInternal = (MetaTrieHashTable.NodeMetaInternal<T>) nodeMeta;
+    MetaTrieHashTable.NodeMetaInternal<T> nodeMetaInternal =
+        (MetaTrieHashTable.NodeMetaInternal<T>) nodeMeta;
     int anchorPrefixLength = nodeMetaInternal.anchorPrefix.length();
 
     // The leaf type is INTERNAL.
     if (anchorPrefixLength == key.length()) {
       LeafNode<T> leafNode = nodeMetaInternal.getLeftMostLeafNode();
       if (Utils.compareAnchorKeys(key, leafNode.anchorKey) < 0) {
-        // For example, if the paper's example had key "J" in the second leaf node and the search key is "J",
+        // For example, if the paper's example had key "J" in the second leaf node and the search
+        // key is "J",
         // this special treatment would be necessary.
         return leafNode.getLeft();
-      }
-      else {
+      } else {
         return leafNode;
       }
     }
 
     if (anchorPrefixLength > key.length()) {
-      throw new AssertionError("The length of the anchor prefix is longer than the length of the key");
+      throw new AssertionError(
+          "The length of the anchor prefix is longer than the length of the key");
     }
 
     char missingToken = key.charAt(anchorPrefixLength);
@@ -181,7 +201,8 @@ public class Wormhole<T> {
       throw new AssertionError("Any sibling token is not found");
     }
 
-    MetaTrieHashTable.NodeMeta<T> childNode = table.get(nodeMetaInternal.anchorPrefix + siblingToken);
+    MetaTrieHashTable.NodeMeta<T> childNode =
+        table.get(nodeMetaInternal.anchorPrefix + siblingToken);
     if (childNode == null) {
       throw new AssertionError("Child node is not found");
     }
@@ -190,18 +211,16 @@ public class Wormhole<T> {
       LeafNode<T> leafNode = ((MetaTrieHashTable.NodeMetaLeaf<T>) childNode).leafNode;
       if (missingToken < siblingToken) {
         return leafNode.getLeft();
-      }
-      else {
+      } else {
         return leafNode;
       }
-    }
-    else {
-      MetaTrieHashTable.NodeMetaInternal<T> childNodeInternal = (MetaTrieHashTable.NodeMetaInternal<T>) childNode;
+    } else {
+      MetaTrieHashTable.NodeMetaInternal<T> childNodeInternal =
+          (MetaTrieHashTable.NodeMetaInternal<T>) childNode;
       if (missingToken < siblingToken) {
         // The child node is a subtree right to the target node.
         return childNodeInternal.getLeftMostLeafNode().getLeft();
-      }
-      else {
+      } else {
         // The child node is a subtree left to the target node.
         return childNodeInternal.getRightMostLeafNode();
       }
@@ -278,8 +297,7 @@ public class Wormhole<T> {
       if (nodeMetaInternal.bitmap.isEmpty()) {
         table.removeNodeMetaInternal(prefix);
         childNodeRemoved = true;
-      }
-      else {
+      } else {
         childNodeRemoved = false;
         if (nodeMetaInternal.getLeftMostLeafNode() == victim) {
           nodeMetaInternal.setLeftMostLeafNode(victim.getRight());
@@ -293,10 +311,7 @@ public class Wormhole<T> {
 
   @Override
   public String toString() {
-    return "Wormhole{" +
-        "table=" + table +
-        ", leafNodeSize=" + leafNodeSize +
-        '}';
+    return "Wormhole{" + "table=" + table + ", leafNodeSize=" + leafNodeSize + '}';
   }
 
   static class Validator<T> {
@@ -309,8 +324,7 @@ public class Wormhole<T> {
     void validate() {
       try {
         validateInternal();
-      }
-      catch (AssertionError e) {
+      } catch (AssertionError e) {
         System.err.println(wormhole);
         throw e;
       }
@@ -325,14 +339,16 @@ public class Wormhole<T> {
           if (leafNode.getLeft() != leafNodes.get(i - 1)) {
             throw new AssertionError(
                 String.format(
-                    "The left node of the leaf node is wrong. Leaf node: %s, Expected left node: %s", leafNode, leafNodes.get(i - 1)));
+                    "The left node of the leaf node is wrong. Leaf node: %s, Expected left node: %s",
+                    leafNode, leafNodes.get(i - 1)));
           }
         }
         if (i < leafNodes.size() - 1) {
           if (leafNode.getRight() != leafNodes.get(i + 1)) {
             throw new AssertionError(
                 String.format(
-                    "The right node of the leaf node is wrong. Leaf node: %s, Expected right node: %s", leafNode, leafNodes.get(i + 1)));
+                    "The right node of the leaf node is wrong. Leaf node: %s, Expected right node: %s",
+                    leafNode, leafNodes.get(i + 1)));
           }
         }
       }
@@ -346,12 +362,14 @@ public class Wormhole<T> {
         MetaTrieHashTable.NodeMeta<T> nodeMeta = wormhole.table.get(anchorKey);
         if (!(nodeMeta instanceof MetaTrieHashTable.NodeMetaInternal)) {
           if (!nodeMetas.remove(nodeMeta)) {
-            throw new AssertionError(String.format("Unexpected node meta. Node meta: %s", nodeMeta));
+            throw new AssertionError(
+                String.format("Unexpected node meta. Node meta: %s", nodeMeta));
           }
           continue;
         }
 
-        MetaTrieHashTable.NodeMetaInternal<T> nodeMetaInternal = (MetaTrieHashTable.NodeMetaInternal<T>) nodeMeta;
+        MetaTrieHashTable.NodeMetaInternal<T> nodeMetaInternal =
+            (MetaTrieHashTable.NodeMetaInternal<T>) nodeMeta;
 
         LeafNode<T> leftMostLeafNode = nodeMetaInternal.getLeftMostLeafNode();
         if (leftMostLeafNode != null) {
@@ -394,7 +412,8 @@ public class Wormhole<T> {
         if (!nodeMetas.remove(nodeMetaInternal)) {
           throw new AssertionError(String.format("Unexpected node meta. Node meta: %s", nodeMeta));
         }
-        nodeMetaInternal.bitmap.stream().forEach(childHeadChar -> anchorKeyQueue.addLast(anchorKey + ((char)childHeadChar)));
+        nodeMetaInternal.bitmap.stream()
+            .forEach(childHeadChar -> anchorKeyQueue.addLast(anchorKey + ((char) childHeadChar)));
       }
     }
 
@@ -424,7 +443,8 @@ public class Wormhole<T> {
       validateHashTable(nodeMetas);
 
       if (!nodeMetas.isEmpty()) {
-        throw new AssertionError(String.format("There are orphan node metas. Orphan node metas: %s", nodeMetas));
+        throw new AssertionError(
+            String.format("There are orphan node metas. Orphan node metas: %s", nodeMetas));
       }
     }
   }

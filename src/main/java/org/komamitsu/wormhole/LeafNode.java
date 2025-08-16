@@ -1,10 +1,9 @@
 package org.komamitsu.wormhole;
 
-import javax.annotation.Nullable;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 class LeafNode<T> {
   public final String anchorKey;
@@ -15,10 +14,8 @@ class LeafNode<T> {
   // Some references are sorted by key.
   private final KeyReferences<T> keyReferences;
 
-  @Nullable
-  private LeafNode<T> left;
-  @Nullable
-  private LeafNode<T> right;
+  @Nullable private LeafNode<T> left;
+  @Nullable private LeafNode<T> right;
 
   // Tags
   private static class Tags<T> {
@@ -48,8 +45,7 @@ class LeafNode<T> {
       int index;
       if (count == 0) {
         index = 0;
-      }
-      else {
+      } else {
         index = Arrays.binarySearch(values, 0, count, tag);
         if (index < 0) {
           index = -(index + 1);
@@ -118,8 +114,7 @@ class LeafNode<T> {
       for (int i = 0; i < count; i++) {
         if (isFirst) {
           isFirst = false;
-        }
-        else {
+        } else {
           sb.append(", ");
         }
         sb.append("{hash=");
@@ -217,23 +212,19 @@ class LeafNode<T> {
             if (keyFromSortedKeyRef.compareTo(keyFromUnsortedKeyRef) < 0) {
               keyValueIndex = values[idxForSortedKeyRef++];
               keyFromSortedKeyRef = null;
-            }
-            else {
+            } else {
               keyValueIndex = values[idxForUnsortedKeyRef++];
               keyFromUnsortedKeyRef = null;
             }
-          }
-          else {
+          } else {
             keyValueIndex = values[idxForSortedKeyRef++];
             keyFromSortedKeyRef = null;
           }
-        }
-        else {
+        } else {
           if (keyFromUnsortedKeyRef != null) {
             keyValueIndex = values[idxForUnsortedKeyRef++];
             keyFromUnsortedKeyRef = null;
-          }
-          else {
+          } else {
             break;
           }
         }
@@ -285,7 +276,8 @@ class LeafNode<T> {
       return count;
     }
 
-    private boolean iterateKeyValues(int startIndexInclusive, int endIndexInclusive, Function<KeyValue<T>, Boolean> function) {
+    private boolean iterateKeyValues(
+        int startIndexInclusive, int endIndexInclusive, Function<KeyValue<T>, Boolean> function) {
       for (int i = startIndexInclusive; i <= endIndexInclusive; i++) {
         if (!function.apply(getKeyValue(i))) {
           return false;
@@ -294,19 +286,17 @@ class LeafNode<T> {
       return true;
     }
 
-
     /**
-     * Binary search. The specification of return value follows {@link Arrays#binarySearch(int[], int)}
+     * Binary search. The specification of return value follows {@link Arrays#binarySearch(int[],
+     * int)}
      *
      * @param key the target key
-     * @return index of the search key, if it is contained in the array;
-     *         otherwise, <tt>(-(<i>insertion point</i>) - 1)</tt>.  The
-     *         <i>insertion point</i> is defined as the point at which the
-     *         key would be inserted into the array: the index of the first
-     *         element greater than the key, or <tt>a.length</tt> if all
-     *         elements in the array are less than the specified key.  Note
-     *         that this guarantees that the return value will be &gt;= 0 if
-     *         and only if the key is found.
+     * @return index of the search key, if it is contained in the array; otherwise,
+     *     <tt>(-(<i>insertion point</i>) - 1)</tt>. The <i>insertion point</i> is defined as the
+     *     point at which the key would be inserted into the array: the index of the first element
+     *     greater than the key, or <tt>a.length</tt> if all elements in the array are less than the
+     *     specified key. Note that this guarantees that the return value will be &gt;= 0 if and
+     *     only if the key is found.
      */
     private int search(String key) {
       if (count == 0) {
@@ -323,8 +313,7 @@ class LeafNode<T> {
           r = m;
         } else if (compared > 0) {
           l = m + 1;
-        }
-        else {
+        } else {
           return m;
         }
       }
@@ -333,10 +322,15 @@ class LeafNode<T> {
 
     @Override
     public String toString() {
-      return "KeyReferences{" +
-          "kvs=" + Arrays.stream(values).limit(count).mapToObj(this::getKeyValue).collect(Collectors.toList()) +
-          ", numOfSortedValues=" + numOfSortedValues +
-          '}';
+      return "KeyReferences{"
+          + "kvs="
+          + Arrays.stream(values)
+              .limit(count)
+              .mapToObj(this::getKeyValue)
+              .collect(Collectors.toList())
+          + ", numOfSortedValues="
+          + numOfSortedValues
+          + '}';
     }
   }
 
@@ -403,10 +397,12 @@ class LeafNode<T> {
     }
   }
 
-  private Tuple<LeafNode<T>, Set<KeyValue<T>>> copyToNewLeafNode(String newAnchor, int startKeyRefIndex) {
+  private Tuple<LeafNode<T>, Set<KeyValue<T>>> copyToNewLeafNode(
+      String newAnchor, int startKeyRefIndex) {
     if (!keyReferences.isSorted()) {
       throw new AssertionError(
-          String.format("The leaf node doesn't seem to be sorted. Key references: %s", keyReferences));
+          String.format(
+              "The leaf node doesn't seem to be sorted. Key references: %s", keyReferences));
     }
 
     int currentSize = keyValues.size();
@@ -464,23 +460,34 @@ class LeafNode<T> {
 
   @Override
   public String toString() {
-    return "LeafNode{" +
-        "anchorKey='" + Utils.printableKey(anchorKey) + '\'' +
-        ", maxSize=" + maxSize +
-        ", keyValues=" + keyValues +
-        ", tags=" + tags +
-        ", keyReferences=" + keyReferences +
-        ", left=" + (left == null ? "null" : Utils.printableKey(left.anchorKey)) +
-        ", right=" + (right == null ? "null" : Utils.printableKey(right.anchorKey)) +
-        '}';
+    return "LeafNode{"
+        + "anchorKey='"
+        + Utils.printableKey(anchorKey)
+        + '\''
+        + ", maxSize="
+        + maxSize
+        + ", keyValues="
+        + keyValues
+        + ", tags="
+        + tags
+        + ", keyReferences="
+        + keyReferences
+        + ", left="
+        + (left == null ? "null" : Utils.printableKey(left.anchorKey))
+        + ", right="
+        + (right == null ? "null" : Utils.printableKey(right.anchorKey))
+        + '}';
   }
 
-  boolean iterateKeyValues(@Nullable String startKey, @Nullable String endKey, boolean isEndKeyExclusive, Function<KeyValue<T>, Boolean> function) {
+  boolean iterateKeyValues(
+      @Nullable String startKey,
+      @Nullable String endKey,
+      boolean isEndKeyExclusive,
+      Function<KeyValue<T>, Boolean> function) {
     int startIndexInclusive;
     if (startKey == null) {
       startIndexInclusive = 0;
-    }
-    else {
+    } else {
       startIndexInclusive = keyReferences.search(startKey);
       if (startIndexInclusive < 0) {
         startIndexInclusive = -startIndexInclusive - 1;
@@ -490,21 +497,20 @@ class LeafNode<T> {
     int endIndexInclusive;
     if (endKey == null) {
       endIndexInclusive = size() - 1;
-    }
-    else {
+    } else {
       endIndexInclusive = keyReferences.search(endKey);
       if (endIndexInclusive >= 0) {
         if (isEndKeyExclusive) {
           endIndexInclusive--;
         }
-      }
-      else {
+      } else {
         endIndexInclusive = -endIndexInclusive - 1;
         endIndexInclusive--;
       }
     }
 
-    boolean fullyIterated = keyReferences.iterateKeyValues(startIndexInclusive, endIndexInclusive, function);
+    boolean fullyIterated =
+        keyReferences.iterateKeyValues(startIndexInclusive, endIndexInclusive, function);
     if (!fullyIterated) {
       return false;
     }
@@ -560,7 +566,8 @@ class LeafNode<T> {
     if (right != null) {
       normalizedRightAnchorKey = right.anchorKey;
       if (normalizedRightAnchorKey.endsWith(Wormhole.SMALLEST_TOKEN)) {
-        normalizedRightAnchorKey = normalizedRightAnchorKey.substring(0, normalizedRightAnchorKey.length() - 1);
+        normalizedRightAnchorKey =
+            normalizedRightAnchorKey.substring(0, normalizedRightAnchorKey.length() - 1);
       }
     }
 
@@ -584,7 +591,10 @@ class LeafNode<T> {
       throw new AssertionError(
           String.format(
               "The number of tags is different from the number of keys. Keys: %s, Tags: %s",
-              keyValues.stream().map(kv -> Utils.printableKey(kv.getKey())).collect(Collectors.toList()), tags));
+              keyValues.stream()
+                  .map(kv -> Utils.printableKey(kv.getKey()))
+                  .collect(Collectors.toList()),
+              tags));
     }
     Set<Integer> keyValueIndexes = new HashSet<>(size());
     for (int i = 0; i < size(); i++) {
@@ -595,10 +605,16 @@ class LeafNode<T> {
       }
       int keyValueIndex = tags.getKeyValueIndex(i);
       if (keyValueIndex < 0 || keyValueIndex >= size()) {
-        throw new AssertionError(String.format("The key-value index is out-of-range. Tags: %s, Index: %d, Key-value index: %d", tags, i, keyValueIndex));
+        throw new AssertionError(
+            String.format(
+                "The key-value index is out-of-range. Tags: %s, Index: %d, Key-value index: %d",
+                tags, i, keyValueIndex));
       }
       if (!keyValueIndexes.add(keyValueIndex)) {
-        throw new AssertionError(String.format("The tags contains duplicated key-value index. Tags: %s, Index: %d, Key-value index: %d", tags, i, keyValueIndex));
+        throw new AssertionError(
+            String.format(
+                "The tags contains duplicated key-value index. Tags: %s, Index: %d, Key-value index: %d",
+                tags, i, keyValueIndex));
       }
     }
 
@@ -606,19 +622,25 @@ class LeafNode<T> {
       throw new AssertionError(
           String.format(
               "The number of key references is different from the number of keys. Keys: %s, Key references: %s",
-              keyValues.stream().map(kv -> Utils.printableKey(kv.getKey())).collect(Collectors.toList()), keyReferences));
+              keyValues.stream()
+                  .map(kv -> Utils.printableKey(kv.getKey()))
+                  .collect(Collectors.toList()),
+              keyReferences));
     }
 
     if (keyReferences.numOfSortedValues > keyReferences.size()) {
       throw new AssertionError(
-          String.format("The number of sorted key references is larger than the number of key references. Key references: %s",
+          String.format(
+              "The number of sorted key references is larger than the number of key references. Key references: %s",
               keyReferences));
     }
 
     for (int i = 0; i < size(); i++) {
       if (i > 0 && i < keyReferences.getNumOfSortedValues() - 1) {
         if (keyReferences.getKey(i).compareTo(keyReferences.getKey(i + 1)) > 0) {
-          throw new AssertionError(String.format("The key references are not ordered. Key references: %s", keyReferences));
+          throw new AssertionError(
+              String.format(
+                  "The key references are not ordered. Key references: %s", keyReferences));
         }
       }
     }

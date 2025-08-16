@@ -13,10 +13,7 @@ public class KeyValue<T> {
 
   @Override
   public String toString() {
-    return "KeyValue{" +
-        "key='" + Utils.printableKey(key) + '\'' +
-        ", value=" + value +
-        '}';
+    return "KeyValue{" + "key='" + Utils.printableKey(key) + '\'' + ", value=" + value + '}';
   }
 
   public String getKey() {
