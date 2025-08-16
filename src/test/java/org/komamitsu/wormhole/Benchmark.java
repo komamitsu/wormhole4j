@@ -1,5 +1,7 @@
 package org.komamitsu.wormhole;
 
+import static org.komamitsu.wormhole.TestHelpers.genRandomKey;
+
 import btree4j.BTree;
 import btree4j.BTreeCallback;
 import btree4j.BTreeException;
@@ -8,19 +10,16 @@ import btree4j.indexer.BasicIndexQuery;
 import btree4j.utils.io.FileUtils;
 import it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectSortedMap;
-import org.junit.jupiter.api.Test;
-import org.mapdb.BTreeMap;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-
-import static org.komamitsu.wormhole.TestHelpers.genRandomKey;
+import org.junit.jupiter.api.Test;
+import org.mapdb.BTreeMap;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import org.mapdb.Serializer;
 
 class Benchmark {
   private static final String PROP_PREFIX = "wormhole4j.benchmark.";
@@ -41,11 +40,16 @@ class Benchmark {
   private final int maxScanSize;
 
   public Benchmark() {
-    this.maxKeyLength = Integer.parseInt(System.getProperty(PROP_MAX_KEY_LENGTH, DEFAULT_MAX_KEY_LENGTH));
-    this.recordCount = Integer.parseInt(System.getProperty(PROP_RECORD_COUNT, DEFAULT_RECORD_COUNT));
-    this.warmupCount = Integer.parseInt(System.getProperty(PROP_WARMUP_COUNT, DEFAULT_WARMUP_COUNT));
-    this.attemptCount = Integer.parseInt(System.getProperty(PROP_ATTEMPT_COUNT, DEFAULT_ATTEMPT_COUNT));
-    this.maxScanSize = Integer.parseInt(System.getProperty(PROP_MAX_SCAN_SIZE, DEFAULT_MAX_SCAN_SIZE));
+    this.maxKeyLength =
+        Integer.parseInt(System.getProperty(PROP_MAX_KEY_LENGTH, DEFAULT_MAX_KEY_LENGTH));
+    this.recordCount =
+        Integer.parseInt(System.getProperty(PROP_RECORD_COUNT, DEFAULT_RECORD_COUNT));
+    this.warmupCount =
+        Integer.parseInt(System.getProperty(PROP_WARMUP_COUNT, DEFAULT_WARMUP_COUNT));
+    this.attemptCount =
+        Integer.parseInt(System.getProperty(PROP_ATTEMPT_COUNT, DEFAULT_ATTEMPT_COUNT));
+    this.maxScanSize =
+        Integer.parseInt(System.getProperty(PROP_MAX_SCAN_SIZE, DEFAULT_MAX_SCAN_SIZE));
   }
 
   @FunctionalInterface
@@ -102,14 +106,14 @@ class Benchmark {
         System.out.printf("Attempt #%d: %d per second%n", i, throughput);
       }
       long averageThroughput = throughputs.stream().reduce(0L, Long::sum) / throughputs.size();
-      double stdDev = Math.sqrt(
-          throughputs.stream()
-              .map(throughput -> (long) Math.pow(throughput - averageThroughput, 2.0))
-              .reduce(0L, Long::sum));
+      double stdDev =
+          Math.sqrt(
+              throughputs.stream()
+                  .map(throughput -> (long) Math.pow(throughput - averageThroughput, 2.0))
+                  .reduce(0L, Long::sum));
       System.out.printf("Average throughput: %d per second%n", averageThroughput);
       System.out.printf("StdDev: %f per second%n", stdDev);
-    }
-    finally {
+    } finally {
       testCase.release(resource);
     }
   }
@@ -146,8 +150,7 @@ class Benchmark {
               }
             };
           }
-        }
-    );
+        });
   }
 
   @Test
@@ -182,8 +185,7 @@ class Benchmark {
               }
             };
           }
-        }
-    );
+        });
   }
 
   @Test
@@ -218,8 +220,7 @@ class Benchmark {
               }
             };
           }
-        }
-    );
+        });
   }
 
   @Test
@@ -247,12 +248,16 @@ class Benchmark {
           }
 
           @Override
-          public ThrowableRunnable<RuntimeException> createTask(ResourceAndKeys<DB> resourceAndKeys) {
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<DB> resourceAndKeys) {
             return () -> {
-              BTreeMap<String, Integer> map = resourceAndKeys.resource.treeMap("map")
-                  .keySerializer(Serializer.STRING)
-                  .valueSerializer(Serializer.INTEGER)
-                  .createOrOpen();
+              BTreeMap<String, Integer> map =
+                  resourceAndKeys
+                      .resource
+                      .treeMap("map")
+                      .keySerializer(Serializer.STRING)
+                      .valueSerializer(Serializer.INTEGER)
+                      .createOrOpen();
 
               for (int i = 0; i < recordCount; i++) {
                 map.put(resourceAndKeys.keys.get(i), i);
@@ -264,8 +269,7 @@ class Benchmark {
           public void release(ResourceAndKeys<DB> resource) {
             resource.resource.close();
           }
-        }
-    );
+        });
   }
 
   @Test
@@ -304,8 +308,7 @@ class Benchmark {
               }
             };
           }
-        }
-    );
+        });
   }
 
   private static class ResourceAndKeys<T> {
@@ -345,7 +348,8 @@ class Benchmark {
           }
 
           @Override
-          public ThrowableRunnable<RuntimeException> createTask(ResourceAndKeys<Wormhole<Integer>> resourceAndKeys) {
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<Wormhole<Integer>> resourceAndKeys) {
             return () -> {
               Wormhole<Integer> wormhole = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
@@ -355,8 +359,7 @@ class Benchmark {
               }
             };
           }
-        }
-    );
+        });
   }
 
   @Test
@@ -386,7 +389,8 @@ class Benchmark {
           }
 
           @Override
-          public ThrowableRunnable<RuntimeException> createTask(ResourceAndKeys<TreeMap<String, Integer>> resourceAndKeys) {
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<TreeMap<String, Integer>> resourceAndKeys) {
             return () -> {
               TreeMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
@@ -396,8 +400,7 @@ class Benchmark {
               }
             };
           }
-        }
-    );
+        });
   }
 
   @Test
@@ -427,7 +430,8 @@ class Benchmark {
           }
 
           @Override
-          public ThrowableRunnable<RuntimeException> createTask(ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> resourceAndKeys) {
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> resourceAndKeys) {
             return () -> {
               Object2ObjectSortedMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
@@ -437,8 +441,7 @@ class Benchmark {
               }
             };
           }
-        }
-    );
+        });
   }
 
   @Test
@@ -460,10 +463,11 @@ class Benchmark {
             List<String> keys = new ArrayList<>(recordCount);
 
             DB db = DBMaker.memoryDB().make();
-            BTreeMap<String, Integer> map = db.treeMap("map")
-                .keySerializer(Serializer.STRING)
-                .valueSerializer(Serializer.INTEGER)
-                .createOrOpen();
+            BTreeMap<String, Integer> map =
+                db.treeMap("map")
+                    .keySerializer(Serializer.STRING)
+                    .valueSerializer(Serializer.INTEGER)
+                    .createOrOpen();
 
             for (int i = 0; i < recordCount; i++) {
               String key = genRandomKey(maxKeyLength);
@@ -474,7 +478,8 @@ class Benchmark {
           }
 
           @Override
-          public ThrowableRunnable<RuntimeException> createTask(ResourceAndKeys<Tuple<DB, BTreeMap<String, Integer>>> resourceAndKeys) {
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<Tuple<DB, BTreeMap<String, Integer>>> resourceAndKeys) {
             return () -> {
               BTreeMap<String, Integer> map = resourceAndKeys.resource.second;
               List<String> keys = resourceAndKeys.keys;
@@ -489,8 +494,7 @@ class Benchmark {
           public void release(ResourceAndKeys<Tuple<DB, BTreeMap<String, Integer>>> resource) {
             resource.resource.first.close();
           }
-        }
-    );
+        });
   }
 
   @Test
@@ -534,8 +538,7 @@ class Benchmark {
               }
             };
           }
-        }
-    );
+        });
   }
 
   @Test
@@ -566,21 +569,24 @@ class Benchmark {
           }
 
           @Override
-          public ThrowableRunnable<RuntimeException> createTask(ResourceAndKeys<Wormhole<Integer>> resourceAndKeys) {
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<Wormhole<Integer>> resourceAndKeys) {
             return () -> {
               Wormhole<Integer> wormhole = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
                 int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
-                int keyIndex2 = Math.min(keys.size() -1, keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
+                int keyIndex2 =
+                    Math.min(
+                        keys.size() - 1,
+                        keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
                 String key1 = keys.get(keyIndex1);
                 String key2 = keys.get(keyIndex2);
                 wormhole.scanWithExclusiveEndKey(key1, key2, kv -> true);
               }
             };
           }
-        }
-    );
+        });
   }
 
   @Test
@@ -611,23 +617,26 @@ class Benchmark {
           }
 
           @Override
-          public ThrowableRunnable<RuntimeException> createTask(ResourceAndKeys<TreeMap<String, Integer>> resourceAndKeys) {
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<TreeMap<String, Integer>> resourceAndKeys) {
             return () -> {
               TreeMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
                 int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
-                int keyIndex2 = Math.min(keys.size() -1, keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
+                int keyIndex2 =
+                    Math.min(
+                        keys.size() - 1,
+                        keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
                 String key1 = keys.get(keyIndex1);
                 String key2 = keys.get(keyIndex2);
-                for (Map.Entry<String, Integer> ignored: map.subMap(key1, key2).entrySet()) {
+                for (Map.Entry<String, Integer> ignored : map.subMap(key1, key2).entrySet()) {
                   // Nothing to do.
                 }
               }
             };
           }
-        }
-    );
+        });
   }
 
   @Test
@@ -658,23 +667,26 @@ class Benchmark {
           }
 
           @Override
-          public ThrowableRunnable<RuntimeException> createTask(ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> resourceAndKeys) {
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> resourceAndKeys) {
             return () -> {
               Object2ObjectSortedMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
                 int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
-                int keyIndex2 = Math.min(keys.size() -1, keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
+                int keyIndex2 =
+                    Math.min(
+                        keys.size() - 1,
+                        keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
                 String key1 = keys.get(keyIndex1);
                 String key2 = keys.get(keyIndex2);
-                for (Map.Entry<String, Integer> ignored: map.subMap(key1, key2).entrySet()) {
+                for (Map.Entry<String, Integer> ignored : map.subMap(key1, key2).entrySet()) {
                   // Nothing to do.
                 }
               }
             };
           }
-        }
-    );
+        });
   }
 
   @Test
@@ -695,10 +707,11 @@ class Benchmark {
           public ResourceAndKeys<Tuple<DB, BTreeMap<String, Integer>>> init() {
             List<String> keys = new ArrayList<>(recordCount);
             DB db = DBMaker.memoryDB().make();
-            BTreeMap<String, Integer> map = db.treeMap("map")
-                .keySerializer(Serializer.STRING)
-                .valueSerializer(Serializer.INTEGER)
-                .createOrOpen();
+            BTreeMap<String, Integer> map =
+                db.treeMap("map")
+                    .keySerializer(Serializer.STRING)
+                    .valueSerializer(Serializer.INTEGER)
+                    .createOrOpen();
 
             for (int i = 0; i < recordCount; i++) {
               String key = genRandomKey(maxKeyLength);
@@ -710,16 +723,20 @@ class Benchmark {
           }
 
           @Override
-          public ThrowableRunnable<RuntimeException> createTask(ResourceAndKeys<Tuple<DB, BTreeMap<String, Integer>>> resourceAndKeys) {
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<Tuple<DB, BTreeMap<String, Integer>>> resourceAndKeys) {
             return () -> {
               BTreeMap<String, Integer> map = resourceAndKeys.resource.second;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
                 int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
-                int keyIndex2 = Math.min(keys.size() -1, keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
+                int keyIndex2 =
+                    Math.min(
+                        keys.size() - 1,
+                        keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
                 String key1 = keys.get(keyIndex1);
                 String key2 = keys.get(keyIndex2);
-                for (Map.Entry<String, Integer> ignored: map.subMap(key1, key2).entrySet()) {
+                for (Map.Entry<String, Integer> ignored : map.subMap(key1, key2).entrySet()) {
                   // Nothing to do.
                 }
               }
@@ -730,8 +747,7 @@ class Benchmark {
           public void release(ResourceAndKeys<Tuple<DB, BTreeMap<String, Integer>>> resource) {
             resource.resource.first.close();
           }
-        }
-    );
+        });
   }
 
   @Test
@@ -767,30 +783,35 @@ class Benchmark {
 
           @Override
           public ThrowableRunnable<BTreeException> createTask(ResourceAndKeys<BTree> mapAndKeys) {
-            BTreeCallback callback = new BTreeCallback() {
-              @Override
-              public boolean indexInfo(Value value, long pointer) {
-                return true;
-              }
+            BTreeCallback callback =
+                new BTreeCallback() {
+                  @Override
+                  public boolean indexInfo(Value value, long pointer) {
+                    return true;
+                  }
 
-              @Override
-              public boolean indexInfo(Value key, byte[] value) {
-                return true;
-              }
-            };
+                  @Override
+                  public boolean indexInfo(Value key, byte[] value) {
+                    return true;
+                  }
+                };
             return () -> {
               BTree bTree = mapAndKeys.resource;
               List<String> keys = mapAndKeys.keys;
               for (int i = 0; i < count(); i++) {
                 int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
-                int keyIndex2 = Math.min(keys.size() -1, keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
+                int keyIndex2 =
+                    Math.min(
+                        keys.size() - 1,
+                        keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
                 String key1 = keys.get(keyIndex1);
                 String key2 = keys.get(keyIndex2);
-                bTree.search(new BasicIndexQuery.IndexConditionBW(new Value(key1), new Value(key2)), callback);
+                bTree.search(
+                    new BasicIndexQuery.IndexConditionBW(new Value(key1), new Value(key2)),
+                    callback);
               }
             };
           }
-        }
-    );
+        });
   }
 }
