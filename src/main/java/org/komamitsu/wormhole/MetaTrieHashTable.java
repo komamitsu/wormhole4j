@@ -99,10 +99,12 @@ class MetaTrieHashTable<T> {
     maxAnchorLength = Math.max(maxAnchorLength, key.length());
   }
 
+  // Used only for the validation.
   Collection<NodeMeta<T>> values() {
     return table.values();
   }
 
+  // Used only for the validation.
   Set<Map.Entry<String, NodeMeta<T>>> entrySet() {
     return table.entrySet();
   }
@@ -276,5 +278,13 @@ class MetaTrieHashTable<T> {
   @Override
   public String toString() {
     return "MetaTrieHashTable{" + "table=" + table + '}';
+  }
+
+  void lock() {
+    // Do nothing.
+  }
+
+  void unlock() {
+    // Do nothing.
   }
 }

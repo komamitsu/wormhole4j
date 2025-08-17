@@ -10,7 +10,7 @@ public class Wormhole<T> {
   public static final String SMALLEST_TOKEN = "\0";
   public static final char BITMAP_ID_OF_SMALLEST_TOKEN = 0;
   // Visible for testing.
-  final MetaTrieHashTable<T> table = new MetaTrieHashTable<>();
+  final MetaTrieHashTable<T> table;
   private final int leafNodeSize;
   private final int leafNodeMergeSize;
   @Nullable private final Validator<T> validator;
@@ -24,10 +24,20 @@ public class Wormhole<T> {
   }
 
   public Wormhole(int leafNodeSize, boolean debugMode) {
+    this.table = createMetaTrieHashTable();
     this.leafNodeSize = leafNodeSize;
     this.leafNodeMergeSize = leafNodeSize * 3 / 4;
     initialize();
     validator = debugMode ? new Validator<>(this) : null;
+  }
+
+  LeafNode<T> createLeafNode(
+      String anchorKey, int maxSize, @Nullable LeafNode<T> left, @Nullable LeafNode<T> right) {
+    return new LeafNode<>(anchorKey, maxSize, left, right);
+  }
+
+  MetaTrieHashTable<T> createMetaTrieHashTable() {
+    return new MetaTrieHashTable<>();
   }
 
   private void validateIfNeeded() {
@@ -151,7 +161,7 @@ public class Wormhole<T> {
   }
 
   private void initialize() {
-    LeafNode<T> rootLeafNode = new LeafNode<>(SMALLEST_TOKEN, leafNodeSize, null, null);
+    LeafNode<T> rootLeafNode = createLeafNode(SMALLEST_TOKEN, leafNodeSize, null, null);
     {
       // Add the root.
       String key = "";
@@ -227,26 +237,13 @@ public class Wormhole<T> {
     }
   }
 
-  private String extractLongestCommonPrefix(String a, String b) {
-    int minLen = Math.min(a.length(), b.length());
-    for (int i = 0; i < minLen; i++) {
-      char ca = a.charAt(i);
-      char cb = b.charAt(i);
-      if (ca == cb) {
-        continue;
-      }
-      return a.substring(0, i);
-    }
-    return a.substring(0, minLen);
-  }
-
   private Tuple<Integer, String> findSplitPositionAndNewAnchorInLeafNode(LeafNode<T> leafNode) {
     for (int i = leafNode.size() / 2; i < leafNode.size(); i++) {
       assert i > 0;
       String k1 = leafNode.getKeyByKeyRefIndex(i - 1);
       String k2 = leafNode.getKeyByKeyRefIndex(i);
 
-      String lcp = extractLongestCommonPrefix(k1, k2);
+      String lcp = Utils.extractLongestCommonPrefix(k1, k2);
       String newAnchor = lcp + k2.charAt(lcp.length());
 
       // Check the anchor key ordering condition: left-key < anchor-key ≤ node-key
@@ -271,41 +268,54 @@ public class Wormhole<T> {
   }
 
   private LeafNode<T> split(LeafNode<T> leafNode) {
-    leafNode.incSort();
-    // TODO: This can be moved to LeafNode.splitToNewLeafNode() ?
-    Tuple<Integer, String> found = findSplitPositionAndNewAnchorInLeafNode(leafNode);
-    int splitPosIndex = found.first;
-    String newAnchor = found.second;
-    LeafNode<T> newLeafNode = leafNode.splitToNewLeafNode(newAnchor, splitPosIndex);
+    try {
+      table.lock();
 
-    table.handleSplitNodes(newAnchor, newLeafNode);
+      leafNode.incSort();
+      Tuple<Integer, String> found = findSplitPositionAndNewAnchorInLeafNode(leafNode);
+      int splitPosIndex = found.first;
+      String newAnchor = found.second;
+      LeafNode<T> newLeafNode = leafNode.splitToNewLeafNode(newAnchor, splitPosIndex);
 
-    return newLeafNode;
+      table.handleSplitNodes(newAnchor, newLeafNode);
+
+      return newLeafNode;
+    }
+    finally {
+      table.unlock();
+    }
   }
 
   private void merge(LeafNode<T> left, LeafNode<T> victim) {
-    left.merge(victim);
-    String anchorKey = table.removeNodeMetaLeaf(victim.anchorKey);
-    boolean childNodeRemoved = true;
-    for (int prefixlen = anchorKey.length() - 1; prefixlen >= 0; prefixlen--) {
-      String prefix = anchorKey.substring(0, prefixlen);
-      MetaTrieHashTable.NodeMetaInternal<T> nodeMetaInternal = table.findNodeMetaInternal(prefix);
-      assert nodeMetaInternal != null;
-      if (childNodeRemoved) {
-        nodeMetaInternal.bitmap.clear(anchorKey.charAt(prefixlen));
-      }
-      if (nodeMetaInternal.bitmap.isEmpty()) {
-        table.removeNodeMetaInternal(prefix);
-        childNodeRemoved = true;
-      } else {
-        childNodeRemoved = false;
-        if (nodeMetaInternal.getLeftMostLeafNode() == victim) {
-          nodeMetaInternal.setLeftMostLeafNode(victim.getRight());
+    try {
+      table.lock();
+
+      left.merge(victim);
+      String anchorKey = table.removeNodeMetaLeaf(victim.anchorKey);
+      boolean childNodeRemoved = true;
+      for (int prefixlen = anchorKey.length() - 1; prefixlen >= 0; prefixlen--) {
+        String prefix = anchorKey.substring(0, prefixlen);
+        MetaTrieHashTable.NodeMetaInternal<T> nodeMetaInternal = table.findNodeMetaInternal(prefix);
+        assert nodeMetaInternal != null;
+        if (childNodeRemoved) {
+          nodeMetaInternal.bitmap.clear(anchorKey.charAt(prefixlen));
         }
-        if (nodeMetaInternal.getRightMostLeafNode() == victim) {
-          nodeMetaInternal.setRightMostLeafNode(victim.getLeft());
+        if (nodeMetaInternal.bitmap.isEmpty()) {
+          table.removeNodeMetaInternal(prefix);
+          childNodeRemoved = true;
+        } else {
+          childNodeRemoved = false;
+          if (nodeMetaInternal.getLeftMostLeafNode() == victim) {
+            nodeMetaInternal.setLeftMostLeafNode(victim.getRight());
+          }
+          if (nodeMetaInternal.getRightMostLeafNode() == victim) {
+            nodeMetaInternal.setRightMostLeafNode(victim.getLeft());
+          }
         }
       }
+    }
+    finally {
+      table.unlock();
     }
   }
 
