@@ -1,6 +1,5 @@
 package org.komamitsu.wormhole;
 
-
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class MetaTrieHashTableThreadSafe<T> extends MetaTrieHashTable<T> {
@@ -11,8 +10,7 @@ public class MetaTrieHashTableThreadSafe<T> extends MetaTrieHashTable<T> {
     try {
       lock.readLock().lock();
       return super.get(key);
-    }
-    finally {
+    } finally {
       lock.readLock().unlock();
     }
   }
@@ -22,8 +20,7 @@ public class MetaTrieHashTableThreadSafe<T> extends MetaTrieHashTable<T> {
     try {
       lock.writeLock().lock();
       super.put(key, nodeMeta);
-    }
-    finally {
+    } finally {
       lock.writeLock().unlock();
     }
   }
@@ -33,8 +30,7 @@ public class MetaTrieHashTableThreadSafe<T> extends MetaTrieHashTable<T> {
     try {
       lock.readLock().lock();
       return super.searchLongestPrefixMatch(searchKey);
-    }
-    finally {
+    } finally {
       lock.readLock().unlock();
     }
   }

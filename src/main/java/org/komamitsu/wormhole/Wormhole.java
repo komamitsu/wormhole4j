@@ -280,8 +280,7 @@ public class Wormhole<T> {
       table.handleSplitNodes(newAnchor, newLeafNode);
 
       return newLeafNode;
-    }
-    finally {
+    } finally {
       table.unlock();
     }
   }
@@ -313,8 +312,7 @@ public class Wormhole<T> {
           }
         }
       }
-    }
-    finally {
+    } finally {
       table.unlock();
     }
   }

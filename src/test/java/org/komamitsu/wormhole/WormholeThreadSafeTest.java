@@ -7,21 +7,17 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.annotation.Nullable;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.Parameter;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import javax.annotation.Nullable;
-
 @ParameterizedClass
-//@ValueSource(ints = {3, 128})
-@ValueSource(ints = {128})
+@ValueSource(ints = {3, 128})
 class WormholeThreadSafeTest {
-//  private static final int CONCURRENCY = Runtime.getRuntime().availableProcessors();
-  private static final int CONCURRENCY = 4;
-//  private static final Duration DURATION = Duration.ofSeconds(10);
-  private static final Duration DURATION = Duration.ofSeconds(1);
+  private static final int CONCURRENCY = Runtime.getRuntime().availableProcessors();
+  private static final Duration DURATION = Duration.ofSeconds(10);
   @Parameter int leafNodeSize;
 
   private void shutdownAndAwaitTermination(@Nullable ExecutorService executorService) {
@@ -71,8 +67,6 @@ class WormholeThreadSafeTest {
                   e.printStackTrace();
                   throw e;
                 }
-// FIXME
-if (counter >= 40) { break; }
               }
             });
       }
@@ -92,8 +86,7 @@ if (counter >= 40) { break; }
           }
         }
       }
-    }
-    finally {
+    } finally {
       shutdownAndAwaitTermination(executorService);
     }
   }
