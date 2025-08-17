@@ -1,6 +1,7 @@
 package org.komamitsu.wormhole;
 
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -444,14 +445,60 @@ class LeafNode<T> {
     tags.sort();
   }
 
-  LeafNode<T> splitToNewLeafNode(String newAnchor, int startKeyRefIndex) {
-    Tuple<LeafNode<T>, Set<KeyValue<T>>> copied = copyToNewLeafNode(newAnchor, startKeyRefIndex);
+  void splitIfNeededAndAdd(String key, T value, Function<String, String> validNewAnchorFunction, BiFunction<String, LeafNode<T>, Void> splitCallback) {
+    if (size() < maxSize) {
+      add(key, value);
+      return;
+    }
+
+    splitAndAdd(key, value, validNewAnchorFunction, splitCallback);
+  }
+
+  void splitAndAdd(String key, T value, Function<String, String> validNewAnchorFunction, BiFunction<String, LeafNode<T>, Void> splitCallback) {
+    incSort();
+
+    Tuple<Integer, String> found = findSplitPositionAndNewAnchorInLeafNode(validNewAnchorFunction);
+    int splitPosIndex = found.first;
+    String newAnchor = found.second;
+
+    Tuple<LeafNode<T>, Set<KeyValue<T>>> copied = copyToNewLeafNode(newAnchor, splitPosIndex);
     LeafNode<T> newLeafNode = copied.first;
     Set<KeyValue<T>> keyValuesInNewLeafNode = copied.second;
 
     removeMovedEntries(keyValuesInNewLeafNode);
 
-    return newLeafNode;
+    splitCallback.apply(newAnchor, newLeafNode);
+
+    if (Utils.compareAnchorKeys(key, newLeafNode.anchorKey) < 0) {
+      add(key, value);
+    } else {
+      newLeafNode.add(key, value);
+    }
+  }
+
+  private Tuple<Integer, String> findSplitPositionAndNewAnchorInLeafNode(Function<String, String> validNewAnchorFunction) {
+    for (int i = size() / 2; i < size(); i++) {
+      assert i > 0;
+      String k1 = getKeyByKeyRefIndex(i - 1);
+      String k2 = getKeyByKeyRefIndex(i);
+
+      String lcp = Utils.extractLongestCommonPrefix(k1, k2);
+      String newAnchor = lcp + k2.charAt(lcp.length());
+
+      // Check the anchor key ordering condition: left-key < anchor-key ≤ node-key
+      if (newAnchor.compareTo(k1) <= 0) {
+        continue;
+      }
+      // For anchor-key ≤ node-key, the relationship of `newAnchor` and `k2` always satisfy it.
+
+      // Check the anchor key prefix condition.
+      String validatedNewAnchor = validNewAnchorFunction.apply(newAnchor);
+      if (validatedNewAnchor == null) {
+        continue;
+      }
+      return new Tuple<>(i, validatedNewAnchor);
+    }
+    throw new IllegalStateException("Cannot split the leaf node. Leaf node: " + this);
   }
 
   int size() {

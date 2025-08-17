@@ -5,8 +5,16 @@ import javax.annotation.Nullable;
 
 class MetaTrieHashTable<T> {
   // Visible for testing
-  private final Map<String, NodeMeta<T>> table = new HashMap<>();
-  int maxAnchorLength;
+  private final Map<String, NodeMeta<T>> table;
+  private int maxAnchorLength;
+
+  public MetaTrieHashTable() {
+    this.table = createTable();
+  }
+
+  Map<String, NodeMeta<T>> createTable() {
+    return new HashMap<>();
+  }
 
   abstract static class NodeMeta<T> {
     final String anchorPrefix;
