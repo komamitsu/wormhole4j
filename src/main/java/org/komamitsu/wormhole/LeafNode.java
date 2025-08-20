@@ -413,7 +413,7 @@ class LeafNode<T> {
     }
   }
 
-  private Tuple<LeafNode<T>, Set<KeyValue<T>>> copyToNewLeafNode(
+  private Tuple<LeafNode<T>, List<Integer>> copyToNewLeafNode(
       String newAnchor, int startKeyRefIndex) {
     if (!keyReferences.isSorted()) {
       throw new AssertionError(
@@ -425,11 +425,12 @@ class LeafNode<T> {
 
     // Copy entries to a new leaf node.
     LeafNode<T> newLeafNode = new LeafNode<>(newAnchor, maxSize, this, this.right);
-    Set<KeyValue<T>> keyValuesInNewLeafNode = new HashSet<>(maxSize);
+    List<Integer> keyValueIndexListOfNewLeafNode = new ArrayList<>(currentSize);
     for (int i = startKeyRefIndex; i < currentSize; i++) {
-      KeyValue<T> kv = keyReferences.getKeyValue(i);
+      int keyValueIndex = tags.getKeyValueIndex(keyReferences.getTagIndex(i));
+      KeyValue<T> kv = keyValues.get(keyValueIndex);
       newLeafNode.keyValues.add(kv);
-      keyValuesInNewLeafNode.add(kv);
+      keyValueIndexListOfNewLeafNode.add(keyValueIndex);
       newLeafNode.tags.addWithoutSort(newLeafNode.keyValues.size() - 1, kv);
       newLeafNode.keyReferences.add(newLeafNode.tags.getLastIndex());
     }
@@ -443,12 +444,15 @@ class LeafNode<T> {
 
     setRight(newLeafNode);
 
-    // TODO: How about returning the set of key value indexes?
-    return new Tuple<>(newLeafNode, keyValuesInNewLeafNode);
+    return new Tuple<>(newLeafNode, keyValueIndexListOfNewLeafNode);
   }
 
-  private void removeMovedEntries(Set<KeyValue<T>> keyValuesInNewLeafNode) {
-    keyValues.removeIf(keyValuesInNewLeafNode::contains);
+  private void removeMovedEntries(List<Integer> keyValueIndexListOfNewLeafNode) {
+    Collections.sort(keyValueIndexListOfNewLeafNode);
+    for (int i = keyValueIndexListOfNewLeafNode.size() - 1; i >= 0; i--) {
+      int keyValueIndex = keyValueIndexListOfNewLeafNode.get(i);
+      keyValues.remove(keyValueIndex);
+    }
 
     tags.clear();
     keyReferences.clear();
@@ -461,11 +465,11 @@ class LeafNode<T> {
   }
 
   LeafNode<T> splitToNewLeafNode(String newAnchor, int startKeyRefIndex) {
-    Tuple<LeafNode<T>, Set<KeyValue<T>>> copied = copyToNewLeafNode(newAnchor, startKeyRefIndex);
+    Tuple<LeafNode<T>, List<Integer>> copied = copyToNewLeafNode(newAnchor, startKeyRefIndex);
     LeafNode<T> newLeafNode = copied.first;
-    Set<KeyValue<T>> keyValuesInNewLeafNode = copied.second;
+    List<Integer> keyValuesIndexListOfNewLeafNode = copied.second;
 
-    removeMovedEntries(keyValuesInNewLeafNode);
+    removeMovedEntries(keyValuesIndexListOfNewLeafNode);
 
     return newLeafNode;
   }
