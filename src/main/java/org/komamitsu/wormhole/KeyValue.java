@@ -18,6 +18,11 @@ package org.komamitsu.wormhole;
 
 import java.util.Objects;
 
+/**
+ * Represents a key-value pair stored in a {@link Wormhole}.
+ *
+ * @param <T> the type of the value
+ */
 public class KeyValue<T> {
   private final String key;
   private T value;
@@ -32,10 +37,20 @@ public class KeyValue<T> {
     return "KeyValue{" + "key='" + Utils.printableKey(key) + '\'' + ", value=" + value + '}';
   }
 
+  /**
+   * Returns the key.
+   *
+   * @return the key
+   */
   public String getKey() {
     return key;
   }
 
+  /**
+   * Returns the value.
+   *
+   * @return the value
+   */
   public T getValue() {
     return value;
   }
