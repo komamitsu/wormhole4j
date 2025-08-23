@@ -251,8 +251,7 @@ class MetaTrieHashTable<T> {
     NodeMeta<T> removed = table.remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(
-          String.format(
-              "Node meta leaf for anchor key '%s' not found for removal", anchorKey));
+          String.format("Node meta leaf for anchor key '%s' not found for removal", anchorKey));
     }
     if (anchorKey.length() >= maxAnchorLength) {
       maxAnchorLength = calcMaxAnchorLength();
@@ -277,8 +276,7 @@ class MetaTrieHashTable<T> {
     NodeMeta<T> removed = table.remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(
-          String.format(
-              "Node meta internal for anchor key '%s' not found for removal", anchorKey));
+          String.format("Node meta internal for anchor key '%s' not found for removal", anchorKey));
     }
     if (anchorKey.length() >= maxAnchorLength) {
       maxAnchorLength = calcMaxAnchorLength();
