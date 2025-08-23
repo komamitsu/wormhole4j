@@ -313,26 +313,13 @@ public class Wormhole<T> {
     }
   }
 
-  private String extractLongestCommonPrefix(String a, String b) {
-    int minLen = Math.min(a.length(), b.length());
-    for (int i = 0; i < minLen; i++) {
-      char ca = a.charAt(i);
-      char cb = b.charAt(i);
-      if (ca == cb) {
-        continue;
-      }
-      return a.substring(0, i);
-    }
-    return a.substring(0, minLen);
-  }
-
   private Tuple<Integer, String> findSplitPositionAndNewAnchorInLeafNode(LeafNode<T> leafNode) {
     for (int i = leafNode.size() / 2; i < leafNode.size(); i++) {
       assert i > 0;
       String k1 = leafNode.getKeyByKeyRefIndex(i - 1);
       String k2 = leafNode.getKeyByKeyRefIndex(i);
 
-      String lcp = extractLongestCommonPrefix(k1, k2);
+      String lcp = Utils.extractLongestCommonPrefix(k1, k2);
       String newAnchor = lcp + k2.charAt(lcp.length());
 
       // Check the anchor key ordering condition: left-key < anchor-key ≤ node-key

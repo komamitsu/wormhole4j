@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 class LeafNode<T> {
-  public final String anchorKey;
+  final String anchorKey;
   private final int maxSize;
   private final List<KeyValue<T>> keyValues;
   // All references are always sorted by hash.
@@ -181,7 +181,7 @@ class LeafNode<T> {
       if (low >= high) {
         return;
       }
-      String pivot = getKey(low + high >> 1);
+      String pivot = getKey((low + high) >>> 1);
       int l = low;
       int h = high;
       while (l <= h) {
@@ -322,7 +322,7 @@ class LeafNode<T> {
       int r = count;
       int m;
       while (l < r) {
-        m = (l + r) / 2;
+        m = (l + r) >>> 1;
         String k = getKey(m);
         int compared = key.compareTo(k);
         if (compared < 0) {
@@ -434,6 +434,7 @@ class LeafNode<T> {
       newLeafNode.tags.addWithoutSort(newLeafNode.keyValues.size() - 1, kv);
       newLeafNode.keyReferences.add(newLeafNode.tags.getLastIndex());
     }
+    // TODO: Optimize building `tags`.
     newLeafNode.tags.sort();
     // The key references are not sorted.
 
@@ -448,11 +449,20 @@ class LeafNode<T> {
   }
 
   private void removeMovedEntries(List<Integer> keyValueIndexListOfNewLeafNode) {
-    Collections.sort(keyValueIndexListOfNewLeafNode);
-    for (int i = keyValueIndexListOfNewLeafNode.size() - 1; i >= 0; i--) {
-      int keyValueIndex = keyValueIndexListOfNewLeafNode.get(i);
-      keyValues.remove(keyValueIndex);
+    boolean[] toRemove = new boolean[keyValues.size()];
+    for (int index : keyValueIndexListOfNewLeafNode) {
+      toRemove[index] = true;
     }
+
+    List<KeyValue<T>> newKeyValues =
+        new ArrayList<>(keyValues.size() - keyValueIndexListOfNewLeafNode.size());
+    for (int i = 0; i < keyValues.size(); i++) {
+      if (!toRemove[i]) {
+        newKeyValues.add(keyValues.get(i));
+      }
+    }
+    keyValues.clear();
+    keyValues.addAll(newKeyValues);
 
     tags.clear();
     keyReferences.clear();
@@ -461,6 +471,7 @@ class LeafNode<T> {
       tags.addWithoutSort(i, keyValue);
       keyReferences.add(i);
     }
+    // TODO: Optimize building `tags`.
     tags.sort();
   }
 
@@ -569,6 +580,7 @@ class LeafNode<T> {
       tags.addWithoutSort(i, keyValues.get(i));
       keyReferences.add(tags.getLastIndex());
     }
+    // TODO: Optimize building `tags`.
     tags.sort();
 
     if (right.getRight() != null) {

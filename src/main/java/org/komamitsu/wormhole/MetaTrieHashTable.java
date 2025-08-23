@@ -249,7 +249,14 @@ class MetaTrieHashTable<T> {
         nodeMeta instanceof NodeMetaLeaf ? origAnchorKey : origAnchorKey + Wormhole.SMALLEST_TOKEN;
 
     NodeMeta<T> removed = table.remove(anchorKey);
-    maxAnchorLength = calcMaxAnchorLength();
+    if (removed == null) {
+      throw new AssertionError(
+          String.format(
+              "Node meta leaf for anchor key '%s' not found for removal", anchorKey));
+    }
+    if (anchorKey.length() >= maxAnchorLength) {
+      maxAnchorLength = calcMaxAnchorLength();
+    }
     if (removed instanceof NodeMetaLeaf) {
       return anchorKey;
     }
@@ -268,7 +275,14 @@ class MetaTrieHashTable<T> {
             : origAnchorKey + Wormhole.SMALLEST_TOKEN;
 
     NodeMeta<T> removed = table.remove(anchorKey);
-    maxAnchorLength = calcMaxAnchorLength();
+    if (removed == null) {
+      throw new AssertionError(
+          String.format(
+              "Node meta internal for anchor key '%s' not found for removal", anchorKey));
+    }
+    if (anchorKey.length() >= maxAnchorLength) {
+      maxAnchorLength = calcMaxAnchorLength();
+    }
     if (removed instanceof NodeMetaInternal) {
       return anchorKey;
     }
