@@ -23,52 +23,52 @@ import java.util.Objects;
  *
  * @param <T> the type of the value
  */
-public class KeyValue<T> {
-  private final String key;
-  private T value;
-
-  KeyValue(String key, T value) {
-    this.key = key;
-    this.value = value;
-  }
-
-  @Override
-  public String toString() {
-    return "KeyValue{" + "key='" + Utils.printableKey(key) + '\'' + ", value=" + value + '}';
-  }
-
-  /**
-   * Returns the key.
-   *
-   * @return the key
-   */
-  public String getKey() {
-    return key;
-  }
-
-  /**
-   * Returns the value.
-   *
-   * @return the value
-   */
-  public T getValue() {
-    return value;
-  }
-
-  void setValue(T value) {
-    this.value = value;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    KeyValue<?> keyValue = (KeyValue<?>) o;
-    return Objects.equals(key, keyValue.key) && Objects.equals(value, keyValue.value);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(key, value);
-  }
-}
+public class KeyValue<T> {  
+  private final String key; 
+  private T value; 
+ 
+  KeyValue(String key, T value) { 
+    this.key = key; 
+    this.value = value; 
+  } 
+ 
+  @Override 
+  public String toString() { 
+    return "KeyValue{" + "key='" + Utils.printableKey(key) + '\'' + ", value=" + value + '}'; 
+  } 
+ 
+  /** 
+   * Returns the key. 
+   * 
+   * @return the key 
+   */ 
+  public String getKey() { 
+    return key; 
+  } 
+ 
+  /** 
+   * Returns the value. 
+   * 
+   * @return the value 
+   */ 
+  public T getValue() { 
+    return value; 
+  } 
+ 
+  void setValue(T value) { 
+    this.value = value; 
+  } 
+ 
+  @Override 
+  public boolean equals(Object o) { 
+    if (this == o) return true; 
+    if (o == null || getClass() != o.getClass()) return false; 
+    KeyValue<?> keyValue = (KeyValue<?>) o; 
+    return Objects.equals(key, keyValue.key) && Objects.equals(value, keyValue.value); 
+  } 
+ 
+  @Override 
+  public int hashCode() { 
+    return Objects.hash(key, value); 
+  } 
+} 
