@@ -47,7 +47,7 @@ sourceSets {
 val benchmarkImplementation: Configuration by configurations.getting {
     extendsFrom(configurations.testImplementation.get())
 }
-val benchmarkRuntimeOnly : Configuration by configurations.getting {
+val benchmarkRuntimeOnly: Configuration by configurations.getting {
     extendsFrom(configurations.testRuntimeOnly.get())
 }
 
