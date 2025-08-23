@@ -34,4 +34,17 @@ final class Utils {
     }
     return len1 - len2;
   }
+
+  static String extractLongestCommonPrefix(String a, String b) {
+    int minLen = Math.min(a.length(), b.length());
+    for (int i = 0; i < minLen; i++) {
+      char ca = a.charAt(i);
+      char cb = b.charAt(i);
+      if (ca == cb) {
+        continue;
+      }
+      return a.substring(0, i);
+    }
+    return a.substring(0, minLen);
+  }
 }

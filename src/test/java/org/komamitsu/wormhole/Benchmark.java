@@ -124,9 +124,11 @@ class Benchmark {
       long averageThroughput = throughputs.stream().reduce(0L, Long::sum) / throughputs.size();
       double stdDev =
           Math.sqrt(
-              throughputs.stream()
-                  .map(throughput -> (long) Math.pow(throughput - averageThroughput, 2.0))
-                  .reduce(0L, Long::sum));
+              (double)
+                      throughputs.stream()
+                          .map(throughput -> (long) Math.pow(throughput - averageThroughput, 2.0))
+                          .reduce(0L, Long::sum)
+                  / throughputs.size());
       System.out.printf("Average throughput: %d per second%n", averageThroughput);
       System.out.printf("StdDev: %f per second%n", stdDev);
     } finally {
