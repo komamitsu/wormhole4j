@@ -21,6 +21,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import javax.annotation.Nullable;
 
+/**
+ * Wormhole is an in-memory ordered index for key-value pairs.
+ *
+ * <p>This implementation supports fast lookups, inserts, deletes, and range scans. Keys are {@link
+ * String} only.
+ *
+ * @param <T> the type of values stored in this index
+ */
 public class Wormhole<T> {
   private static final int DEFAULT_LEAF_NODE_SIZE = 128;
   public static final String SMALLEST_TOKEN = "\0";
@@ -31,14 +39,26 @@ public class Wormhole<T> {
   private final int leafNodeMergeSize;
   @Nullable private final Validator<T> validator;
 
+  /** Creates a Wormhole with the default leaf node size. */
   public Wormhole() {
     this(DEFAULT_LEAF_NODE_SIZE);
   }
 
+  /**
+   * Creates a Wormhole with the specified leaf node size.
+   *
+   * @param leafNodeSize maximum number of entries in a leaf node
+   */
   public Wormhole(int leafNodeSize) {
     this(leafNodeSize, false);
   }
 
+  /**
+   * Creates a Wormhole with the specified leaf node size and optional debug mode.
+   *
+   * @param leafNodeSize maximum number of entries in a leaf node
+   * @param debugMode enables internal consistency checks if {@code true}
+   */
   public Wormhole(int leafNodeSize, boolean debugMode) {
     this.leafNodeSize = leafNodeSize;
     this.leafNodeMergeSize = leafNodeSize * 3 / 4;
@@ -53,6 +73,12 @@ public class Wormhole<T> {
     validator.validate();
   }
 
+  /**
+   * Inserts or updates a key-value pair.
+   *
+   * @param key the key (must not be {@code null})
+   * @param value the value to associate with the key
+   */
   public void put(String key, T value) {
     LeafNode<T> leafNode = searchTrieHashTable(key);
     KeyValue<T> existingKeyValue = leafNode.pointSearchLeaf(key);
@@ -77,6 +103,12 @@ public class Wormhole<T> {
     validateIfNeeded();
   }
 
+  /**
+   * Deletes a key-value pair if present.
+   *
+   * @param key the key to remove
+   * @return {@code true} if the key was removed, {@code false} otherwise
+   */
   public boolean delete(String key) {
     LeafNode<T> leafNode = searchTrieHashTable(key);
     if (!leafNode.delete(key)) {
@@ -95,6 +127,12 @@ public class Wormhole<T> {
     return true;
   }
 
+  /**
+   * Retrieves the value associated with the specified key.
+   *
+   * @param key the key to search for
+   * @return the value, or {@code null} if not found
+   */
   @Nullable
   public T get(String key) {
     LeafNode<T> leafNode = searchTrieHashTable(key);
@@ -134,6 +172,13 @@ public class Wormhole<T> {
     }
   }
 
+  /**
+   * Scans the index starting from a key and collects up to {@code count} pairs.
+   *
+   * @param startKey the starting key (inclusive)
+   * @param count maximum number of results to return
+   * @return a list of key-value pairs
+   */
   public List<KeyValue<T>> scanWithCount(String startKey, int count) {
     List<KeyValue<T>> result = new ArrayList<>(count);
     scanInternal(
@@ -148,6 +193,15 @@ public class Wormhole<T> {
     return result;
   }
 
+  /**
+   * Scans a range of keys and applies a function to each result.
+   *
+   * @param startKey the start key (inclusive) or {@code null} for the first key
+   * @param endKey the end key (exclusive or inclusive based on {@code isEndKeyExclusive})
+   * @param isEndKeyExclusive whether {@code endKey} is exclusive
+   * @param function a function applied to each key-value pair; return {@code false} to stop
+   *     scanning
+   */
   public void scan(
       @Nullable String startKey,
       @Nullable String endKey,
@@ -156,11 +210,27 @@ public class Wormhole<T> {
     scanInternal(startKey == null ? "" : startKey, endKey, isEndKeyExclusive, null, function);
   }
 
+  /**
+   * Scans a range of keys where the end key is exclusive.
+   *
+   * @param startKey the start key (inclusive) or {@code null} for the first key
+   * @param endKey the end key (exclusive)
+   * @param function a function applied to each key-value pair; return {@code false} to stop
+   *     scanning
+   */
   public void scanWithExclusiveEndKey(
       @Nullable String startKey, @Nullable String endKey, Function<KeyValue<T>, Boolean> function) {
     scanInternal(startKey == null ? "" : startKey, endKey, true, null, function);
   }
 
+  /**
+   * Scans a range of keys where the end key is inclusive.
+   *
+   * @param startKey the start key (inclusive) or {@code null} for the first key
+   * @param endKey the end key (inclusive)
+   * @param function a function applied to each key-value pair; return {@code false} to stop
+   *     scanning
+   */
   public void scanWithInclusiveEndKey(
       @Nullable String startKey, @Nullable String endKey, Function<KeyValue<T>, Boolean> function) {
     scanInternal(startKey == null ? "" : startKey, endKey, false, null, function);
