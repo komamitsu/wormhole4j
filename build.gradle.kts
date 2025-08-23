@@ -37,7 +37,29 @@ dependencies {
     testImplementation("org.mapdb:mapdb:3.0.9")
 }
 
+sourceSets {
+    create("benchmark") {
+        compileClasspath += sourceSets.main.get().output + sourceSets.test.get().output
+        runtimeClasspath += sourceSets.main.get().output + sourceSets.test.get().output
+    }
+}
+
+val benchmarkImplementation: Configuration by configurations.getting {
+    extendsFrom(configurations.testImplementation.get())
+}
+val benchmarkRuntimeOnly: Configuration by configurations.getting {
+    extendsFrom(configurations.testRuntimeOnly.get())
+}
+
 tasks.test {
+    useJUnitPlatform()
+}
+
+val benchmark = task<Test>("benchmark") {
+    description = "Runs benchmark."
+    group = "verification"
+    testClassesDirs = sourceSets["benchmark"].output.classesDirs
+    classpath = sourceSets["benchmark"].runtimeClasspath
     useJUnitPlatform()
 }
 

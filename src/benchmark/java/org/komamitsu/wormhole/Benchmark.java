@@ -16,8 +16,6 @@
 
 package org.komamitsu.wormhole;
 
-import static org.komamitsu.wormhole.TestHelpers.genRandomKey;
-
 import btree4j.BTree;
 import btree4j.BTreeCallback;
 import btree4j.BTreeException;
@@ -154,7 +152,7 @@ class Benchmark {
           public List<String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             for (int i = 0; i < recordCount; i++) {
-              keys.add(genRandomKey(maxKeyLength));
+              keys.add(TestHelpers.genRandomKey(maxKeyLength));
             }
             return keys;
           }
@@ -189,7 +187,7 @@ class Benchmark {
           public List<String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             for (int i = 0; i < recordCount; i++) {
-              keys.add(genRandomKey(maxKeyLength));
+              keys.add(TestHelpers.genRandomKey(maxKeyLength));
             }
             return keys;
           }
@@ -224,7 +222,7 @@ class Benchmark {
           public List<String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             for (int i = 0; i < recordCount; i++) {
-              keys.add(genRandomKey(maxKeyLength));
+              keys.add(TestHelpers.genRandomKey(maxKeyLength));
             }
             return keys;
           }
@@ -260,7 +258,7 @@ class Benchmark {
             List<String> keys = new ArrayList<>(recordCount);
             DB db = DBMaker.memoryDB().make();
             for (int i = 0; i < recordCount; i++) {
-              keys.add(genRandomKey(maxKeyLength));
+              keys.add(TestHelpers.genRandomKey(maxKeyLength));
             }
             return new ResourceAndKeys<>(db, keys);
           }
@@ -308,7 +306,7 @@ class Benchmark {
           public List<String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             for (int i = 0; i < recordCount; i++) {
-              keys.add(genRandomKey(maxKeyLength));
+              keys.add(TestHelpers.genRandomKey(maxKeyLength));
             }
             return keys;
           }
@@ -358,7 +356,7 @@ class Benchmark {
             List<String> keys = new ArrayList<>(recordCount);
             Wormhole<Integer> wormhole = new Wormhole<>();
             for (int i = 0; i < recordCount; i++) {
-              String key = genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(maxKeyLength);
               keys.add(key);
               wormhole.put(key, i);
             }
@@ -399,7 +397,7 @@ class Benchmark {
             List<String> keys = new ArrayList<>(recordCount);
             TreeMap<String, Integer> map = new TreeMap<>();
             for (int i = 0; i < recordCount; i++) {
-              String key = genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(maxKeyLength);
               keys.add(key);
               map.put(key, i);
             }
@@ -440,7 +438,7 @@ class Benchmark {
             List<String> keys = new ArrayList<>(recordCount);
             Object2ObjectSortedMap<String, Integer> map = new Object2ObjectAVLTreeMap<>();
             for (int i = 0; i < recordCount; i++) {
-              String key = genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(maxKeyLength);
               keys.add(key);
               map.put(key, i);
             }
@@ -488,7 +486,7 @@ class Benchmark {
                     .createOrOpen();
 
             for (int i = 0; i < recordCount; i++) {
-              String key = genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(maxKeyLength);
               keys.add(key);
               map.put(key, i);
             }
@@ -538,7 +536,7 @@ class Benchmark {
             BTree btree = new BTree(tmpFile);
             btree.init(false);
             for (int i = 0; i < recordCount; i++) {
-              String key = genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(maxKeyLength);
               keys.add(key);
               btree.addValue(new Value(key), i);
             }
@@ -578,7 +576,7 @@ class Benchmark {
             List<String> keys = new ArrayList<>(recordCount);
             Wormhole<Integer> wormhole = new Wormhole<>();
             for (int i = 0; i < recordCount; i++) {
-              String key = genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(maxKeyLength);
               keys.add(key);
               wormhole.put(key, i);
             }
@@ -626,7 +624,7 @@ class Benchmark {
             List<String> keys = new ArrayList<>(recordCount);
             TreeMap<String, Integer> map = new TreeMap<>();
             for (int i = 0; i < recordCount; i++) {
-              String key = genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(maxKeyLength);
               keys.add(key);
               map.put(key, i);
             }
@@ -676,7 +674,7 @@ class Benchmark {
             List<String> keys = new ArrayList<>(recordCount);
             Object2ObjectSortedMap<String, Integer> map = new Object2ObjectAVLTreeMap<>();
             for (int i = 0; i < recordCount; i++) {
-              String key = genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(maxKeyLength);
               keys.add(key);
               map.put(key, i);
             }
@@ -732,7 +730,7 @@ class Benchmark {
                     .createOrOpen();
 
             for (int i = 0; i < recordCount; i++) {
-              String key = genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(maxKeyLength);
               keys.add(key);
               map.put(key, i);
             }
@@ -791,7 +789,7 @@ class Benchmark {
             BTree btree = new BTree(tmpFile);
             btree.init(false);
             for (int i = 0; i < recordCount; i++) {
-              String key = genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(maxKeyLength);
               keys.add(key);
               btree.addValue(new Value(key), i);
             }
