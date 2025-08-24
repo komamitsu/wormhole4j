@@ -125,22 +125,12 @@ jreleaser {
     gitRootSearch = true
 
     project {
-        name = projectName
-        description = projectDescription
         inceptionYear = "2025"
-        license = "Apache-2.0"
-        authors = listOf(projectAuthor)
     }
 
     signing {
         active = Active.ALWAYS
         armored = true
-    }
-
-    release {
-        github {
-            skipRelease = true
-        }
     }
 
     deploy {
