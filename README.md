@@ -5,13 +5,14 @@ It is designed for workloads that require extremely fast point lookups and effic
 
 ## Features
 
-* **Optimized for point lookups and scans**
-  * Ultra-fast `get()` for single-key lookups
-  * High-performance `scan`, `scanWithExclusiveEndKey()`, and `scanWithInclusiveEndKey()` for full, range, and prefix scans
-* **Efficient updates**
-  * Fast `put()` (inserts/updates) and `delete()` operations
-* **Ordered index for String keys**
-  * Currently supports only `String` as the key type
+* **Extremely fast `scan()` API** for full scans, prefix scans, and range scans (inclusive/exclusive)
+* **Ultra-fast `get()` API** for point lookups
+* Fast `put()` and `delete()` operations
+
+## Current limitations
+
+* Supports only `String` keys
+* Not thread-safe
 
 ## Quick Start
 
@@ -35,13 +36,9 @@ wormhole.scanWithExclusiveEndKey("James", "John", rangeResults::add);
 // Range scan (inclusive end)
 wormhole.scanWithInclusiveEndKey("James", "John", rangeResults::add);
 
-// Full scan
-List<KeyValue<String>> fullScanResults = new ArrayList<>();
-wormhole.scan(fullScanResults::add);
-
 // Delete a record
 wormhole.delete("James");
-````
+```
 
 ## Future Plans
 
