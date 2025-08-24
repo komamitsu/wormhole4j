@@ -24,9 +24,10 @@ plugins {
 
 group = "org.komamitsu"
 version = "0.1.0"
-extra.set("projectName", "Wormhole4j")
-extra.set("projectDescription", "High-performance ordered in-memory index for Java")
-extra.set("projectUrl", "https://github.com/komamitsu/wormhole4j")
+
+val projectName = "Wormhole4j"
+val projectDescription = "High-performance ordered in-memory index for Java"
+val projectUrl = "https://github.com/komamitsu/wormhole4j"
 
 repositories {
     mavenCentral()
@@ -93,9 +94,9 @@ publishing {
         create<MavenPublication>("mavenJava") {
             from(components["java"])
             pom {
-                name.set(extra["projectName"] as String)
-                description.set(extra["projectDescription"] as String)
-                url.set(extra["projectUrl"] as String)
+                name.set(projectName)
+                description.set(projectDescription)
+                url.set(projectUrl)
                 licenses {
                     license {
                         name.set("Apache License 2.0")
@@ -112,7 +113,7 @@ publishing {
                 scm {
                     connection.set("scm:git:git://github.com/komamitsu/wormhole4j.git")
                     developerConnection.set("scm:git:ssh://github.com/komamitsu/wormhole4j.git")
-                    url.set(extra["projectUrl"] as String)
+                    url.set(projectUrl)
                 }
             }
         }
@@ -123,8 +124,8 @@ jreleaser {
     gitRootSearch = true
 
     project {
-        name = extra["projectName"] as String
-        description = extra["projectDescription"] as String
+        name = projectName
+        description = projectDescription
         inceptionYear = "2025"
     }
 
