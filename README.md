@@ -1,20 +1,23 @@
 # Wormhole4j
 
-**Wormhole4j** is a high-performance ordered in-memory index for Java, based on the research paper *“Wormhole: A Fast Ordered Index for In-memory Data Management.”*
-It is designed for workloads requiring extremely fast point lookups, efficient inserts, and ordered scans.
+**Wormhole4j** is a high-performance ordered in-memory index for Java, based on the research paper [*“Wormhole: A Fast Ordered Index for In-memory Data Management”*](https://dl.acm.org/doi/10.1145/3302424.3303955).
+It is designed for workloads that require extremely fast point lookups and efficient ordered scans, while also supporting fast inserts and deletes.
 
 ## Features
 
-* **Ordered index for String keys** (currently only `String` is supported as the key type)
-* High-performance `put`, `get`, and `delete`
-* Efficient **prefix scans** and **range scans** for ordered traversal
-* In-memory data structure (persistent variants may come in the future)
+* **Optimized for point lookups and scans**
+  * Ultra-fast `get()` for single-key lookups
+  * High-performance `scan`, `scanWithExclusiveEndKey()`, and `scanWithInclusiveEndKey()` for full, range, and prefix scans
+* **Efficient updates**
+  * Fast `put()` (inserts/updates) and `delete()` operations
+* **Ordered index for String keys**
+  * Currently supports only `String` as the key type
 
 ## Quick Start
 
 ```java
-// Create an index with a leaf node size of 128
-Wormhole<String> wormhole = new Wormhole<>(128, true);
+// Create an index with the default settings
+Wormhole<String> wormhole = new Wormhole<>();
 
 // Insert a record
 wormhole.put("James", "semaj");
@@ -32,9 +35,18 @@ wormhole.scanWithExclusiveEndKey("James", "John", rangeResults::add);
 // Range scan (inclusive end)
 wormhole.scanWithInclusiveEndKey("James", "John", rangeResults::add);
 
+// Full scan
+List<KeyValue<String>> fullScanResults = new ArrayList<>();
+wormhole.scan(fullScanResults::add);
+
 // Delete a record
 wormhole.delete("James");
-```
+````
+
+## Future Plans
+
+* **Persistence support** – Add an optional persistent variant of Wormhole.
+* **Thread safety** – Provide a thread-safe version for concurrent access.
 
 ## License
 
