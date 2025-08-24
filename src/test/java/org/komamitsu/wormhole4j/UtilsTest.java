@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package org.komamitsu.wormhole;
+package org.komamitsu.wormhole4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 
