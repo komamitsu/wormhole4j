@@ -139,7 +139,7 @@ jreleaser {
                 active = Active.ALWAYS
                 url = "https://central.sonatype.com/api/v1/publisher"
                 applyMavenCentralRules = true
-                stagingRepositories.add("target/staging-deploy")
+                stagingRepositories.add("${layout.buildDirectory.get()}/staging-deploy")
             }
         }
     }
