@@ -1,0 +1,384 @@
+Initialized native services in: /home/komamitsu/.gradle/native
+Initialized jansi services in: /home/komamitsu/.gradle/native
+Received JVM installation metadata from '/usr/lib/jvm/java-8-openjdk-amd64': {JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre, JAVA_VERSION=1.8.0_462, JAVA_VENDOR=Private Build, RUNTIME_NAME=OpenJDK Runtime Environment, RUNTIME_VERSION=1.8.0_462-8u462-ga~us1-0ubuntu2~22.04.2-b08, VM_NAME=OpenJDK 64-Bit Server VM, VM_VERSION=25.462-b08, VM_VENDOR=Private Build, OS_ARCH=amd64}
+Removing 0 daemon stop events from registry
+Previous Daemon (385146) stopped at Sun Aug 24 11:39:40 JST 2025 stop command received
+Previous Daemon (411452) stopped at Sun Aug 24 11:39:40 JST 2025 stop command received
+Starting a Gradle Daemon, 2 stopped Daemons could not be reused, use --status for details
+Starting process 'Gradle build daemon'. Working directory: /home/komamitsu/.gradle/daemon/8.8 Command: /usr/lib/jvm/java-8-openjdk-amd64/bin/java -XX:MaxMetaspaceSize=384m -XX:+HeapDumpOnOutOfMemoryError -Xms256m -Xmx512m -Dfile.encoding=UTF-8 -Duser.country=US -Duser.language=en -Duser.variant -cp /home/komamitsu/.gradle/wrapper/dists/gradle-8.8-bin/dl7vupf4psengwqhwktix4v1/gradle-8.8/lib/gradle-launcher-8.8.jar -javaagent:/home/komamitsu/.gradle/wrapper/dists/gradle-8.8-bin/dl7vupf4psengwqhwktix4v1/gradle-8.8/lib/agents/gradle-instrumentation-agent-8.8.jar org.gradle.launcher.daemon.bootstrap.GradleDaemon 8.8
+Successfully started process 'Gradle build daemon'
+An attempt to start the daemon took 0.563 secs.
+The client will now receive all logging from the daemon (pid: 638471). The daemon log file: /home/komamitsu/.gradle/daemon/8.8/daemon-638471.out.log
+Starting build in new daemon [memory: 455.5 MiB]
+Using 16 worker leases.
+Received JVM installation metadata from '/usr/lib/jvm/java-8-openjdk-amd64': {JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre, JAVA_VERSION=1.8.0_462, JAVA_VENDOR=Private Build, RUNTIME_NAME=OpenJDK Runtime Environment, RUNTIME_VERSION=1.8.0_462-8u462-ga~us1-0ubuntu2~22.04.2-b08, VM_NAME=OpenJDK 64-Bit Server VM, VM_VERSION=25.462-b08, VM_VENDOR=Private Build, OS_ARCH=amd64}
+Watching the file system is configured to be enabled if available
+Now considering [/home/komamitsu/src/wormhole4j] as hierarchies to watch
+File system watching is active
+Starting Build
+Settings evaluated using settings file '/home/komamitsu/src/wormhole4j/settings.gradle.kts'.
+Projects loaded. Root project using build file '/home/komamitsu/src/wormhole4j/build.gradle.kts'.
+Included projects: [root project 'wormhole4j']
+
+> Configure project :
+Evaluating root project 'wormhole4j' using build file '/home/komamitsu/src/wormhole4j/build.gradle.kts'.
+Transforming spotless-plugin-gradle-6.13.0.jar (com.diffplug.spotless:spotless-plugin-gradle:6.13.0) with InstrumentationAnalysisTransform
+Transforming durian-io-1.2.0.jar (com.diffplug.durian:durian-io:1.2.0) with InstrumentationAnalysisTransform
+Transforming spotless-lib-extra-2.32.0.jar (com.diffplug.spotless:spotless-lib-extra:2.32.0) with InstrumentationAnalysisTransform
+Transforming durian-collect-1.2.0.jar (com.diffplug.durian:durian-collect:1.2.0) with InstrumentationAnalysisTransform
+Transforming durian-core-1.2.0.jar (com.diffplug.durian:durian-core:1.2.0) with InstrumentationAnalysisTransform
+Transforming org.eclipse.jgit-5.13.1.202206130422-r.jar (org.eclipse.jgit:org.eclipse.jgit:5.13.1.202206130422-r) with InstrumentationAnalysisTransform
+Transforming spotless-lib-2.32.0.jar (com.diffplug.spotless:spotless-lib:2.32.0) with InstrumentationAnalysisTransform
+Transforming JavaEWAH-1.1.13.jar (com.googlecode.javaewah:JavaEWAH:1.1.13) with InstrumentationAnalysisTransform
+Transforming slf4j-api-1.7.30.jar (org.slf4j:slf4j-api:1.7.30) with InstrumentationAnalysisTransform
+Transforming concurrent-trees-2.6.1.jar (com.googlecode.concurrent-trees:concurrent-trees:2.6.1) with InstrumentationAnalysisTransform
+Transforming spotless-plugin-gradle-6.13.0.jar (com.diffplug.spotless:spotless-plugin-gradle:6.13.0) with InstrumentationAnalysisTransform
+Transforming spotless-plugin-gradle-6.13.0.jar (com.diffplug.spotless:spotless-plugin-gradle:6.13.0) with MergeInstrumentationAnalysisTransform
+Transforming durian-io-1.2.0.jar (com.diffplug.durian:durian-io:1.2.0) with InstrumentationAnalysisTransform
+Transforming durian-io-1.2.0.jar (com.diffplug.durian:durian-io:1.2.0) with MergeInstrumentationAnalysisTransform
+Transforming spotless-lib-extra-2.32.0.jar (com.diffplug.spotless:spotless-lib-extra:2.32.0) with InstrumentationAnalysisTransform
+Transforming spotless-lib-extra-2.32.0.jar (com.diffplug.spotless:spotless-lib-extra:2.32.0) with MergeInstrumentationAnalysisTransform
+Transforming durian-collect-1.2.0.jar (com.diffplug.durian:durian-collect:1.2.0) with InstrumentationAnalysisTransform
+Transforming durian-collect-1.2.0.jar (com.diffplug.durian:durian-collect:1.2.0) with MergeInstrumentationAnalysisTransform
+Transforming durian-core-1.2.0.jar (com.diffplug.durian:durian-core:1.2.0) with InstrumentationAnalysisTransform
+Transforming durian-core-1.2.0.jar (com.diffplug.durian:durian-core:1.2.0) with MergeInstrumentationAnalysisTransform
+Transforming org.eclipse.jgit-5.13.1.202206130422-r.jar (org.eclipse.jgit:org.eclipse.jgit:5.13.1.202206130422-r) with InstrumentationAnalysisTransform
+Transforming org.eclipse.jgit-5.13.1.202206130422-r.jar (org.eclipse.jgit:org.eclipse.jgit:5.13.1.202206130422-r) with MergeInstrumentationAnalysisTransform
+Transforming spotless-lib-2.32.0.jar (com.diffplug.spotless:spotless-lib:2.32.0) with InstrumentationAnalysisTransform
+Transforming spotless-lib-2.32.0.jar (com.diffplug.spotless:spotless-lib:2.32.0) with MergeInstrumentationAnalysisTransform
+Transforming JavaEWAH-1.1.13.jar (com.googlecode.javaewah:JavaEWAH:1.1.13) with InstrumentationAnalysisTransform
+Transforming JavaEWAH-1.1.13.jar (com.googlecode.javaewah:JavaEWAH:1.1.13) with MergeInstrumentationAnalysisTransform
+Transforming slf4j-api-1.7.30.jar (org.slf4j:slf4j-api:1.7.30) with InstrumentationAnalysisTransform
+Transforming slf4j-api-1.7.30.jar (org.slf4j:slf4j-api:1.7.30) with MergeInstrumentationAnalysisTransform
+Transforming concurrent-trees-2.6.1.jar (com.googlecode.concurrent-trees:concurrent-trees:2.6.1) with InstrumentationAnalysisTransform
+Transforming concurrent-trees-2.6.1.jar (com.googlecode.concurrent-trees:concurrent-trees:2.6.1) with MergeInstrumentationAnalysisTransform
+Transforming slf4j-api-1.7.30.jar (org.slf4j:slf4j-api:1.7.30) with ExternalDependencyInstrumentingArtifactTransform
+Transforming org.eclipse.jgit-5.13.1.202206130422-r.jar (org.eclipse.jgit:org.eclipse.jgit:5.13.1.202206130422-r) with ExternalDependencyInstrumentingArtifactTransform
+Transforming spotless-lib-2.32.0.jar (com.diffplug.spotless:spotless-lib:2.32.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming durian-core-1.2.0.jar (com.diffplug.durian:durian-core:1.2.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming concurrent-trees-2.6.1.jar (com.googlecode.concurrent-trees:concurrent-trees:2.6.1) with ExternalDependencyInstrumentingArtifactTransform
+Transforming durian-io-1.2.0.jar (com.diffplug.durian:durian-io:1.2.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming JavaEWAH-1.1.13.jar (com.googlecode.javaewah:JavaEWAH:1.1.13) with ExternalDependencyInstrumentingArtifactTransform
+Transforming spotless-plugin-gradle-6.13.0.jar (com.diffplug.spotless:spotless-plugin-gradle:6.13.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming durian-collect-1.2.0.jar (com.diffplug.durian:durian-collect:1.2.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming spotless-lib-extra-2.32.0.jar (com.diffplug.spotless:spotless-lib-extra:2.32.0) with ExternalDependencyInstrumentingArtifactTransform
+All projects evaluated.
+Task name matched 'benchmark'
+Selected primary task 'benchmark' from project :
+Tasks to be executed: [task ':compileJava', task ':processResources', task ':classes', task ':compileTestJava', task ':processTestResources', task ':testClasses', task ':compileBenchmarkJava', task ':processBenchmarkResources', task ':benchmarkClasses', task ':benchmark']
+Tasks that were excluded: []
+Resolve mutations for :compileJava (Thread[Execution worker,5,main]) started.
+:compileJava (Thread[Execution worker,5,main]) started.
+
+> Task :compileJava UP-TO-DATE
+Caching disabled for task ':compileJava' because:
+  Build cache is disabled
+Skipping task ':compileJava' as it is up-to-date.
+No compile result for :compileJava
+Resolve mutations for :processResources (Thread[Execution worker,5,main]) started.
+:processResources (Thread[Execution worker,5,main]) started.
+
+> Task :processResources NO-SOURCE
+Skipping task ':processResources' as it has no source files and no previous output files.
+Resolve mutations for :classes (Thread[Execution worker,5,main]) started.
+:classes (Thread[Execution worker,5,main]) started.
+
+> Task :classes UP-TO-DATE
+Skipping task ':classes' as it has no actions.
+Resolve mutations for :compileTestJava (Thread[Execution worker,5,main]) started.
+:compileTestJava (Thread[Execution worker,5,main]) started.
+
+> Task :compileTestJava UP-TO-DATE
+Caching disabled for task ':compileTestJava' because:
+  Build cache is disabled
+Skipping task ':compileTestJava' as it is up-to-date.
+No compile result for :compileTestJava
+Resolve mutations for :processTestResources (Thread[Execution worker,5,main]) started.
+:processTestResources (Thread[Execution worker,5,main]) started.
+
+> Task :processTestResources NO-SOURCE
+Skipping task ':processTestResources' as it has no source files and no previous output files.
+Resolve mutations for :testClasses (Thread[Execution worker,5,main]) started.
+:testClasses (Thread[Execution worker,5,main]) started.
+
+> Task :testClasses UP-TO-DATE
+Skipping task ':testClasses' as it has no actions.
+Resolve mutations for :compileBenchmarkJava (Thread[Execution worker,5,main]) started.
+:compileBenchmarkJava (Thread[Execution worker,5,main]) started.
+
+> Task :compileBenchmarkJava UP-TO-DATE
+Caching disabled for task ':compileBenchmarkJava' because:
+  Build cache is disabled
+Skipping task ':compileBenchmarkJava' as it is up-to-date.
+No compile result for :compileBenchmarkJava
+Resolve mutations for :processBenchmarkResources (Thread[Execution worker,5,main]) started.
+:processBenchmarkResources (Thread[Execution worker,5,main]) started.
+
+> Task :processBenchmarkResources NO-SOURCE
+Skipping task ':processBenchmarkResources' as it has no source files and no previous output files.
+Resolve mutations for :benchmarkClasses (Thread[Execution worker,5,main]) started.
+:benchmarkClasses (Thread[Execution worker,5,main]) started.
+
+> Task :benchmarkClasses UP-TO-DATE
+Skipping task ':benchmarkClasses' as it has no actions.
+Resolve mutations for :benchmark (Thread[Execution worker,5,main]) started.
+:benchmark (Thread[Execution worker,5,main]) started.
+Gradle Test Executor 1 started executing tests.
+
+> Task :benchmark
+Caching disabled for task ':benchmark' because:
+  Build cache is disabled
+Task ':benchmark' is not up-to-date because:
+  Task.upToDateWhen is false.
+Starting process 'Gradle Test Executor 1'. Working directory: /home/komamitsu/src/wormhole4j Command: /usr/lib/jvm/java-8-openjdk-amd64/bin/java -Djava.security.manager=worker.org.gradle.process.internal.worker.child.BootstrapSecurityManager -Dorg.gradle.internal.worker.tmpdir=/home/komamitsu/src/wormhole4j/build/tmp/benchmark/work -Xmx512m -Dfile.encoding=UTF-8 -Duser.country=US -Duser.language=en -Duser.variant -ea -cp /home/komamitsu/.gradle/caches/8.8/workerMain/gradle-worker.jar worker.org.gradle.process.internal.worker.GradleWorkerMain 'Gradle Test Executor 1'
+Successfully started process 'Gradle Test Executor 1'
+
+Benchmark > insertToRedBlackTreeMap() STANDARD_OUT
+    ----------------------------------------------------------------
+    Starting: Insert to Red-Black tree (TreeMap)
+    Warmup #0: 2040816 per second
+    Warmup #1: 2439024 per second
+    Warmup #2: 2564102 per second
+    Warmup #3: 2564102 per second
+    Warmup #4: 2500000 per second
+    Attempt #0: 2564102 per second
+    Attempt #1: 2564102 per second
+    Attempt #2: 2564102 per second
+    Attempt #3: 2631578 per second
+    Attempt #4: 2500000 per second
+    Average throughput: 2564776 per second
+    StdDev: 41616.824021 per second
+
+Benchmark > getFromBPlusTree() STANDARD_OUT
+    ----------------------------------------------------------------
+    Starting: Get from in-memory B+Tree (MapDB)
+    Warmup #0: 70249 per second
+    Warmup #1: 70521 per second
+    Warmup #2: 70646 per second
+    Warmup #3: 70521 per second
+    Warmup #4: 70521 per second
+    Attempt #0: 70596 per second
+    Attempt #1: 68941 per second
+    Attempt #2: 69856 per second
+    Attempt #3: 70348 per second
+    Attempt #4: 70323 per second
+    Average throughput: 70012 per second
+    StdDev: 586.864550 per second
+
+Benchmark > scanFromBPlusTree() STANDARD_OUT
+    ----------------------------------------------------------------
+    Starting: Scan from in-memory B+Tree (MapDB)
+    Warmup #0: 20120 per second
+    Warmup #1: 20230 per second
+    Warmup #2: 20263 per second
+    Warmup #3: 20108 per second
+    Warmup #4: 20124 per second
+    Attempt #0: 20214 per second
+    Attempt #1: 20226 per second
+    Attempt #2: 20173 per second
+    Attempt #3: 20222 per second
+    Attempt #4: 20214 per second
+    Average throughput: 20209 per second
+    StdDev: 18.994736 per second
+
+Benchmark > insertToAVLTreeMap() STANDARD_OUT
+    ----------------------------------------------------------------
+    Starting: Insert to AVL tree map (Fastutil)
+    Warmup #0: 1851851 per second
+    Warmup #1: 1851851 per second
+    Warmup #2: 2325581 per second
+    Warmup #3: 2325581 per second
+    Warmup #4: 2325581 per second
+    Attempt #0: 2380952 per second
+    Attempt #1: 2380952 per second
+    Attempt #2: 2325581 per second
+    Attempt #3: 2439024 per second
+    Attempt #4: 2380952 per second
+    Average throughput: 2381492 per second
+    StdDev: 35879.926825 per second
+
+Benchmark > scanFromWormhole() STANDARD_OUT
+    ----------------------------------------------------------------
+    Starting: Scan from Wormhole (Wormhole4j)
+    Warmup #0: 392156 per second
+    Warmup #1: 558659 per second
+    Warmup #2: 595238 per second
+    Warmup #3: 561797 per second
+    Warmup #4: 564971 per second
+    Attempt #0: 558659 per second
+    Attempt #1: 558659 per second
+    Attempt #2: 568181 per second
+    Attempt #3: 564971 per second
+    Attempt #4: 558659 per second
+    Average throughput: 561825 per second
+    StdDev: 4009.157517 per second
+
+Benchmark > insertToPersistentBPlusTree() STANDARD_OUT
+    ----------------------------------------------------------------
+    Starting: Insert to persistent B+Tree (Btree4j)
+    Warmup #0: 294985 per second
+    Warmup #1: 396825 per second
+    Warmup #2: 396825 per second
+    Warmup #3: 401606 per second
+    Warmup #4: 400000 per second
+    Attempt #0: 398406 per second
+    Attempt #1: 403225 per second
+    Attempt #2: 400000 per second
+    Attempt #3: 406504 per second
+    Attempt #4: 396825 per second
+    Average throughput: 400992 per second
+    StdDev: 3475.738253 per second
+
+Benchmark > getFromAVLTreeMap() STANDARD_OUT
+    ----------------------------------------------------------------
+    Starting: Get from AVL tree map (Fastutil)
+    Warmup #0: 2272727 per second
+    Warmup #1: 3125000 per second
+    Warmup #2: 3278688 per second
+    Warmup #3: 3389830 per second
+    Warmup #4: 3333333 per second
+    Attempt #0: 3333333 per second
+    Attempt #1: 3389830 per second
+    Attempt #2: 3333333 per second
+    Attempt #3: 3389830 per second
+    Attempt #4: 3448275 per second
+    Average throughput: 3378920 per second
+    StdDev: 42905.760366 per second
+
+Benchmark > insertToInMemoryBPlusTree() STANDARD_OUT
+    ----------------------------------------------------------------
+    Starting: Insert to in-memory B+Tree (MapDB)
+    Warmup #0: 71787 per second
+    Warmup #1: 71994 per second
+    Warmup #2: 72202 per second
+    Warmup #3: 72046 per second
+    Warmup #4: 74404 per second
+    Attempt #0: 74349 per second
+    Attempt #1: 74349 per second
+    Attempt #2: 74515 per second
+    Attempt #3: 74515 per second
+    Attempt #4: 74349 per second
+    Average throughput: 74415 per second
+    StdDev: 81.324043 per second
+
+Benchmark > scanFromRedBlackTreeMap() STANDARD_OUT
+    ----------------------------------------------------------------
+    Starting: Scan from Red-Black tree (TreeMap)
+    Warmup #0: 125470 per second
+    Warmup #1: 201612 per second
+    Warmup #2: 211416 per second
+    Warmup #3: 206611 per second
+    Warmup #4: 207039 per second
+    Attempt #0: 216919 per second
+    Attempt #1: 211864 per second
+    Attempt #2: 217391 per second
+    Attempt #3: 214592 per second
+    Attempt #4: 214132 per second
+    Average throughput: 214979 per second
+    StdDev: 2007.573012 per second
+
+Benchmark > getFromWormhole() STANDARD_OUT
+    ----------------------------------------------------------------
+    Starting: Get from Wormhole (Wormhole4j)
+    Warmup #0: 2777777 per second
+    Warmup #1: 3448275 per second
+    Warmup #2: 3846153 per second
+    Warmup #3: 3921568 per second
+    Warmup #4: 3846153 per second
+    Attempt #0: 3846153 per second
+    Attempt #1: 3921568 per second
+    Attempt #2: 3773584 per second
+    Attempt #3: 3773584 per second
+    Attempt #4: 3846153 per second
+    Average throughput: 3832208 per second
+    StdDev: 55222.608417 per second
+
+Benchmark > insertToWormhole() STANDARD_OUT
+    ----------------------------------------------------------------
+    Starting: Insert to Wormhole (Wormhole4j)
+    Warmup #0: 1818181 per second
+    Warmup #1: 1818181 per second
+    Warmup #2: 1818181 per second
+    Warmup #3: 1851851 per second
+    Warmup #4: 1851851 per second
+    Attempt #0: 1851851 per second
+    Attempt #1: 1851851 per second
+    Attempt #2: 1886792 per second
+    Attempt #3: 1851851 per second
+    Attempt #4: 1851851 per second
+    Average throughput: 1858839 per second
+    StdDev: 13976.400001 per second
+
+Benchmark > scanFromAVLTreeMap() STANDARD_OUT
+    ----------------------------------------------------------------
+    Starting: Scan from AVL tree map (Fastutil)
+    Warmup #0: 75987 per second
+    Warmup #1: 215982 per second
+    Warmup #2: 169779 per second
+    Warmup #3: 169204 per second
+    Warmup #4: 169779 per second
+    Attempt #0: 168918 per second
+    Attempt #1: 168350 per second
+    Attempt #2: 171232 per second
+    Attempt #3: 168350 per second
+    Attempt #4: 168350 per second
+    Average throughput: 169040 per second
+    StdDev: 1117.859383 per second
+
+Benchmark > scanFromPersistentBPlusTree() STANDARD_OUT
+    ----------------------------------------------------------------
+    Starting: Scan from persistent B+Tree (Btree4j)
+    Warmup #0: 26208 per second
+    Warmup #1: 26571 per second
+    Warmup #2: 26085 per second
+    Warmup #3: 26585 per second
+    Warmup #4: 26712 per second
+    Attempt #0: 26688 per second
+    Attempt #1: 26535 per second
+    Attempt #2: 26388 per second
+    Attempt #3: 26648 per second
+    Attempt #4: 26716 per second
+    Average throughput: 26595 per second
+    StdDev: 120.455801 per second
+
+Benchmark > getFromRedBlackTreeMap() STANDARD_OUT
+    ----------------------------------------------------------------
+    Starting: Get from Red-Black tree (TreeMap)
+    Warmup #0: 2173913 per second
+    Warmup #1: 3225806 per second
+    Warmup #2: 3278688 per second
+    Warmup #3: 3225806 per second
+    Warmup #4: 3174603 per second
+    Attempt #0: 3571428 per second
+    Attempt #1: 3225806 per second
+    Attempt #2: 3333333 per second
+    Attempt #3: 3225806 per second
+    Attempt #4: 3278688 per second
+    Average throughput: 3327012 per second
+    StdDev: 128529.882864 per second
+
+Benchmark > getFromPersistentBPlusTree() STANDARD_OUT
+    ----------------------------------------------------------------
+    Starting: Get from persistent B+Tree (Btree4j)
+    Warmup #0: 441501 per second
+    Warmup #1: 405679 per second
+    Warmup #2: 421052 per second
+    Warmup #3: 424628 per second
+    Warmup #4: 421052 per second
+    Attempt #0: 408997 per second
+    Attempt #1: 423728 per second
+    Attempt #2: 425531 per second
+    Attempt #3: 427350 per second
+    Attempt #4: 416666 per second
+    Average throughput: 420454 per second
+    StdDev: 6777.338917 per second
+
+Gradle Test Executor 1 finished executing tests.
+
+> Task :benchmark
+Finished generating test XML results (0.016 secs) into: /home/komamitsu/src/wormhole4j/build/test-results/benchmark
+Generating HTML test report...
+Finished generating test html results (0.018 secs) into: /home/komamitsu/src/wormhole4j/build/reports/tests/benchmark
+
+BUILD SUCCESSFUL in 4m 38s
+4 actionable tasks: 1 executed, 3 up-to-date
