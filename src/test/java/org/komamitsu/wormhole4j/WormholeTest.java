@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package org.komamitsu.wormhole;
+package org.komamitsu.wormhole4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.komamitsu.wormhole.TestHelpers.genRandomKey;
+import static org.komamitsu.wormhole4j.TestHelpers.genRandomKey;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;

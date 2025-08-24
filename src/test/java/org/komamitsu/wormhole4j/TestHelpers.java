@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.komamitsu.wormhole;
+package org.komamitsu.wormhole4j;
 
 import java.util.concurrent.ThreadLocalRandom;
 

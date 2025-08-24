@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.komamitsu.wormhole;
+package org.komamitsu.wormhole4j;
 
 final class Utils {
   static String printableKey(String key) {
