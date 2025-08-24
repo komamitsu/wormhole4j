@@ -28,6 +28,7 @@ version = "0.1.0"
 val projectName = "Wormhole4j"
 val projectDescription = "High-performance ordered in-memory index for Java"
 val projectUrl = "https://github.com/komamitsu/wormhole4j"
+val projectAuthor = "Mitsunori Komatsu"
 
 repositories {
     mavenCentral()
@@ -106,7 +107,7 @@ publishing {
                 developers {
                     developer {
                         id.set("komamitsu")
-                        name.set("Mitsunori Komatsu")
+                        name.set(projectAuthor)
                         email.set("komamitsu@gmail.com")
                     }
                 }
@@ -127,6 +128,8 @@ jreleaser {
         name = projectName
         description = projectDescription
         inceptionYear = "2025"
+        license = "Apache-2.0"
+        authors = listOf(projectAuthor)
     }
 
     signing {
@@ -145,7 +148,6 @@ jreleaser {
             mavenCentral.create("sonatype") {
                 active = Active.ALWAYS
                 url = "https://central.sonatype.com/api/v1/publisher"
-                stagingRepository(layout.buildDirectory.dir("staging-deploy").get().asFile.absolutePath)
                 applyMavenCentralRules = true
             }
         }
