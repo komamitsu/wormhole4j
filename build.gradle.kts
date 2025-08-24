@@ -13,28 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import org.jreleaser.model.Active
 
 plugins {
-    id("java")
+    `java-library`
+    `maven-publish`
+    id("org.jreleaser") version "1.19.0"
     id("com.diffplug.spotless") version "6.13.0"
 }
 
 group = "org.komamitsu"
-version = "1.0-SNAPSHOT"
+version = "0.1.0"
+
+val projectName = "Wormhole4j"
+val projectDescription = "High-performance ordered in-memory index for Java"
+val projectUrl = "https://github.com/komamitsu/wormhole4j"
+val projectAuthor = "Mitsunori Komatsu"
 
 repositories {
     mavenCentral()
-}
-
-dependencies {
-    implementation("com.google.code.findbugs:jsr305:3.0.2")
-    testImplementation(platform("org.junit:junit-bom:5.13.4"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    testImplementation("org.assertj:assertj-core:3.27.2")
-    testImplementation("io.github.myui:btree4j:0.9.1")
-    testImplementation("it.unimi.dsi:fastutil:8.5.16")
-    testImplementation("org.mapdb:mapdb:3.0.9")
 }
 
 sourceSets {
@@ -51,6 +48,35 @@ val benchmarkRuntimeOnly: Configuration by configurations.getting {
     extendsFrom(configurations.testRuntimeOnly.get())
 }
 
+dependencies {
+    implementation("com.google.code.findbugs:jsr305:3.0.2")
+    testImplementation(platform("org.junit:junit-bom:5.13.4"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("org.assertj:assertj-core:3.27.2")
+    benchmarkImplementation("io.github.myui:btree4j:0.9.1")
+    benchmarkImplementation("it.unimi.dsi:fastutil:8.5.16")
+    benchmarkImplementation("org.mapdb:mapdb:3.0.9")
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(8))
+    }
+}
+
+spotless {
+    java {
+        googleJavaFormat()
+        importOrder()
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
 }
@@ -64,12 +90,56 @@ val benchmark = task<Test>("benchmark") {
     outputs.upToDateWhen { false }
 }
 
-spotless {
-    java {
-        googleJavaFormat()
-        importOrder()
-        removeUnusedImports()
-        trimTrailingWhitespace()
-        endWithNewline()
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+            pom {
+                name.set(projectName)
+                description.set(projectDescription)
+                url.set(projectUrl)
+                licenses {
+                    license {
+                        name.set("Apache License 2.0")
+                        url.set("https://www.apache.org/licenses/LICENSE-2.0.html")
+                    }
+                }
+                developers {
+                    developer {
+                        id.set("komamitsu")
+                        name.set(projectAuthor)
+                        email.set("komamitsu@gmail.com")
+                    }
+                }
+                scm {
+                    connection.set("scm:git:git://github.com/komamitsu/wormhole4j.git")
+                    developerConnection.set("scm:git:ssh://github.com/komamitsu/wormhole4j.git")
+                    url.set(projectUrl)
+                }
+            }
+        }
+    }
+}
+
+jreleaser {
+    gitRootSearch = true
+
+    project {
+        inceptionYear = "2025"
+    }
+
+    signing {
+        active = Active.ALWAYS
+        armored = true
+    }
+
+    deploy {
+        maven {
+            mavenCentral.create("sonatype") {
+                active = Active.ALWAYS
+                url = "https://central.sonatype.com/api/v1/publisher"
+                applyMavenCentralRules = true
+            }
+        }
     }
 }
