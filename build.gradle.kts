@@ -61,6 +61,7 @@ val benchmark = task<Test>("benchmark") {
     testClassesDirs = sourceSets["benchmark"].output.classesDirs
     classpath = sourceSets["benchmark"].runtimeClasspath
     useJUnitPlatform()
+    outputs.upToDateWhen { false }
 }
 
 spotless {

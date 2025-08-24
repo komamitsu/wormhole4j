@@ -42,11 +42,11 @@ class Benchmark {
   private static final String PROP_WARMUP_COUNT = PROP_PREFIX + "warmup_count";
   private static final String PROP_ATTEMPT_COUNT = PROP_PREFIX + "attempt_count";
   private static final String PROP_MAX_SCAN_SIZE = PROP_PREFIX + "max_scan_size";
-  private static final String DEFAULT_MAX_KEY_LENGTH = "64";
+  private static final String DEFAULT_MAX_KEY_LENGTH = "128";
   private static final String DEFAULT_RECORD_COUNT = "100000";
-  private static final String DEFAULT_WARMUP_COUNT = "4";
-  private static final String DEFAULT_ATTEMPT_COUNT = "4";
-  private static final String DEFAULT_MAX_SCAN_SIZE = "1024";
+  private static final String DEFAULT_WARMUP_COUNT = "5";
+  private static final String DEFAULT_ATTEMPT_COUNT = "5";
+  private static final String DEFAULT_MAX_SCAN_SIZE = "512";
   private final int maxKeyLength;
   private final int recordCount;
   private final int warmupCount;
