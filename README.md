@@ -5,8 +5,8 @@ It is designed for workloads that require extremely fast point lookups and effic
 
 ## Features
 
-* **Extremely fast `scan()` API** for full scans, prefix scans, and range scans (inclusive/exclusive)
-* **Ultra-fast `get()` API** for point lookups
+* **[Extremely fast](#benchmark-result) `scan()` API** for full scans, prefix scans, and range scans (inclusive/exclusive)
+* **[Ultra-fast](#benchmark-result) `get()` API** for point lookups
 * Fast `put()` and `delete()` operations
 
 ## Current limitations
@@ -39,6 +39,26 @@ wormhole.scanWithInclusiveEndKey("James", "John", rangeResults::add);
 // Delete a record
 wormhole.delete("James");
 ```
+
+## Benchmark result
+
+The performance of our library was evaluated against several well-known sorted map implementations to provide a comprehensive comparison.
+
+![Benchmark result chart](./data/benchmark/2025/08/24/charts.png)
+
+The benchmark was conducted with the following condition:
+- The number of records was 100K.
+- The max key length was 128 and the average key length was 64.
+- The max scan record size was 512 and the average scan record size was 256.
+
+It used other tree maps and B+Tree maps for comparison as follows:
+- `java.util.TreeMap` as a Red-Black tree map from the standard library.
+- `it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap` as an AVL tree map from `it.unimi.dsi:fastutil:8.5.16`
+- `org.mapdb.BTreeMap` as an in-memory B+Tree from `org.mapdb:mapdb:3.0.9`
+  - Thread-safe
+- `btree4j.BTree` as a persistent B+Tree from `io.github.myui:btree4j:0.9.1`
+
+I think it's unfair to compare with the thread-safe or persistent B+Tree. However, I didn't find proper B+Tree implementations that had the same condition (Non thread-safe and in-memory). Please regard them just as references.
 
 ## Future Plans
 
