@@ -24,6 +24,9 @@ plugins {
 
 group = "org.komamitsu"
 version = "0.1.0"
+extra.set("projectName", "Wormhole4j")
+extra.set("projectDescription", "High-performance ordered in-memory index for Java")
+extra.set("projectUrl", "https://github.com/komamitsu/wormhole4j")
 
 repositories {
     mavenCentral()
@@ -57,6 +60,9 @@ dependencies {
 java {
     withSourcesJar()
     withJavadocJar()
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(8))
+    }
 }
 
 spotless {
@@ -66,12 +72,6 @@ spotless {
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
-    }
-}
-
-tasks.compileJava {
-    if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
-        options.release = 8
     }
 }
 
@@ -93,9 +93,9 @@ publishing {
         create<MavenPublication>("mavenJava") {
             from(components["java"])
             pom {
-                name.set("Wormhole4j")
-                description.set("High-performance ordered in-memory index for Java")
-                url.set("https://github.com/komamitsu/wormhole4j")
+                name.set(extra["projectName"] as String)
+                description.set(extra["projectDescription"] as String)
+                url.set(extra["projectUrl"] as String)
                 licenses {
                     license {
                         name.set("Apache License 2.0")
@@ -112,7 +112,7 @@ publishing {
                 scm {
                     connection.set("scm:git:git://github.com/komamitsu/wormhole4j.git")
                     developerConnection.set("scm:git:ssh://github.com/komamitsu/wormhole4j.git")
-                    url.set("https://github.com/komamitsu/wormhole4j")
+                    url.set(extra["projectUrl"] as String)
                 }
             }
         }
@@ -123,8 +123,8 @@ jreleaser {
     gitRootSearch = true
 
     project {
-        name = "Wormhole4j"
-        description = "High-performance ordered in-memory index for Java"
+        name = extra["projectName"] as String
+        description = extra["projectDescription"] as String
         inceptionYear = "2025"
     }
 
