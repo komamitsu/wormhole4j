@@ -14,6 +14,14 @@ It is designed for workloads that require extremely fast point lookups and effic
 * Supports only `String` keys
 * Not thread-safe
 
+## Installation
+
+Add the following dependency to your `build.gradle.kts`:
+
+```kotlin
+implementation("org.komamitsu:wormhole4j:0.1.0")
+```
+
 ## Quick Start
 
 ```java
