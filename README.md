@@ -16,7 +16,29 @@ It is designed for workloads that require extremely fast point lookups and effic
 
 ## Installation
 
-Add the following dependency to your `build.gradle.kts`:
+### Maven
+
+Add the following to your `pom.xml`:
+
+```xml
+<dependency>
+    <groupId>org.komamitsu</groupId>
+    <artifactId>wormhole4j</artifactId>
+    <version>0.1.0</version>
+</dependency>
+```
+
+### Gradle (Groovy DSL)
+
+Add the following to your `build.gradle`:
+
+```groovy
+implementation 'org.komamitsu:wormhole4j:0.1.0'
+```
+
+### Gradle (Kotlin DSL)
+
+Add the following to your `build.gradle.kts`:
 
 ```kotlin
 implementation("org.komamitsu:wormhole4j:0.1.0")
