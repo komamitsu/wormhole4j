@@ -32,9 +32,8 @@ import javax.annotation.Nullable;
 public class Wormhole<T> {
   private static final int DEFAULT_LEAF_NODE_SIZE = 128;
   public static final String SMALLEST_TOKEN = "\0";
-  public static final char BITMAP_ID_OF_SMALLEST_TOKEN = 0;
-  // Visible for testing.
-  final MetaTrieHashTable<T> table = new MetaTrieHashTable<>();
+  public static final char BITMAP_INDEX_OF_SMALLEST_TOKEN = 0;
+  private final MetaTrieHashTable<T> table = new MetaTrieHashTable<>();
   private final int leafNodeSize;
   private final int leafNodeMergeSize;
   @Nullable private final Validator<T> validator;
@@ -244,7 +243,7 @@ public class Wormhole<T> {
       table.put(
           key,
           new MetaTrieHashTable.NodeMetaInternal<>(
-              key, rootLeafNode, rootLeafNode, BITMAP_ID_OF_SMALLEST_TOKEN));
+              key, rootLeafNode, rootLeafNode, BITMAP_INDEX_OF_SMALLEST_TOKEN));
     }
     {
       // Add the first node.
@@ -268,8 +267,7 @@ public class Wormhole<T> {
       LeafNode<T> leafNode = nodeMetaInternal.getLeftMostLeafNode();
       if (Utils.compareAnchorKeys(key, leafNode.anchorKey) < 0) {
         // For example, if the paper's example had key "J" in the second leaf node and the search
-        // key is "J",
-        // this special treatment would be necessary.
+        // key is "J", this special treatment would be necessary.
         return leafNode.getLeft();
       } else {
         return leafNode;
@@ -364,6 +362,8 @@ public class Wormhole<T> {
       String prefix = anchorKey.substring(0, prefixlen);
       MetaTrieHashTable.NodeMetaInternal<T> nodeMetaInternal = table.findNodeMetaInternal(prefix);
       assert nodeMetaInternal != null;
+      // The pseudocode on the paper always clears the bitmap index for the child token.
+      // However, it should be cleared only when the child node was removed.
       if (childNodeRemoved) {
         nodeMetaInternal.bitmap.clear(anchorKey.charAt(prefixlen));
       }

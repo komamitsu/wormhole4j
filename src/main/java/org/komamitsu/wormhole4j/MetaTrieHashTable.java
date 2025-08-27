@@ -20,9 +20,8 @@ import java.util.*;
 import javax.annotation.Nullable;
 
 class MetaTrieHashTable<T> {
-  // Visible for testing
   private final Map<String, NodeMeta<T>> table = new HashMap<>();
-  int maxAnchorLength;
+  private int maxAnchorLength;
 
   abstract static class NodeMeta<T> {
     final String anchorPrefix;
@@ -55,12 +54,12 @@ class MetaTrieHashTable<T> {
         String anchorPrefix,
         LeafNode<T> leftMostLeafNode,
         LeafNode<T> rightMostLeafNode,
-        char initBitId) {
+        char initBitIndex) {
       super(anchorPrefix);
       this.leftMostLeafNode = leftMostLeafNode;
       this.rightMostLeafNode = rightMostLeafNode;
       this.bitmap = new BitSet();
-      bitmap.set(initBitId);
+      bitmap.set(initBitIndex);
     }
 
     Character findOneSibling(char sibling) {
@@ -149,15 +148,15 @@ class MetaTrieHashTable<T> {
         LeafNode<T> leafNode = ((NodeMetaLeaf<T>) node).leafNode;
 
         // If there is a leaf node which has the same prefix, append the smallest token to the
-        // prefix of the leaf node
-        // and add an internal node with the same prefix instead of the original leaf node.
+        // prefix of the leaf node and add an internal node with the same prefix instead of the
+        // original leaf node.
         String prefixWithSmallestToken = prefix + Wormhole.SMALLEST_TOKEN;
         NodeMetaLeaf<T> updatedNode = new NodeMetaLeaf<>(prefixWithSmallestToken, leafNode);
         put(prefixWithSmallestToken, updatedNode);
 
         NodeMetaInternal<T> parent =
             new NodeMetaInternal<>(
-                prefix, leafNode, leafNode, Wormhole.BITMAP_ID_OF_SMALLEST_TOKEN);
+                prefix, leafNode, leafNode, Wormhole.BITMAP_INDEX_OF_SMALLEST_TOKEN);
         put(prefix, parent);
 
         node = parent;
@@ -168,13 +167,11 @@ class MetaTrieHashTable<T> {
       NodeMetaInternal<T> internalNode = (NodeMetaInternal<T>) node;
 
       // The pseudocode of the 'split()` function on the paper doesn't update existing internal
-      // nodes' bitmap.
-      // However, it's necessary.
+      // nodes' bitmap. However, it's necessary.
       internalNode.bitmap.set(key.charAt(prefixLen));
 
-      // Note that the pseudocode on the paper checks and update the original leaf node, but I think
-      // it should be the
-      // new leaf node.
+      // The pseudocode on the paper checks and updates the original leaf node, probably it should
+      // be the new leaf node.
       if (internalNode.getLeftMostLeafNode() == newLeafNode.getRight()) {
         internalNode.setLeftMostLeafNode(newLeafNode);
       }
