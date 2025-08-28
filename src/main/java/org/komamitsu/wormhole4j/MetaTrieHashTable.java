@@ -140,7 +140,8 @@ class MetaTrieHashTable<T> {
       if (node == null) {
         put(
             prefix,
-            new NodeMetaInternal<>(prefix, newLeafNode, newLeafNode, newAnchorKey.charAt(prefixLen)));
+            new NodeMetaInternal<>(
+                prefix, newLeafNode, newLeafNode, newAnchorKey.charAt(prefixLen)));
         continue;
       }
 
@@ -166,7 +167,8 @@ class MetaTrieHashTable<T> {
 
       NodeMetaInternal<T> internalNode = (NodeMetaInternal<T>) node;
 
-      // The pseudocode in the paper doesn't update existing internal nodes' bitmap. However, it's necessary.
+      // The pseudocode in the paper doesn't update existing internal nodes' bitmap. However, it's
+      // necessary.
       internalNode.bitmap.set(newAnchorKey.charAt(prefixLen));
 
       // the pseudocode in the paper checks and updates the original leaf node. however, this
