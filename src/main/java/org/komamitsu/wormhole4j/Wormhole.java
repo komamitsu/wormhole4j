@@ -362,7 +362,7 @@ public class Wormhole<T> {
       String prefix = anchorKey.substring(0, prefixlen);
       MetaTrieHashTable.NodeMetaInternal<T> nodeMetaInternal = table.findNodeMetaInternal(prefix);
       assert nodeMetaInternal != null;
-      // The pseudocode on the paper always clears the bitmap index for the child token.
+      // The pseudocode in the paper always clears the bitmap index for the child token.
       // However, it should be cleared only when the child node was removed.
       if (childNodeRemoved) {
         nodeMetaInternal.bitmap.clear(anchorKey.charAt(prefixlen));

@@ -122,25 +122,26 @@ class MetaTrieHashTable<T> {
     return table.entrySet();
   }
 
-  void handleSplitNodes(String key, LeafNode<T> newLeafNode) {
-    NodeMetaLeaf<T> newNodeMeta = new NodeMetaLeaf<>(key, newLeafNode);
-    NodeMeta<T> existingNodeMeta = get(key);
+  void handleSplitNodes(String newAnchorKey, LeafNode<T> newLeafNode) {
+    NodeMetaLeaf<T> newNodeMeta = new NodeMetaLeaf<>(newAnchorKey, newLeafNode);
+    NodeMeta<T> existingNodeMeta = get(newAnchorKey);
     if (existingNodeMeta != null) {
       throw new AssertionError(
           String.format(
               "There is a node meta that has the same key. Key: %s, Node meta: %s",
-              key, existingNodeMeta));
+              newAnchorKey, existingNodeMeta));
     }
-    put(key, newNodeMeta);
+    put(newAnchorKey, newNodeMeta);
 
     // Update node meta that have a shorter anchor prefix.
-    for (int prefixLen = 0; prefixLen < key.length(); prefixLen++) {
-      String prefix = key.substring(0, prefixLen);
+    for (int prefixLen = 0; prefixLen < newAnchorKey.length(); prefixLen++) {
+      String prefix = newAnchorKey.substring(0, prefixLen);
       NodeMeta<T> node = table.get(prefix);
       if (node == null) {
         put(
             prefix,
-            new NodeMetaInternal<>(prefix, newLeafNode, newLeafNode, key.charAt(prefixLen)));
+            new NodeMetaInternal<>(
+                prefix, newLeafNode, newLeafNode, newAnchorKey.charAt(prefixLen)));
         continue;
       }
 
@@ -166,12 +167,14 @@ class MetaTrieHashTable<T> {
 
       NodeMetaInternal<T> internalNode = (NodeMetaInternal<T>) node;
 
-      // The pseudocode of the 'split()` function on the paper doesn't update existing internal
-      // nodes' bitmap. However, it's necessary.
-      internalNode.bitmap.set(key.charAt(prefixLen));
+      // The pseudocode in the paper doesn't update existing internal nodes' bitmap. However, it's
+      // necessary.
+      internalNode.bitmap.set(newAnchorKey.charAt(prefixLen));
 
-      // The pseudocode on the paper checks and updates the original leaf node, probably it should
-      // be the new leaf node.
+      // The pseudocode in the paper checks and updates the original leaf node. However, this
+      // loop traverses the ancestors of the new leaf node's anchor key, and the ancestors'
+      // left-most and right-most ranges are updated to include the new leaf node.
+      // Therefore, the new leaf node should be checked and set if needed.
       if (internalNode.getLeftMostLeafNode() == newLeafNode.getRight()) {
         internalNode.setLeftMostLeafNode(newLeafNode);
       }
