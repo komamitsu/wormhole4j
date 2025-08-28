@@ -171,10 +171,10 @@ class MetaTrieHashTable<T> {
       // necessary.
       internalNode.bitmap.set(newAnchorKey.charAt(prefixLen));
 
-      // the pseudocode in the paper checks and updates the original leaf node. however, this
+      // The pseudocode in the paper checks and updates the original leaf node. However, this
       // loop traverses the ancestors of the new leaf node's anchor key, and the ancestors'
       // left-most and right-most ranges are updated to include the new leaf node.
-      // therefore, the new leaf node should be checked and set if needed.
+      // Therefore, the new leaf node should be checked and set if needed.
       if (internalNode.getLeftMostLeafNode() == newLeafNode.getRight()) {
         internalNode.setLeftMostLeafNode(newLeafNode);
       }
