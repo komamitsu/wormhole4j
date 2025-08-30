@@ -343,7 +343,8 @@ public class Wormhole<T> {
 
   private LeafNode<T> split(LeafNode<T> leafNode) {
     leafNode.incSort();
-    // TODO: This can be moved to LeafNode.splitToNewLeafNode() ?
+    // TODO: Can this be moved to LeafNode.splitToNewLeafNode() ? Revisit here when handling
+    //       thread-safety enhancements.
     Tuple<Integer, String> found = findSplitPositionAndNewAnchorInLeafNode(leafNode);
     int splitPosIndex = found.first;
     String newAnchor = found.second;
@@ -363,7 +364,7 @@ public class Wormhole<T> {
       MetaTrieHashTable.NodeMetaInternal<T> nodeMetaInternal = table.findNodeMetaInternal(prefix);
       assert nodeMetaInternal != null;
       // The pseudocode in the paper always clears the bitmap index for the child token.
-      // However, it should be cleared only when the child node was removed.
+      // However, it should probably be cleared only when the child node has been removed.
       if (childNodeRemoved) {
         nodeMetaInternal.bitmap.clear(anchorKey.charAt(prefixlen));
       }

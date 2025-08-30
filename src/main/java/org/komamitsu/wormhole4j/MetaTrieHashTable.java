@@ -133,7 +133,7 @@ class MetaTrieHashTable<T> {
     }
     put(newAnchorKey, newNodeMeta);
 
-    // Update node meta that have a shorter anchor prefix.
+    // Update the ancestor NodeMeta instances for the new leaf node.
     for (int prefixLen = 0; prefixLen < newAnchorKey.length(); prefixLen++) {
       String prefix = newAnchorKey.substring(0, prefixLen);
       NodeMeta<T> node = table.get(prefix);
@@ -167,14 +167,14 @@ class MetaTrieHashTable<T> {
 
       NodeMetaInternal<T> internalNode = (NodeMetaInternal<T>) node;
 
-      // The pseudocode in the paper doesn't update existing internal nodes' bitmap. However, it's
-      // necessary.
+      // The pseudocode in the paper does not update existing internal nodes' bitmap. However,
+      // this update is probably necessary.
       internalNode.bitmap.set(newAnchorKey.charAt(prefixLen));
 
       // The pseudocode in the paper checks and updates the original leaf node. However, this
       // loop traverses the ancestors of the new leaf node's anchor key, and the ancestors'
       // left-most and right-most ranges are updated to include the new leaf node.
-      // Therefore, the new leaf node should be checked and set if needed.
+      // Therefore, the new leaf node should probably be checked and set if needed.
       if (internalNode.getLeftMostLeafNode() == newLeafNode.getRight()) {
         internalNode.setLeftMostLeafNode(newLeafNode);
       }
