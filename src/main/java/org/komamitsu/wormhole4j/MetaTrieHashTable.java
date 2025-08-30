@@ -133,7 +133,7 @@ class MetaTrieHashTable<T> {
     }
     put(newAnchorKey, newNodeMeta);
 
-    // Update node meta that have a shorter anchor prefix.
+    // Update the ancestor NodeMeta instances for the new leaf node.
     for (int prefixLen = 0; prefixLen < newAnchorKey.length(); prefixLen++) {
       String prefix = newAnchorKey.substring(0, prefixLen);
       NodeMeta<T> node = table.get(prefix);

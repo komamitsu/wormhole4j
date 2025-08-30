@@ -343,7 +343,8 @@ public class Wormhole<T> {
 
   private LeafNode<T> split(LeafNode<T> leafNode) {
     leafNode.incSort();
-    // TODO: This can be moved to LeafNode.splitToNewLeafNode() ?
+    // TODO: Can this be moved to LeafNode.splitToNewLeafNode() ? Revisit here when handling
+    //       thread-safety enhancements.
     Tuple<Integer, String> found = findSplitPositionAndNewAnchorInLeafNode(leafNode);
     int splitPosIndex = found.first;
     String newAnchor = found.second;
