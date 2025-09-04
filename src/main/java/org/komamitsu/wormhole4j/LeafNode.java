@@ -24,7 +24,7 @@ import javax.annotation.Nullable;
 class LeafNode<T> {
   final String anchorKey;
   private final int maxSize;
-  private final List<KeyValue<T>> keyValues;
+  private final KeyValues<T> keyValues;
   // All references are always sorted by hash.
   private final Tags<T> tags;
   // Some references are sorted by key.
@@ -33,13 +33,60 @@ class LeafNode<T> {
   @Nullable private LeafNode<T> left;
   @Nullable private LeafNode<T> right;
 
-  // Tags
+  private static class KeyValues<T> {
+    private int count;
+    private final KeyValue[] entries;
+
+    public KeyValues(int maxSize) {
+      entries = new KeyValue[maxSize];
+    }
+
+    public KeyValue<T> get(int index) {
+      return entries[index];
+    }
+
+    public int size() {
+      return count;
+    }
+
+    public void clear() {
+      count = 0;
+    }
+
+    public void addAll(KeyValues<T> other) {
+      System.arraycopy(other.entries, 0, entries, count, other.count);
+      count += other.count;
+    }
+
+    public void add(KeyValue<T> kv) {
+      entries[count] = kv;
+      count++;
+    }
+
+    public void remove(int index) {
+      if (index < count - 1) {
+        System.arraycopy(entries, index + 1, entries, index, count - 1 - index);
+      }
+      count--;
+    }
+
+    @Override
+    public String toString() {
+      return "KeyValues{"
+          + "count="
+          + count
+          + ", entries="
+          + Arrays.stream(entries).limit(count).collect(Collectors.toList())
+          + '}';
+    }
+  }
+
   private static class Tags<T> {
     private int count;
-    private final List<KeyValue<T>> keyValues;
+    private final KeyValues<T> keyValues;
     private final int[] values;
 
-    private Tags(int maxSize, List<KeyValue<T>> keyValues) {
+    private Tags(int maxSize, KeyValues<T> keyValues) {
       this.values = new int[maxSize];
       this.keyValues = keyValues;
     }
@@ -144,7 +191,6 @@ class LeafNode<T> {
     }
   }
 
-  // Key reference
   private static class KeyReferences<T> {
     private final Tags<T> tags;
     private int count;
@@ -353,7 +399,7 @@ class LeafNode<T> {
   LeafNode(String anchorKey, int maxSize, @Nullable LeafNode<T> left, @Nullable LeafNode<T> right) {
     this.anchorKey = anchorKey;
     this.maxSize = maxSize;
-    keyValues = new ArrayList<>(maxSize);
+    keyValues = new KeyValues<>(maxSize);
     tags = new Tags<>(maxSize, keyValues);
     keyReferences = new KeyReferences<>(maxSize, tags);
     this.left = left;
@@ -454,15 +500,15 @@ class LeafNode<T> {
       toRemove[index] = true;
     }
 
-    List<KeyValue<T>> newKeyValues =
-        new ArrayList<>(keyValues.size() - keyValueIndexListOfNewLeafNode.size());
+    KeyValues<T> tmpNewKeyValues =
+        new KeyValues<>(keyValues.size() - keyValueIndexListOfNewLeafNode.size());
     for (int i = 0; i < keyValues.size(); i++) {
       if (!toRemove[i]) {
-        newKeyValues.add(keyValues.get(i));
+        tmpNewKeyValues.add(keyValues.get(i));
       }
     }
     keyValues.clear();
-    keyValues.addAll(newKeyValues);
+    keyValues.addAll(tmpNewKeyValues);
 
     tags.clear();
     keyReferences.clear();
@@ -623,7 +669,7 @@ class LeafNode<T> {
       throw new AssertionError(
           String.format(
               "The number of tags is different from the number of keys. Keys: %s, Tags: %s",
-              keyValues.stream()
+              Arrays.stream(keyValues.entries)
                   .map(kv -> Utils.printableKey(kv.getKey()))
                   .collect(Collectors.toList()),
               tags));
@@ -654,7 +700,7 @@ class LeafNode<T> {
       throw new AssertionError(
           String.format(
               "The number of key references is different from the number of keys. Keys: %s, Key references: %s",
-              keyValues.stream()
+              Arrays.stream(keyValues.entries)
                   .map(kv -> Utils.printableKey(kv.getKey()))
                   .collect(Collectors.toList()),
               keyReferences));
