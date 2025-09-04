@@ -35,10 +35,11 @@ class LeafNode<T> {
 
   private static class KeyValues<T> {
     private int count;
-    private final KeyValue[] entries;
+    private final KeyValue<T>[] entries;
 
+    @SuppressWarnings("unchecked")
     public KeyValues(int maxSize) {
-      entries = new KeyValue[maxSize];
+      entries = (KeyValue<T>[]) new KeyValue[maxSize];
     }
 
     public KeyValue<T> get(int index) {
@@ -51,6 +52,7 @@ class LeafNode<T> {
 
     public void clear() {
       count = 0;
+      Arrays.fill(entries, null);
     }
 
     public void addAll(KeyValues<T> other) {
@@ -67,6 +69,7 @@ class LeafNode<T> {
       if (index < count - 1) {
         System.arraycopy(entries, index + 1, entries, index, count - 1 - index);
       }
+      entries[count - 1] = null;
       count--;
     }
 
@@ -670,6 +673,7 @@ class LeafNode<T> {
           String.format(
               "The number of tags is different from the number of keys. Keys: %s, Tags: %s",
               Arrays.stream(keyValues.entries)
+                  .limit(keyValues.count)
                   .map(kv -> Utils.printableKey(kv.getKey()))
                   .collect(Collectors.toList()),
               tags));
@@ -701,6 +705,7 @@ class LeafNode<T> {
           String.format(
               "The number of key references is different from the number of keys. Keys: %s, Key references: %s",
               Arrays.stream(keyValues.entries)
+                  .limit(keyValues.count)
                   .map(kv -> Utils.printableKey(kv.getKey()))
                   .collect(Collectors.toList()),
               keyReferences));
