@@ -37,6 +37,7 @@ public class Wormhole<T> {
   private final int leafNodeSize;
   private final int leafNodeMergeSize;
   @Nullable private final Validator<T> validator;
+  private final Function<String, String> validAnchorKeyProvider;
 
   /** Creates a Wormhole with the default leaf node size. */
   public Wormhole() {
@@ -62,6 +63,7 @@ public class Wormhole<T> {
     this.leafNodeSize = leafNodeSize;
     this.leafNodeMergeSize = leafNodeSize * 3 / 4;
     initialize();
+    validAnchorKeyProvider = this::provideValidAnchorKey;
     validator = debugMode ? new Validator<>(this) : null;
   }
 
@@ -236,7 +238,8 @@ public class Wormhole<T> {
   }
 
   private void initialize() {
-    LeafNode<T> rootLeafNode = new LeafNode<>(SMALLEST_TOKEN, leafNodeSize, null, null);
+    LeafNode<T> rootLeafNode =
+        new LeafNode<>(validAnchorKeyProvider, SMALLEST_TOKEN, leafNodeSize, null, null);
     {
       // Add the root.
       String key = "";
@@ -311,47 +314,26 @@ public class Wormhole<T> {
     }
   }
 
-  private Tuple<Integer, String> findSplitPositionAndNewAnchorInLeafNode(LeafNode<T> leafNode) {
-    for (int i = leafNode.size() / 2; i < leafNode.size(); i++) {
-      assert i > 0;
-      String k1 = leafNode.getKeyByKeyRefIndex(i - 1);
-      String k2 = leafNode.getKeyByKeyRefIndex(i);
-
-      String lcp = Utils.extractLongestCommonPrefix(k1, k2);
-      String newAnchor = lcp + k2.charAt(lcp.length());
-
-      // Check the anchor key ordering condition: left-key < anchor-key ≤ node-key
-      if (newAnchor.compareTo(k1) <= 0) {
-        continue;
-      }
-      // For anchor-key ≤ node-key, the relationship of `newAnchor` and `k2` always satisfy it.
-
-      // Check the anchor key prefix condition.
-      MetaTrieHashTable.NodeMeta<T> existingNodeMeta = table.get(newAnchor);
-      if (existingNodeMeta != null) {
-        // "Append 0s to key when necessary"
-        newAnchor = newAnchor + SMALLEST_TOKEN;
-        existingNodeMeta = table.get(newAnchor);
-        if (existingNodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf) {
-          continue;
-        }
-      }
-      return new Tuple<>(i, newAnchor);
+  private String provideValidAnchorKey(String anchorKey) {
+    MetaTrieHashTable.NodeMeta<T> existingNodeMeta = table.get(anchorKey);
+    if (existingNodeMeta == null) {
+      return anchorKey;
     }
-    throw new IllegalStateException("Cannot split the leaf node. Leaf node: " + leafNode);
-  }
+
+    // "Append 0s to key when necessary"
+    anchorKey = anchorKey + SMALLEST_TOKEN;
+    existingNodeMeta = table.get(anchorKey);
+    if (existingNodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf) {
+      return null;
+    }
+    return anchorKey;
+  };
 
   private LeafNode<T> split(LeafNode<T> leafNode) {
-    leafNode.incSort();
-    // TODO: Can this be moved to LeafNode.splitToNewLeafNode() ? Revisit here when handling
-    //       thread-safety enhancements.
-    Tuple<Integer, String> found = findSplitPositionAndNewAnchorInLeafNode(leafNode);
-    int splitPosIndex = found.first;
-    String newAnchor = found.second;
-    LeafNode<T> newLeafNode = leafNode.splitToNewLeafNode(newAnchor, splitPosIndex);
-
+    Tuple<String, LeafNode<T>> newLeafNodeAndAnchor = leafNode.splitToNewLeafNode();
+    String newAnchor = newLeafNodeAndAnchor.first;
+    LeafNode<T> newLeafNode = newLeafNodeAndAnchor.second;
     table.handleSplitNodes(newAnchor, newLeafNode);
-
     return newLeafNode;
   }
 
