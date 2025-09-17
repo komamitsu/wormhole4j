@@ -16,6 +16,8 @@
 
 package org.komamitsu.wormhole4j;
 
+import static org.komamitsu.wormhole4j.Wormhole.SMALLEST_TOKEN;
+
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -29,6 +31,7 @@ class LeafNode<T> {
   private final Tags<T> tags;
   // Some references are sorted by key.
   private final KeyReferences<T> keyReferences;
+  private final Function<String, String> validAnchorKeyProvider;
 
   @Nullable private LeafNode<T> left;
   @Nullable private LeafNode<T> right;
@@ -38,34 +41,34 @@ class LeafNode<T> {
     private final KeyValue<T>[] entries;
 
     @SuppressWarnings("unchecked")
-    public KeyValues(int maxSize) {
+    private KeyValues(int maxSize) {
       entries = (KeyValue<T>[]) new KeyValue[maxSize];
     }
 
-    public KeyValue<T> get(int index) {
+    private KeyValue<T> get(int index) {
       return entries[index];
     }
 
-    public int size() {
+    private int size() {
       return count;
     }
 
-    public void clear() {
+    private void clear() {
       count = 0;
       Arrays.fill(entries, null);
     }
 
-    public void addAll(KeyValues<T> other) {
+    private void addAll(KeyValues<T> other) {
       System.arraycopy(other.entries, 0, entries, count, other.count);
       count += other.count;
     }
 
-    public void add(KeyValue<T> kv) {
+    private void add(KeyValue<T> kv) {
       entries[count] = kv;
       count++;
     }
 
-    public void remove(int index) {
+    private void remove(int index) {
       if (index < count - 1) {
         System.arraycopy(entries, index + 1, entries, index, count - 1 - index);
       }
@@ -252,7 +255,7 @@ class LeafNode<T> {
       partialSort(l, high);
     }
 
-    void sort() {
+    private void sort() {
       partialSort(numOfSortedEntries, count - 1);
 
       // Merge sorted and unsorted key references.
@@ -399,7 +402,13 @@ class LeafNode<T> {
     }
   }
 
-  LeafNode(String anchorKey, int maxSize, @Nullable LeafNode<T> left, @Nullable LeafNode<T> right) {
+  LeafNode(
+      Function<String, String> validAnchorKeyProvider,
+      String anchorKey,
+      int maxSize,
+      @Nullable LeafNode<T> left,
+      @Nullable LeafNode<T> right) {
+    this.validAnchorKeyProvider = validAnchorKeyProvider;
     this.anchorKey = anchorKey;
     this.maxSize = maxSize;
     keyValues = new KeyValues<>(maxSize);
@@ -427,7 +436,7 @@ class LeafNode<T> {
     this.right = right;
   }
 
-  String getKeyByKeyRefIndex(int keyRefIndex) {
+  private String getKeyByKeyRefIndex(int keyRefIndex) {
     return keyReferences.getKey(keyRefIndex);
   }
 
@@ -473,7 +482,8 @@ class LeafNode<T> {
     int currentSize = keyValues.size();
 
     // Copy entries to a new leaf node.
-    LeafNode<T> newLeafNode = new LeafNode<>(newAnchor, maxSize, this, this.right);
+    LeafNode<T> newLeafNode =
+        new LeafNode<>(validAnchorKeyProvider, newAnchor, maxSize, this, this.right);
     List<Integer> keyValueIndexListOfNewLeafNode = new ArrayList<>(currentSize);
     for (int i = startKeyRefIndex; i < currentSize; i++) {
       int keyValueIndex = tags.getKeyValueIndex(keyReferences.getTagIndex(i));
@@ -524,14 +534,20 @@ class LeafNode<T> {
     tags.sort();
   }
 
-  LeafNode<T> splitToNewLeafNode(String newAnchor, int startKeyRefIndex) {
-    Tuple<LeafNode<T>, List<Integer>> copied = copyToNewLeafNode(newAnchor, startKeyRefIndex);
+  Tuple<String, LeafNode<T>> splitToNewLeafNode() {
+    incSort();
+
+    Tuple<Integer, String> found = findSplitPositionAndNewAnchorInLeafNode();
+    int splitPosIndex = found.first;
+    String newAnchor = found.second;
+
+    Tuple<LeafNode<T>, List<Integer>> copied = copyToNewLeafNode(newAnchor, splitPosIndex);
     LeafNode<T> newLeafNode = copied.first;
     List<Integer> keyValuesIndexListOfNewLeafNode = copied.second;
 
     removeMovedEntries(keyValuesIndexListOfNewLeafNode);
 
-    return newLeafNode;
+    return new Tuple<>(newAnchor, newLeafNode);
   }
 
   int size() {
@@ -638,15 +654,40 @@ class LeafNode<T> {
     setRight(right.getRight());
   }
 
+  private Tuple<Integer, String> findSplitPositionAndNewAnchorInLeafNode() {
+    for (int i = size() / 2; i < size(); i++) {
+      assert i > 0;
+      String k1 = getKeyByKeyRefIndex(i - 1);
+      String k2 = getKeyByKeyRefIndex(i);
+
+      String lcp = Utils.extractLongestCommonPrefix(k1, k2);
+      String newAnchor = lcp + k2.charAt(lcp.length());
+
+      // Check the anchor key ordering condition: left-key < anchor-key ≤ node-key
+      if (newAnchor.compareTo(k1) <= 0) {
+        continue;
+      }
+      // For anchor-key ≤ node-key, the relationship of `newAnchor` and `k2` always satisfy it.
+
+      // Check the anchor key prefix condition.
+      String validatedAnchorKey = validAnchorKeyProvider.apply(newAnchor);
+      if (validatedAnchorKey == null) {
+        continue;
+      }
+      return new Tuple<>(i, validatedAnchorKey);
+    }
+    throw new IllegalStateException("Cannot split the leaf node. Leaf node: " + this);
+  }
+
   void validate() {
     String normalizedAnchorKey = anchorKey;
-    if (normalizedAnchorKey.endsWith(Wormhole.SMALLEST_TOKEN)) {
+    if (normalizedAnchorKey.endsWith(SMALLEST_TOKEN)) {
       normalizedAnchorKey = normalizedAnchorKey.substring(0, normalizedAnchorKey.length() - 1);
     }
     String normalizedRightAnchorKey = null;
     if (right != null) {
       normalizedRightAnchorKey = right.anchorKey;
-      if (normalizedRightAnchorKey.endsWith(Wormhole.SMALLEST_TOKEN)) {
+      if (normalizedRightAnchorKey.endsWith(SMALLEST_TOKEN)) {
         normalizedRightAnchorKey =
             normalizedRightAnchorKey.substring(0, normalizedRightAnchorKey.length() - 1);
       }
