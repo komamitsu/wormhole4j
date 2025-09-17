@@ -327,7 +327,7 @@ public class Wormhole<T> {
       return null;
     }
     return anchorKey;
-  };
+  }
 
   private LeafNode<T> split(LeafNode<T> leafNode) {
     Tuple<String, LeafNode<T>> newLeafNodeAndAnchor = leafNode.splitToNewLeafNode();
