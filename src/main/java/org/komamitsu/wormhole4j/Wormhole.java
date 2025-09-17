@@ -62,8 +62,8 @@ public class Wormhole<T> {
   public Wormhole(int leafNodeSize, boolean debugMode) {
     this.leafNodeSize = leafNodeSize;
     this.leafNodeMergeSize = leafNodeSize * 3 / 4;
-    initialize();
     validAnchorKeyProvider = this::provideValidAnchorKey;
+    initialize();
     validator = debugMode ? new Validator<>(this) : null;
   }
 

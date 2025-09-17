@@ -41,34 +41,34 @@ class LeafNode<T> {
     private final KeyValue<T>[] entries;
 
     @SuppressWarnings("unchecked")
-    public KeyValues(int maxSize) {
+    private KeyValues(int maxSize) {
       entries = (KeyValue<T>[]) new KeyValue[maxSize];
     }
 
-    public KeyValue<T> get(int index) {
+    private KeyValue<T> get(int index) {
       return entries[index];
     }
 
-    public int size() {
+    private int size() {
       return count;
     }
 
-    public void clear() {
+    private void clear() {
       count = 0;
       Arrays.fill(entries, null);
     }
 
-    public void addAll(KeyValues<T> other) {
+    private void addAll(KeyValues<T> other) {
       System.arraycopy(other.entries, 0, entries, count, other.count);
       count += other.count;
     }
 
-    public void add(KeyValue<T> kv) {
+    private void add(KeyValue<T> kv) {
       entries[count] = kv;
       count++;
     }
 
-    public void remove(int index) {
+    private void remove(int index) {
       if (index < count - 1) {
         System.arraycopy(entries, index + 1, entries, index, count - 1 - index);
       }
@@ -255,7 +255,7 @@ class LeafNode<T> {
       partialSort(l, high);
     }
 
-    void sort() {
+    private void sort() {
       partialSort(numOfSortedEntries, count - 1);
 
       // Merge sorted and unsorted key references.
@@ -436,7 +436,7 @@ class LeafNode<T> {
     this.right = right;
   }
 
-  String getKeyByKeyRefIndex(int keyRefIndex) {
+  private String getKeyByKeyRefIndex(int keyRefIndex) {
     return keyReferences.getKey(keyRefIndex);
   }
 
