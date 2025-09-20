@@ -362,6 +362,129 @@ class Benchmark {
   }
 
   @Test
+  void updateFromWormhole() throws Throwable {
+    execute(
+        new TestCase<ResourceAndKeys<Wormhole<Integer>>, RuntimeException>() {
+          @Override
+          public String label() {
+            return "Update Wormhole (Wormhole4j)";
+          }
+
+          @Override
+          public int count() {
+            return recordCount * 2;
+          }
+
+          @Override
+          public ResourceAndKeys<Wormhole<Integer>> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            Wormhole<Integer> wormhole = new Wormhole<>();
+            for (int i = 0; i < recordCount; i++) {
+              String key = TestHelpers.genRandomKey(maxKeyLength);
+              keys.add(key);
+              wormhole.put(key, i);
+            }
+            return new ResourceAndKeys<>(wormhole, keys);
+          }
+
+          @Override
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<Wormhole<Integer>> resourceAndKeys) {
+            return () -> {
+              Wormhole<Integer> wormhole = resourceAndKeys.resource;
+              List<String> keys = resourceAndKeys.keys;
+              for (int i = 0; i < count(); i++) {
+                int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
+                wormhole.put(keys.get(keyIndex), i);
+              }
+            };
+          }
+        });
+  }
+
+  @Test
+  void updateFromRedBlackTreeMap() throws Throwable {
+    execute(
+        new TestCase<ResourceAndKeys<TreeMap<String, Integer>>, RuntimeException>() {
+          @Override
+          public String label() {
+            return "Update Red-Black tree (TreeMap)";
+          }
+
+          @Override
+          public int count() {
+            return recordCount * 2;
+          }
+
+          @Override
+          public ResourceAndKeys<TreeMap<String, Integer>> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            TreeMap<String, Integer> map = new TreeMap<>();
+            for (int i = 0; i < recordCount; i++) {
+              String key = TestHelpers.genRandomKey(maxKeyLength);
+              keys.add(key);
+              map.put(key, i);
+            }
+            return new ResourceAndKeys<>(map, keys);
+          }
+
+          @Override
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<TreeMap<String, Integer>> resourceAndKeys) {
+            return () -> {
+              TreeMap<String, Integer> map = resourceAndKeys.resource;
+              List<String> keys = resourceAndKeys.keys;
+              for (int i = 0; i < count(); i++) {
+                int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
+                map.put(keys.get(keyIndex), i);
+              }
+            };
+          }
+        });
+  }
+
+  @Test
+  void updateFromAVLTreeMap() throws Throwable {
+    execute(
+        new TestCase<ResourceAndKeys<Object2ObjectSortedMap<String, Integer>>, RuntimeException>() {
+          @Override
+          public String label() {
+            return "Update AVL tree map (Fastutil)";
+          }
+
+          @Override
+          public int count() {
+            return recordCount * 2;
+          }
+
+          @Override
+          public ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            Object2ObjectSortedMap<String, Integer> map = new Object2ObjectAVLTreeMap<>();
+            for (int i = 0; i < recordCount; i++) {
+              String key = TestHelpers.genRandomKey(maxKeyLength);
+              keys.add(key);
+              map.put(key, i);
+            }
+            return new ResourceAndKeys<>(map, keys);
+          }
+
+          @Override
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> resourceAndKeys) {
+            return () -> {
+              Object2ObjectSortedMap<String, Integer> map = resourceAndKeys.resource;
+              List<String> keys = resourceAndKeys.keys;
+              for (int i = 0; i < count(); i++) {
+                int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
+                map.put(keys.get(keyIndex), i);
+              }
+            };
+          }
+        });
+  }
+
+  @Test
   void scanFromWormhole() throws Throwable {
     execute(
         new TestCase<ResourceAndKeys<Wormhole<Integer>>, RuntimeException>() {
