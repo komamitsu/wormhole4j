@@ -20,6 +20,7 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectSortedMap;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
@@ -228,6 +229,41 @@ class Benchmark {
         });
   }
 
+  @Test
+  void insertToConcurrentHashMap() throws Throwable {
+    execute(
+        new TestCase<List<String>, RuntimeException>() {
+          @Override
+          public String label() {
+            return "Insert to concurrent hash map";
+          }
+
+          @Override
+          public int count() {
+            return recordCount;
+          }
+
+          @Override
+          public List<String> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            for (int i = 0; i < recordCount; i++) {
+              keys.add(TestHelpers.genRandomKey(maxKeyLength));
+            }
+            return keys;
+          }
+
+          @Override
+          public ThrowableRunnable<RuntimeException> createTask(List<String> keys) {
+            return () -> {
+              Map<String, Integer> map = new ConcurrentHashMap<>();
+              for (int i = 0; i < recordCount; i++) {
+                map.put(keys.get(i), i);
+              }
+            };
+          }
+        });
+  }
+
   private static class ResourceAndKeys<T> {
     private final T resource;
     private final List<String> keys;
@@ -362,6 +398,47 @@ class Benchmark {
   }
 
   @Test
+  void getFromConcurrentHashMap() throws Throwable {
+    execute(
+        new TestCase<ResourceAndKeys<Map<String, Integer>>, RuntimeException>() {
+          @Override
+          public String label() {
+            return "Get from concurrent hash map";
+          }
+
+          @Override
+          public int count() {
+            return recordCount * 2;
+          }
+
+          @Override
+          public ResourceAndKeys<Map<String, Integer>> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            Map<String, Integer> map = new ConcurrentHashMap<>();
+            for (int i = 0; i < recordCount; i++) {
+              String key = TestHelpers.genRandomKey(maxKeyLength);
+              keys.add(key);
+              map.put(key, i);
+            }
+            return new ResourceAndKeys<>(map, keys);
+          }
+
+          @Override
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<Map<String, Integer>> resourceAndKeys) {
+            return () -> {
+              Map<String, Integer> map = resourceAndKeys.resource;
+              List<String> keys = resourceAndKeys.keys;
+              for (int i = 0; i < count(); i++) {
+                int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
+                map.get(keys.get(keyIndex));
+              }
+            };
+          }
+        });
+  }
+
+  @Test
   void updateFromWormhole() throws Throwable {
     execute(
         new TestCase<ResourceAndKeys<Wormhole<Integer>>, RuntimeException>() {
@@ -474,6 +551,47 @@ class Benchmark {
               ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> resourceAndKeys) {
             return () -> {
               Object2ObjectSortedMap<String, Integer> map = resourceAndKeys.resource;
+              List<String> keys = resourceAndKeys.keys;
+              for (int i = 0; i < count(); i++) {
+                int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
+                map.put(keys.get(keyIndex), i);
+              }
+            };
+          }
+        });
+  }
+
+  @Test
+  void updateFromConcurrentHashMap() throws Throwable {
+    execute(
+        new TestCase<ResourceAndKeys<Map<String, Integer>>, RuntimeException>() {
+          @Override
+          public String label() {
+            return "Update concurrent hash map";
+          }
+
+          @Override
+          public int count() {
+            return recordCount * 2;
+          }
+
+          @Override
+          public ResourceAndKeys<Map<String, Integer>> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            Map<String, Integer> map = new ConcurrentHashMap<>();
+            for (int i = 0; i < recordCount; i++) {
+              String key = TestHelpers.genRandomKey(maxKeyLength);
+              keys.add(key);
+              map.put(key, i);
+            }
+            return new ResourceAndKeys<>(map, keys);
+          }
+
+          @Override
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<Map<String, Integer>> resourceAndKeys) {
+            return () -> {
+              Map<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
                 int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
