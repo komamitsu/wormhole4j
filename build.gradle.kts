@@ -54,9 +54,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.assertj:assertj-core:3.27.2")
-    benchmarkImplementation("io.github.myui:btree4j:0.9.1")
     benchmarkImplementation("it.unimi.dsi:fastutil:8.5.16")
-    benchmarkImplementation("org.mapdb:mapdb:3.0.9")
 }
 
 java {

@@ -16,24 +16,14 @@
 
 package org.komamitsu.wormhole4j;
 
-import btree4j.BTree;
-import btree4j.BTreeCallback;
-import btree4j.BTreeException;
-import btree4j.Value;
-import btree4j.indexer.BasicIndexQuery;
-import btree4j.utils.io.FileUtils;
 import it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectSortedMap;
-import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
-import org.mapdb.BTreeMap;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
 
 class Benchmark {
   private static final String PROP_PREFIX = "wormhole4j.benchmark.";
@@ -240,61 +230,12 @@ class Benchmark {
   }
 
   @Test
-  void insertToInMemoryBPlusTree() throws Throwable {
+  void insertToConcurrentHashMap() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<DB>, RuntimeException>() {
+        new TestCase<List<String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Insert to in-memory B+Tree (MapDB)";
-          }
-
-          @Override
-          public int count() {
-            return recordCount;
-          }
-
-          @Override
-          public ResourceAndKeys<DB> init() {
-            List<String> keys = new ArrayList<>(recordCount);
-            DB db = DBMaker.memoryDB().make();
-            for (int i = 0; i < recordCount; i++) {
-              keys.add(TestHelpers.genRandomKey(maxKeyLength));
-            }
-            return new ResourceAndKeys<>(db, keys);
-          }
-
-          @Override
-          public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<DB> resourceAndKeys) {
-            return () -> {
-              BTreeMap<String, Integer> map =
-                  resourceAndKeys
-                      .resource
-                      .treeMap("map")
-                      .keySerializer(Serializer.STRING)
-                      .valueSerializer(Serializer.INTEGER)
-                      .createOrOpen();
-
-              for (int i = 0; i < recordCount; i++) {
-                map.put(resourceAndKeys.keys.get(i), i);
-              }
-            };
-          }
-
-          @Override
-          public void release(ResourceAndKeys<DB> resource) {
-            resource.resource.close();
-          }
-        });
-  }
-
-  @Test
-  void insertToPersistentBPlusTree() throws Throwable {
-    execute(
-        new TestCase<List<String>, BTreeException>() {
-          @Override
-          public String label() {
-            return "Insert to persistent B+Tree (Btree4j)";
+            return "Insert to concurrent hash map";
           }
 
           @Override
@@ -312,15 +253,11 @@ class Benchmark {
           }
 
           @Override
-          public ThrowableRunnable<BTreeException> createTask(List<String> keys) {
+          public ThrowableRunnable<RuntimeException> createTask(List<String> keys) {
             return () -> {
-              File tmpDir = FileUtils.getTempDir();
-              File tmpFile = new File(tmpDir, "btree-" + System.nanoTime() + ".idx");
-              tmpFile.deleteOnExit();
-              BTree btree = new BTree(tmpFile);
-              btree.init(false);
+              Map<String, Integer> map = new ConcurrentHashMap<>();
               for (int i = 0; i < recordCount; i++) {
-                btree.addValue(new Value(keys.get(i)), i);
+                map.put(keys.get(i), i);
               }
             };
           }
@@ -461,12 +398,12 @@ class Benchmark {
   }
 
   @Test
-  void getFromBPlusTree() throws Throwable {
+  void getFromConcurrentHashMap() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<Tuple<DB, BTreeMap<String, Integer>>>, RuntimeException>() {
+        new TestCase<ResourceAndKeys<Map<String, Integer>>, RuntimeException>() {
           @Override
           public String label() {
-            return "Get from in-memory B+Tree (MapDB)";
+            return "Get from concurrent hash map";
           }
 
           @Override
@@ -475,29 +412,22 @@ class Benchmark {
           }
 
           @Override
-          public ResourceAndKeys<Tuple<DB, BTreeMap<String, Integer>>> init() {
+          public ResourceAndKeys<Map<String, Integer>> init() {
             List<String> keys = new ArrayList<>(recordCount);
-
-            DB db = DBMaker.memoryDB().make();
-            BTreeMap<String, Integer> map =
-                db.treeMap("map")
-                    .keySerializer(Serializer.STRING)
-                    .valueSerializer(Serializer.INTEGER)
-                    .createOrOpen();
-
+            Map<String, Integer> map = new ConcurrentHashMap<>();
             for (int i = 0; i < recordCount; i++) {
               String key = TestHelpers.genRandomKey(maxKeyLength);
               keys.add(key);
               map.put(key, i);
             }
-            return new ResourceAndKeys<>(new Tuple<>(db, map), keys);
+            return new ResourceAndKeys<>(map, keys);
           }
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<Tuple<DB, BTreeMap<String, Integer>>> resourceAndKeys) {
+              ResourceAndKeys<Map<String, Integer>> resourceAndKeys) {
             return () -> {
-              BTreeMap<String, Integer> map = resourceAndKeys.resource.second;
+              Map<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
                 int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
@@ -505,21 +435,16 @@ class Benchmark {
               }
             };
           }
-
-          @Override
-          public void release(ResourceAndKeys<Tuple<DB, BTreeMap<String, Integer>>> resource) {
-            resource.resource.first.close();
-          }
         });
   }
 
   @Test
-  void getFromPersistentBPlusTree() throws Throwable {
+  void updateFromWormhole() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<BTree>, BTreeException>() {
+        new TestCase<ResourceAndKeys<Wormhole<Integer>>, RuntimeException>() {
           @Override
           public String label() {
-            return "Get from persistent B+Tree (Btree4j)";
+            return "Update Wormhole (Wormhole4j)";
           }
 
           @Override
@@ -528,29 +453,149 @@ class Benchmark {
           }
 
           @Override
-          public ResourceAndKeys<BTree> init() throws BTreeException, IOException {
+          public ResourceAndKeys<Wormhole<Integer>> init() {
             List<String> keys = new ArrayList<>(recordCount);
-            File tmpDir = FileUtils.getTempDir();
-            File tmpFile = new File(tmpDir, "btree-" + System.nanoTime() + ".idx");
-            tmpFile.deleteOnExit();
-            BTree btree = new BTree(tmpFile);
-            btree.init(false);
+            Wormhole<Integer> wormhole = new Wormhole<>();
             for (int i = 0; i < recordCount; i++) {
               String key = TestHelpers.genRandomKey(maxKeyLength);
               keys.add(key);
-              btree.addValue(new Value(key), i);
+              wormhole.put(key, i);
             }
-            return new ResourceAndKeys<>(btree, keys);
+            return new ResourceAndKeys<>(wormhole, keys);
           }
 
           @Override
-          public ThrowableRunnable<BTreeException> createTask(ResourceAndKeys<BTree> mapAndKeys) {
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<Wormhole<Integer>> resourceAndKeys) {
             return () -> {
-              BTree bTree = mapAndKeys.resource;
-              List<String> keys = mapAndKeys.keys;
+              Wormhole<Integer> wormhole = resourceAndKeys.resource;
+              List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
                 int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
-                bTree.findValue(new Value(keys.get(keyIndex)));
+                wormhole.put(keys.get(keyIndex), i);
+              }
+            };
+          }
+        });
+  }
+
+  @Test
+  void updateFromRedBlackTreeMap() throws Throwable {
+    execute(
+        new TestCase<ResourceAndKeys<TreeMap<String, Integer>>, RuntimeException>() {
+          @Override
+          public String label() {
+            return "Update Red-Black tree (TreeMap)";
+          }
+
+          @Override
+          public int count() {
+            return recordCount * 2;
+          }
+
+          @Override
+          public ResourceAndKeys<TreeMap<String, Integer>> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            TreeMap<String, Integer> map = new TreeMap<>();
+            for (int i = 0; i < recordCount; i++) {
+              String key = TestHelpers.genRandomKey(maxKeyLength);
+              keys.add(key);
+              map.put(key, i);
+            }
+            return new ResourceAndKeys<>(map, keys);
+          }
+
+          @Override
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<TreeMap<String, Integer>> resourceAndKeys) {
+            return () -> {
+              TreeMap<String, Integer> map = resourceAndKeys.resource;
+              List<String> keys = resourceAndKeys.keys;
+              for (int i = 0; i < count(); i++) {
+                int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
+                map.put(keys.get(keyIndex), i);
+              }
+            };
+          }
+        });
+  }
+
+  @Test
+  void updateFromAVLTreeMap() throws Throwable {
+    execute(
+        new TestCase<ResourceAndKeys<Object2ObjectSortedMap<String, Integer>>, RuntimeException>() {
+          @Override
+          public String label() {
+            return "Update AVL tree map (Fastutil)";
+          }
+
+          @Override
+          public int count() {
+            return recordCount * 2;
+          }
+
+          @Override
+          public ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            Object2ObjectSortedMap<String, Integer> map = new Object2ObjectAVLTreeMap<>();
+            for (int i = 0; i < recordCount; i++) {
+              String key = TestHelpers.genRandomKey(maxKeyLength);
+              keys.add(key);
+              map.put(key, i);
+            }
+            return new ResourceAndKeys<>(map, keys);
+          }
+
+          @Override
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> resourceAndKeys) {
+            return () -> {
+              Object2ObjectSortedMap<String, Integer> map = resourceAndKeys.resource;
+              List<String> keys = resourceAndKeys.keys;
+              for (int i = 0; i < count(); i++) {
+                int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
+                map.put(keys.get(keyIndex), i);
+              }
+            };
+          }
+        });
+  }
+
+  @Test
+  void updateFromConcurrentHashMap() throws Throwable {
+    execute(
+        new TestCase<ResourceAndKeys<Map<String, Integer>>, RuntimeException>() {
+          @Override
+          public String label() {
+            return "Update concurrent hash map";
+          }
+
+          @Override
+          public int count() {
+            return recordCount * 2;
+          }
+
+          @Override
+          public ResourceAndKeys<Map<String, Integer>> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            Map<String, Integer> map = new ConcurrentHashMap<>();
+            for (int i = 0; i < recordCount; i++) {
+              String key = TestHelpers.genRandomKey(maxKeyLength);
+              keys.add(key);
+              map.put(key, i);
+            }
+            return new ResourceAndKeys<>(map, keys);
+          }
+
+          @Override
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<Map<String, Integer>> resourceAndKeys) {
+            return () -> {
+              Map<String, Integer> map = resourceAndKeys.resource;
+              List<String> keys = resourceAndKeys.keys;
+              for (int i = 0; i < count(); i++) {
+                int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
+                map.put(keys.get(keyIndex), i);
               }
             };
           }
@@ -699,132 +744,6 @@ class Benchmark {
                 for (Map.Entry<String, Integer> ignored : map.subMap(key1, key2).entrySet()) {
                   // Nothing to do.
                 }
-              }
-            };
-          }
-        });
-  }
-
-  @Test
-  void scanFromBPlusTree() throws Throwable {
-    execute(
-        new TestCase<ResourceAndKeys<Tuple<DB, BTreeMap<String, Integer>>>, RuntimeException>() {
-          @Override
-          public String label() {
-            return "Scan from in-memory B+Tree (MapDB)";
-          }
-
-          @Override
-          public int count() {
-            return recordCount;
-          }
-
-          @Override
-          public ResourceAndKeys<Tuple<DB, BTreeMap<String, Integer>>> init() {
-            List<String> keys = new ArrayList<>(recordCount);
-            DB db = DBMaker.memoryDB().make();
-            BTreeMap<String, Integer> map =
-                db.treeMap("map")
-                    .keySerializer(Serializer.STRING)
-                    .valueSerializer(Serializer.INTEGER)
-                    .createOrOpen();
-
-            for (int i = 0; i < recordCount; i++) {
-              String key = TestHelpers.genRandomKey(maxKeyLength);
-              keys.add(key);
-              map.put(key, i);
-            }
-            Collections.sort(keys);
-            return new ResourceAndKeys<>(new Tuple<>(db, map), keys);
-          }
-
-          @Override
-          public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<Tuple<DB, BTreeMap<String, Integer>>> resourceAndKeys) {
-            return () -> {
-              BTreeMap<String, Integer> map = resourceAndKeys.resource.second;
-              List<String> keys = resourceAndKeys.keys;
-              for (int i = 0; i < count(); i++) {
-                int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
-                int keyIndex2 =
-                    Math.min(
-                        keys.size() - 1,
-                        keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
-                String key1 = keys.get(keyIndex1);
-                String key2 = keys.get(keyIndex2);
-                for (Map.Entry<String, Integer> ignored : map.subMap(key1, key2).entrySet()) {
-                  // Nothing to do.
-                }
-              }
-            };
-          }
-
-          @Override
-          public void release(ResourceAndKeys<Tuple<DB, BTreeMap<String, Integer>>> resource) {
-            resource.resource.first.close();
-          }
-        });
-  }
-
-  @Test
-  void scanFromPersistentBPlusTree() throws Throwable {
-    execute(
-        new TestCase<ResourceAndKeys<BTree>, BTreeException>() {
-          @Override
-          public String label() {
-            return "Scan from persistent B+Tree (Btree4j)";
-          }
-
-          @Override
-          public int count() {
-            return recordCount * 2;
-          }
-
-          @Override
-          public ResourceAndKeys<BTree> init() throws BTreeException, IOException {
-            List<String> keys = new ArrayList<>(recordCount);
-            File tmpDir = FileUtils.getTempDir();
-            File tmpFile = new File(tmpDir, "btree-" + System.nanoTime() + ".idx");
-            tmpFile.deleteOnExit();
-            BTree btree = new BTree(tmpFile);
-            btree.init(false);
-            for (int i = 0; i < recordCount; i++) {
-              String key = TestHelpers.genRandomKey(maxKeyLength);
-              keys.add(key);
-              btree.addValue(new Value(key), i);
-            }
-            Collections.sort(keys);
-            return new ResourceAndKeys<>(btree, keys);
-          }
-
-          @Override
-          public ThrowableRunnable<BTreeException> createTask(ResourceAndKeys<BTree> mapAndKeys) {
-            BTreeCallback callback =
-                new BTreeCallback() {
-                  @Override
-                  public boolean indexInfo(Value value, long pointer) {
-                    return true;
-                  }
-
-                  @Override
-                  public boolean indexInfo(Value key, byte[] value) {
-                    return true;
-                  }
-                };
-            return () -> {
-              BTree bTree = mapAndKeys.resource;
-              List<String> keys = mapAndKeys.keys;
-              for (int i = 0; i < count(); i++) {
-                int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
-                int keyIndex2 =
-                    Math.min(
-                        keys.size() - 1,
-                        keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
-                String key1 = keys.get(keyIndex1);
-                String key2 = keys.get(keyIndex2);
-                bTree.search(
-                    new BasicIndexQuery.IndexConditionBW(new Value(key1), new Value(key2)),
-                    callback);
               }
             };
           }
