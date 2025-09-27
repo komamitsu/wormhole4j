@@ -19,6 +19,7 @@ package org.komamitsu.wormhole4j;
 import static org.komamitsu.wormhole4j.Wormhole.SMALLEST_TOKEN;
 
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -51,6 +52,10 @@ class LeafNode<T> {
 
     private int size() {
       return count;
+    }
+
+    private int getLastIndex() {
+      return count - 1;
     }
 
     private void clear() {
@@ -159,20 +164,12 @@ class LeafNode<T> {
       return keyValues.get(getKeyValueIndex(index));
     }
 
-    private String getKey(int index) {
-      return keyValues.get(getKeyValueIndex(index)).getKey();
-    }
-
     private void clear() {
       count = 0;
     }
 
     private int size() {
       return count;
-    }
-
-    private int getLastIndex() {
-      return count - 1;
     }
 
     @Override
@@ -198,35 +195,31 @@ class LeafNode<T> {
   }
 
   private static class KeyReferences<T> {
-    private final Tags<T> tags;
+    private final KeyValues<T> keyValues;
     private int count;
     private final int[] entries;
     private int numOfSortedEntries;
 
-    private KeyReferences(int maxSize, Tags<T> tags) {
-      this.tags = tags;
+    private KeyReferences(int maxSize, KeyValues<T> keyValues) {
+      this.keyValues = keyValues;
       this.entries = new int[maxSize];
     }
 
-    private void add(int tagIndex) {
-      entries[count] = tagIndex;
+    private void add(int keyValueIndex) {
+      entries[count] = keyValueIndex;
       count++;
     }
 
-    private void addAll(KeyReferences<T> src) {
-      System.arraycopy(src.entries, 0, entries, count, src.count);
-    }
-
-    private int getTagIndex(int index) {
+    private int getKeyValueIndex(int index) {
       return entries[index];
     }
 
     private String getKey(int index) {
-      return tags.getKey(entries[index]);
+      return keyValues.get(getKeyValueIndex(index)).getKey();
     }
 
     private KeyValue<T> getKeyValue(int index) {
-      return tags.getKeyValue(entries[index]);
+      return keyValues.get(getKeyValueIndex(index));
     }
 
     private void partialSort(int low, int high) {
@@ -300,10 +293,6 @@ class LeafNode<T> {
       }
       System.arraycopy(mergedValues, 0, entries, 0, count);
       markAsSorted();
-    }
-
-    private int getTag(int index) {
-      return entries[index];
     }
 
     private void clear() {
@@ -413,7 +402,7 @@ class LeafNode<T> {
     this.maxSize = maxSize;
     keyValues = new KeyValues<>(maxSize);
     tags = new Tags<>(maxSize, keyValues);
-    keyReferences = new KeyReferences<>(maxSize, tags);
+    keyReferences = new KeyReferences<>(maxSize, keyValues);
     this.left = left;
     this.right = right;
   }
@@ -445,7 +434,7 @@ class LeafNode<T> {
   }
 
   @Nullable
-  KeyValue<T> pointSearchLeaf(String key) {
+  private <R> R pointSearchLeaf(String key, BiFunction<KeyValue<T>, Integer, R> kvAndTagIndexReceivingFunc) {
     short keyHash = calculateKeyHash(key);
     int leafSize = keyValues.size();
     int tagIndex = keyHash * leafSize / (Short.MAX_VALUE + 1);
@@ -458,11 +447,16 @@ class LeafNode<T> {
     while (tagIndex < leafSize && tags.getHashTag(tagIndex) == keyHash) {
       KeyValue<T> kv = tags.getKeyValue(tagIndex);
       if (kv.getKey().equals(key)) {
-        return kv;
+        return kvAndTagIndexReceivingFunc.apply(kv, tagIndex);
       }
       tagIndex++;
     }
     return null;
+  }
+
+  @Nullable
+  KeyValue<T> pointSearchLeaf(String key) {
+    return pointSearchLeaf(key, (kv, tagIndex) -> kv);
   }
 
   void incSort() {
@@ -486,12 +480,12 @@ class LeafNode<T> {
         new LeafNode<>(validAnchorKeyProvider, newAnchor, maxSize, this, this.right);
     List<Integer> keyValueIndexListOfNewLeafNode = new ArrayList<>(currentSize);
     for (int i = startKeyRefIndex; i < currentSize; i++) {
-      int keyValueIndex = tags.getKeyValueIndex(keyReferences.getTagIndex(i));
+      int keyValueIndex = keyReferences.getKeyValueIndex(i);
       KeyValue<T> kv = keyValues.get(keyValueIndex);
       newLeafNode.keyValues.add(kv);
       keyValueIndexListOfNewLeafNode.add(keyValueIndex);
-      newLeafNode.tags.addWithoutSort(newLeafNode.keyValues.size() - 1, kv);
-      newLeafNode.keyReferences.add(newLeafNode.tags.getLastIndex());
+      newLeafNode.tags.addWithoutSort(newLeafNode.keyValues.getLastIndex(), kv);
+      newLeafNode.keyReferences.add(newLeafNode.keyValues.getLastIndex());
     }
     // TODO: Optimize building `tags`.
     newLeafNode.tags.sort();
@@ -618,7 +612,7 @@ class LeafNode<T> {
     keyValues.add(keyValue);
     tags.addWithSort(keyValues.size() - 1, keyValue);
     // Sorting this will be delayed until range scan or split.
-    keyReferences.add(tags.getLastIndex());
+    keyReferences.add(keyValues.getLastIndex());
   }
 
   boolean delete(String key) {
@@ -627,7 +621,7 @@ class LeafNode<T> {
     if (keyReferenceIndex < 0) {
       return false;
     }
-    int tagIndex = keyReferences.getTagIndex(keyReferenceIndex);
+    int tagIndex = pointSearchLeaf(key, (kv, tagIdx) -> tagIdx);
     int keyValueIndex = tags.getKeyValueIndex(tagIndex);
 
     keyReferences.remove(keyReferenceIndex);
@@ -643,7 +637,7 @@ class LeafNode<T> {
     keyReferences.clear();
     for (int i = 0; i < keyValues.size(); i++) {
       tags.addWithoutSort(i, keyValues.get(i));
-      keyReferences.add(tags.getLastIndex());
+      keyReferences.add(i);
     }
     // TODO: Optimize building `tags`.
     tags.sort();
