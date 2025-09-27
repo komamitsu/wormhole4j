@@ -91,8 +91,6 @@ class Benchmark {
     T init() throws E, IOException;
 
     ThrowableRunnable<E> createTask(T resource);
-
-    default void release(T resource) {}
   }
 
   <T, E extends Throwable> void execute(TestCase<T, E> testCase) throws Throwable {
@@ -101,44 +99,40 @@ class Benchmark {
       resource = testCase.init();
     }
 
-    try {
-      System.out.println("----------------------------------------------------------------");
-      System.out.printf("Starting: %s%n", testCase.label());
+    System.out.println("----------------------------------------------------------------");
+    System.out.printf("Starting: %s%n", testCase.label());
 
-      // Warmups
-      for (int i = 0; i < warmupCount; i++) {
-        if (testCase.initForEachAttempt()) {
-          resource = testCase.init();
-        }
-        long durationMillis = measure(testCase.createTask(resource));
-        long throughput = testCase.count() * 1000L / durationMillis;
-        System.out.printf("Warmup #%d: %d per second%n", i, throughput);
+    // Warmups
+    for (int i = 0; i < warmupCount; i++) {
+      if (testCase.initForEachAttempt()) {
+        resource = testCase.init();
       }
-
-      // Attempts
-      List<Long> throughputs = new ArrayList<>();
-      for (int i = 0; i < attemptCount; i++) {
-        if (testCase.initForEachAttempt()) {
-          resource = testCase.init();
-        }
-        long durationMillis = measure(testCase.createTask(resource));
-        long throughput = testCase.count() * 1000L / durationMillis;
-        throughputs.add(throughput);
-        System.out.printf("Attempt #%d: %d per second%n", i, throughput);
-      }
-      long averageThroughput = throughputs.stream().reduce(0L, Long::sum) / throughputs.size();
-      double stdDev =
-          Math.sqrt(
-              (double)
-                      throughputs.stream()
-                          .map(throughput -> (long) Math.pow(throughput - averageThroughput, 2.0))
-                          .reduce(0L, Long::sum)
-                  / throughputs.size());
-      System.out.printf("Average throughput: %d per second%n", averageThroughput);
-      System.out.printf("StdDev: %f per second%n", stdDev);
-    } finally {
-      testCase.release(resource);
+      long durationMillis = measure(testCase.createTask(resource));
+      long throughput = testCase.count() * 1000L / durationMillis;
+      System.out.printf("Warmup #%d: %d per second%n", i, throughput);
     }
+
+    // Attempts
+    List<Long> throughputs = new ArrayList<>();
+    for (int i = 0; i < attemptCount; i++) {
+      if (testCase.initForEachAttempt()) {
+        resource = testCase.init();
+      }
+      long durationMillis = measure(testCase.createTask(resource));
+      long throughput = testCase.count() * 1000L / durationMillis;
+      throughputs.add(throughput);
+      System.out.printf("Attempt #%d: %d per second%n", i, throughput);
+    }
+    long averageThroughput = throughputs.stream().reduce(0L, Long::sum) / throughputs.size();
+    double stdDev =
+        Math.sqrt(
+            (double)
+                    throughputs.stream()
+                        .map(throughput -> (long) Math.pow(throughput - averageThroughput, 2.0))
+                        .reduce(0L, Long::sum)
+                / throughputs.size());
+    System.out.printf("Average throughput: %d per second%n", averageThroughput);
+    System.out.printf("StdDev: %f per second%n", stdDev);
   }
 
   @Test
@@ -639,7 +633,7 @@ class Benchmark {
                 int keyIndex = ThreadLocalRandom.current().nextInt(keys.size());
                 String key = keys.remove(keyIndex);
                 assert key != null;
-                map.remove(key);
+                assert map.remove(key) != null;
               }
             };
           }
