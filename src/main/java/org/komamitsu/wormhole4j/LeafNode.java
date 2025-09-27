@@ -622,7 +622,8 @@ class LeafNode<T> {
     if (keyReferenceIndex < 0) {
       return false;
     }
-    int tagIndex = pointSearchLeaf(key, (kv, tagIdx) -> tagIdx);
+    Integer tagIndex = pointSearchLeaf(key, (kv, tagIdx) -> tagIdx);
+    assert tagIndex != null;
     int keyValueIndex = tags.getKeyValueIndex(tagIndex);
 
     keyReferences.remove(keyReferenceIndex);
