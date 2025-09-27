@@ -524,6 +524,7 @@ class Benchmark {
               keys.add(key);
               wormhole.put(key, i);
             }
+            Collections.shuffle(keys);
             return new ResourceAndKeys<>(wormhole, keys);
           }
 
@@ -533,11 +534,9 @@ class Benchmark {
             return () -> {
               Wormhole<Integer> wormhole = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
-              while (!keys.isEmpty()) {
-                int keyIndex = ThreadLocalRandom.current().nextInt(keys.size());
-                String key = keys.remove(keyIndex);
-                assert key != null;
-                assert wormhole.delete(key);
+              for (int i = 0; i < count(); i++) {
+                String key = keys.get(i);
+                wormhole.delete(key);
               }
             };
           }
@@ -572,6 +571,7 @@ class Benchmark {
               keys.add(key);
               map.put(key, i);
             }
+            Collections.shuffle(keys);
             return new ResourceAndKeys<>(map, keys);
           }
 
@@ -581,11 +581,9 @@ class Benchmark {
             return () -> {
               TreeMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
-              while (!keys.isEmpty()) {
-                int keyIndex = ThreadLocalRandom.current().nextInt(keys.size());
-                String key = keys.remove(keyIndex);
-                assert key != null;
-                assert map.remove(key) != null;
+              for (int i = 0; i < count(); i++) {
+                String key = keys.get(i);
+                map.remove(key);
               }
             };
           }
@@ -620,6 +618,7 @@ class Benchmark {
               keys.add(key);
               map.put(key, i);
             }
+            Collections.shuffle(keys);
             return new ResourceAndKeys<>(map, keys);
           }
 
@@ -629,11 +628,9 @@ class Benchmark {
             return () -> {
               Object2ObjectSortedMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
-              while (!keys.isEmpty()) {
-                int keyIndex = ThreadLocalRandom.current().nextInt(keys.size());
-                String key = keys.remove(keyIndex);
-                assert key != null;
-                assert map.remove(key) != null;
+              for (int i = 0; i < count(); i++) {
+                String key = keys.get(i);
+                map.remove(key);
               }
             };
           }
