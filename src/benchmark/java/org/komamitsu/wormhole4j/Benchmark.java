@@ -587,7 +587,7 @@ class Benchmark {
             return () -> {
               TreeMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
-              for (int i = 0; i < count(); i++) {
+              while (!keys.isEmpty()) {
                 int keyIndex = ThreadLocalRandom.current().nextInt(keys.size());
                 String key = keys.remove(keyIndex);
                 assert key != null;
@@ -635,7 +635,7 @@ class Benchmark {
             return () -> {
               Object2ObjectSortedMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
-              for (int i = 0; i < count(); i++) {
+              while (!keys.isEmpty()) {
                 int keyIndex = ThreadLocalRandom.current().nextInt(keys.size());
                 String key = keys.remove(keyIndex);
                 assert key != null;
