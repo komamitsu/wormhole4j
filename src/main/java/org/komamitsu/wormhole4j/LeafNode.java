@@ -434,7 +434,8 @@ class LeafNode<T> {
   }
 
   @Nullable
-  private <R> R pointSearchLeaf(String key, BiFunction<KeyValue<T>, Integer, R> kvAndTagIndexReceivingFunc) {
+  private <R> R pointSearchLeaf(
+      String key, BiFunction<KeyValue<T>, Integer, R> kvAndTagIndexReceivingFunc) {
     short keyHash = calculateKeyHash(key);
     int leafSize = keyValues.size();
     int tagIndex = keyHash * leafSize / (Short.MAX_VALUE + 1);
