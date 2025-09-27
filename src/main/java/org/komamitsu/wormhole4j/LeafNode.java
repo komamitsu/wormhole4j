@@ -485,8 +485,9 @@ class LeafNode<T> {
       KeyValue<T> kv = keyValues.get(keyValueIndex);
       newLeafNode.keyValues.add(kv);
       keyValueIndexListOfNewLeafNode.add(keyValueIndex);
-      newLeafNode.tags.addWithoutSort(newLeafNode.keyValues.getLastIndex(), kv);
-      newLeafNode.keyReferences.add(newLeafNode.keyValues.getLastIndex());
+      int newLeafNodeLastIndex = newLeafNode.keyValues.getLastIndex();
+      newLeafNode.tags.addWithoutSort(newLeafNodeLastIndex, kv);
+      newLeafNode.keyReferences.add(newLeafNodeLastIndex);
     }
     // TODO: Optimize building `tags`.
     newLeafNode.tags.sort();
