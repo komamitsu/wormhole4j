@@ -20,23 +20,25 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectSortedMap;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
 class Benchmark {
   private static final String PROP_PREFIX = "wormhole4j.benchmark.";
+  private static final String PROP_MIN_KEY_LENGTH = PROP_PREFIX + "min_key_length";
   private static final String PROP_MAX_KEY_LENGTH = PROP_PREFIX + "max_key_length";
   private static final String PROP_RECORD_COUNT = PROP_PREFIX + "record_count";
   private static final String PROP_WARMUP_COUNT = PROP_PREFIX + "warmup_count";
   private static final String PROP_ATTEMPT_COUNT = PROP_PREFIX + "attempt_count";
   private static final String PROP_MAX_SCAN_SIZE = PROP_PREFIX + "max_scan_size";
+  private static final String DEFAULT_MIN_KEY_LENGTH = "8";
   private static final String DEFAULT_MAX_KEY_LENGTH = "128";
   private static final String DEFAULT_RECORD_COUNT = "100000";
   private static final String DEFAULT_WARMUP_COUNT = "5";
   private static final String DEFAULT_ATTEMPT_COUNT = "5";
   private static final String DEFAULT_MAX_SCAN_SIZE = "512";
+  private final int minKeyLength;
   private final int maxKeyLength;
   private final int recordCount;
   private final int warmupCount;
@@ -44,6 +46,8 @@ class Benchmark {
   private final int maxScanSize;
 
   public Benchmark() {
+    this.minKeyLength =
+        Integer.parseInt(System.getProperty(PROP_MIN_KEY_LENGTH, DEFAULT_MIN_KEY_LENGTH));
     this.maxKeyLength =
         Integer.parseInt(System.getProperty(PROP_MAX_KEY_LENGTH, DEFAULT_MAX_KEY_LENGTH));
     this.recordCount =
@@ -80,6 +84,10 @@ class Benchmark {
 
     int count();
 
+    default boolean initForEachAttempt() {
+      return false;
+    }
+
     T init() throws E, IOException;
 
     ThrowableRunnable<E> createTask(T resource);
@@ -88,7 +96,10 @@ class Benchmark {
   }
 
   <T, E extends Throwable> void execute(TestCase<T, E> testCase) throws Throwable {
-    T resource = testCase.init();
+    T resource = null;
+    if (!testCase.initForEachAttempt()) {
+      resource = testCase.init();
+    }
 
     try {
       System.out.println("----------------------------------------------------------------");
@@ -96,6 +107,9 @@ class Benchmark {
 
       // Warmups
       for (int i = 0; i < warmupCount; i++) {
+        if (testCase.initForEachAttempt()) {
+          resource = testCase.init();
+        }
         long durationMillis = measure(testCase.createTask(resource));
         long throughput = testCase.count() * 1000L / durationMillis;
         System.out.printf("Warmup #%d: %d per second%n", i, throughput);
@@ -104,6 +118,9 @@ class Benchmark {
       // Attempts
       List<Long> throughputs = new ArrayList<>();
       for (int i = 0; i < attemptCount; i++) {
+        if (testCase.initForEachAttempt()) {
+          resource = testCase.init();
+        }
         long durationMillis = measure(testCase.createTask(resource));
         long throughput = testCase.count() * 1000L / durationMillis;
         throughputs.add(throughput);
@@ -142,7 +159,7 @@ class Benchmark {
           public List<String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             for (int i = 0; i < recordCount; i++) {
-              keys.add(TestHelpers.genRandomKey(maxKeyLength));
+              keys.add(TestHelpers.genRandomKey(minKeyLength, maxKeyLength));
             }
             return keys;
           }
@@ -177,7 +194,7 @@ class Benchmark {
           public List<String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             for (int i = 0; i < recordCount; i++) {
-              keys.add(TestHelpers.genRandomKey(maxKeyLength));
+              keys.add(TestHelpers.genRandomKey(minKeyLength, maxKeyLength));
             }
             return keys;
           }
@@ -212,7 +229,7 @@ class Benchmark {
           public List<String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             for (int i = 0; i < recordCount; i++) {
-              keys.add(TestHelpers.genRandomKey(maxKeyLength));
+              keys.add(TestHelpers.genRandomKey(minKeyLength, maxKeyLength));
             }
             return keys;
           }
@@ -221,41 +238,6 @@ class Benchmark {
           public ThrowableRunnable<RuntimeException> createTask(List<String> keys) {
             return () -> {
               Object2ObjectSortedMap<String, Integer> map = new Object2ObjectAVLTreeMap<>();
-              for (int i = 0; i < recordCount; i++) {
-                map.put(keys.get(i), i);
-              }
-            };
-          }
-        });
-  }
-
-  @Test
-  void insertToConcurrentHashMap() throws Throwable {
-    execute(
-        new TestCase<List<String>, RuntimeException>() {
-          @Override
-          public String label() {
-            return "Insert to concurrent hash map";
-          }
-
-          @Override
-          public int count() {
-            return recordCount;
-          }
-
-          @Override
-          public List<String> init() {
-            List<String> keys = new ArrayList<>(recordCount);
-            for (int i = 0; i < recordCount; i++) {
-              keys.add(TestHelpers.genRandomKey(maxKeyLength));
-            }
-            return keys;
-          }
-
-          @Override
-          public ThrowableRunnable<RuntimeException> createTask(List<String> keys) {
-            return () -> {
-              Map<String, Integer> map = new ConcurrentHashMap<>();
               for (int i = 0; i < recordCount; i++) {
                 map.put(keys.get(i), i);
               }
@@ -293,7 +275,7 @@ class Benchmark {
             List<String> keys = new ArrayList<>(recordCount);
             Wormhole<Integer> wormhole = new Wormhole<>();
             for (int i = 0; i < recordCount; i++) {
-              String key = TestHelpers.genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(minKeyLength, maxKeyLength);
               keys.add(key);
               wormhole.put(key, i);
             }
@@ -334,7 +316,7 @@ class Benchmark {
             List<String> keys = new ArrayList<>(recordCount);
             TreeMap<String, Integer> map = new TreeMap<>();
             for (int i = 0; i < recordCount; i++) {
-              String key = TestHelpers.genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(minKeyLength, maxKeyLength);
               keys.add(key);
               map.put(key, i);
             }
@@ -375,7 +357,7 @@ class Benchmark {
             List<String> keys = new ArrayList<>(recordCount);
             Object2ObjectSortedMap<String, Integer> map = new Object2ObjectAVLTreeMap<>();
             for (int i = 0; i < recordCount; i++) {
-              String key = TestHelpers.genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(minKeyLength, maxKeyLength);
               keys.add(key);
               map.put(key, i);
             }
@@ -398,48 +380,7 @@ class Benchmark {
   }
 
   @Test
-  void getFromConcurrentHashMap() throws Throwable {
-    execute(
-        new TestCase<ResourceAndKeys<Map<String, Integer>>, RuntimeException>() {
-          @Override
-          public String label() {
-            return "Get from concurrent hash map";
-          }
-
-          @Override
-          public int count() {
-            return recordCount * 2;
-          }
-
-          @Override
-          public ResourceAndKeys<Map<String, Integer>> init() {
-            List<String> keys = new ArrayList<>(recordCount);
-            Map<String, Integer> map = new ConcurrentHashMap<>();
-            for (int i = 0; i < recordCount; i++) {
-              String key = TestHelpers.genRandomKey(maxKeyLength);
-              keys.add(key);
-              map.put(key, i);
-            }
-            return new ResourceAndKeys<>(map, keys);
-          }
-
-          @Override
-          public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<Map<String, Integer>> resourceAndKeys) {
-            return () -> {
-              Map<String, Integer> map = resourceAndKeys.resource;
-              List<String> keys = resourceAndKeys.keys;
-              for (int i = 0; i < count(); i++) {
-                int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
-                map.get(keys.get(keyIndex));
-              }
-            };
-          }
-        });
-  }
-
-  @Test
-  void updateFromWormhole() throws Throwable {
+  void updateWormhole() throws Throwable {
     execute(
         new TestCase<ResourceAndKeys<Wormhole<Integer>>, RuntimeException>() {
           @Override
@@ -457,7 +398,7 @@ class Benchmark {
             List<String> keys = new ArrayList<>(recordCount);
             Wormhole<Integer> wormhole = new Wormhole<>();
             for (int i = 0; i < recordCount; i++) {
-              String key = TestHelpers.genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(minKeyLength, maxKeyLength);
               keys.add(key);
               wormhole.put(key, i);
             }
@@ -480,7 +421,7 @@ class Benchmark {
   }
 
   @Test
-  void updateFromRedBlackTreeMap() throws Throwable {
+  void updateRedBlackTreeMap() throws Throwable {
     execute(
         new TestCase<ResourceAndKeys<TreeMap<String, Integer>>, RuntimeException>() {
           @Override
@@ -498,7 +439,7 @@ class Benchmark {
             List<String> keys = new ArrayList<>(recordCount);
             TreeMap<String, Integer> map = new TreeMap<>();
             for (int i = 0; i < recordCount; i++) {
-              String key = TestHelpers.genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(minKeyLength, maxKeyLength);
               keys.add(key);
               map.put(key, i);
             }
@@ -521,7 +462,7 @@ class Benchmark {
   }
 
   @Test
-  void updateFromAVLTreeMap() throws Throwable {
+  void updateAVLTreeMap() throws Throwable {
     execute(
         new TestCase<ResourceAndKeys<Object2ObjectSortedMap<String, Integer>>, RuntimeException>() {
           @Override
@@ -539,7 +480,7 @@ class Benchmark {
             List<String> keys = new ArrayList<>(recordCount);
             Object2ObjectSortedMap<String, Integer> map = new Object2ObjectAVLTreeMap<>();
             for (int i = 0; i < recordCount; i++) {
-              String key = TestHelpers.genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(minKeyLength, maxKeyLength);
               keys.add(key);
               map.put(key, i);
             }
@@ -562,25 +503,78 @@ class Benchmark {
   }
 
   @Test
-  void updateFromConcurrentHashMap() throws Throwable {
+  void deleteFromWormhole() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<Map<String, Integer>>, RuntimeException>() {
+        new TestCase<ResourceAndKeys<Wormhole<Integer>>, RuntimeException>() {
           @Override
           public String label() {
-            return "Update concurrent hash map";
+            return "Delete from Wormhole (Wormhole4j)";
           }
 
           @Override
           public int count() {
-            return recordCount * 2;
+            return recordCount;
           }
 
           @Override
-          public ResourceAndKeys<Map<String, Integer>> init() {
+          public boolean initForEachAttempt() {
+            return true;
+          }
+
+          @Override
+          public ResourceAndKeys<Wormhole<Integer>> init() {
             List<String> keys = new ArrayList<>(recordCount);
-            Map<String, Integer> map = new ConcurrentHashMap<>();
+            Wormhole<Integer> wormhole = new Wormhole<>();
             for (int i = 0; i < recordCount; i++) {
-              String key = TestHelpers.genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(minKeyLength, maxKeyLength);
+              keys.add(key);
+              wormhole.put(key, i);
+            }
+            return new ResourceAndKeys<>(wormhole, keys);
+          }
+
+          @Override
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<Wormhole<Integer>> resourceAndKeys) {
+            return () -> {
+              Wormhole<Integer> wormhole = resourceAndKeys.resource;
+              List<String> keys = resourceAndKeys.keys;
+              while (!keys.isEmpty()) {
+                int keyIndex = ThreadLocalRandom.current().nextInt(keys.size());
+                String key = keys.remove(keyIndex);
+                assert key != null;
+                assert wormhole.delete(key);
+              }
+            };
+          }
+        });
+  }
+
+  @Test
+  void deleteFromRedBlackTreeMap() throws Throwable {
+    execute(
+        new TestCase<ResourceAndKeys<TreeMap<String, Integer>>, RuntimeException>() {
+          @Override
+          public String label() {
+            return "Delete from Red-Black tree (TreeMap)";
+          }
+
+          @Override
+          public int count() {
+            return recordCount;
+          }
+
+          @Override
+          public boolean initForEachAttempt() {
+            return true;
+          }
+
+          @Override
+          public ResourceAndKeys<TreeMap<String, Integer>> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            TreeMap<String, Integer> map = new TreeMap<>();
+            for (int i = 0; i < recordCount; i++) {
+              String key = TestHelpers.genRandomKey(minKeyLength, maxKeyLength);
               keys.add(key);
               map.put(key, i);
             }
@@ -589,13 +583,63 @@ class Benchmark {
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<Map<String, Integer>> resourceAndKeys) {
+              ResourceAndKeys<TreeMap<String, Integer>> resourceAndKeys) {
             return () -> {
-              Map<String, Integer> map = resourceAndKeys.resource;
+              TreeMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
-                int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
-                map.put(keys.get(keyIndex), i);
+                int keyIndex = ThreadLocalRandom.current().nextInt(keys.size());
+                String key = keys.remove(keyIndex);
+                assert key != null;
+                assert map.remove(key) != null;
+              }
+            };
+          }
+        });
+  }
+
+  @Test
+  void deleteFromAVLTreeMap() throws Throwable {
+    execute(
+        new TestCase<ResourceAndKeys<Object2ObjectSortedMap<String, Integer>>, RuntimeException>() {
+          @Override
+          public String label() {
+            return "Delete AVL tree map (Fastutil)";
+          }
+
+          @Override
+          public int count() {
+            return recordCount;
+          }
+
+          @Override
+          public boolean initForEachAttempt() {
+            return true;
+          }
+
+          @Override
+          public ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> init() {
+            List<String> keys = new ArrayList<>(recordCount);
+            Object2ObjectSortedMap<String, Integer> map = new Object2ObjectAVLTreeMap<>();
+            for (int i = 0; i < recordCount; i++) {
+              String key = TestHelpers.genRandomKey(minKeyLength, maxKeyLength);
+              keys.add(key);
+              map.put(key, i);
+            }
+            return new ResourceAndKeys<>(map, keys);
+          }
+
+          @Override
+          public ThrowableRunnable<RuntimeException> createTask(
+              ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> resourceAndKeys) {
+            return () -> {
+              Object2ObjectSortedMap<String, Integer> map = resourceAndKeys.resource;
+              List<String> keys = resourceAndKeys.keys;
+              for (int i = 0; i < count(); i++) {
+                int keyIndex = ThreadLocalRandom.current().nextInt(keys.size());
+                String key = keys.remove(keyIndex);
+                assert key != null;
+                map.remove(key);
               }
             };
           }
@@ -621,7 +665,7 @@ class Benchmark {
             List<String> keys = new ArrayList<>(recordCount);
             Wormhole<Integer> wormhole = new Wormhole<>();
             for (int i = 0; i < recordCount; i++) {
-              String key = TestHelpers.genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(minKeyLength, maxKeyLength);
               keys.add(key);
               wormhole.put(key, i);
             }
@@ -669,7 +713,7 @@ class Benchmark {
             List<String> keys = new ArrayList<>(recordCount);
             TreeMap<String, Integer> map = new TreeMap<>();
             for (int i = 0; i < recordCount; i++) {
-              String key = TestHelpers.genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(minKeyLength, maxKeyLength);
               keys.add(key);
               map.put(key, i);
             }
@@ -719,7 +763,7 @@ class Benchmark {
             List<String> keys = new ArrayList<>(recordCount);
             Object2ObjectSortedMap<String, Integer> map = new Object2ObjectAVLTreeMap<>();
             for (int i = 0; i < recordCount; i++) {
-              String key = TestHelpers.genRandomKey(maxKeyLength);
+              String key = TestHelpers.genRandomKey(minKeyLength, maxKeyLength);
               keys.add(key);
               map.put(key, i);
             }
