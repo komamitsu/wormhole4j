@@ -19,8 +19,8 @@ package org.komamitsu.wormhole4j;
 import java.util.concurrent.ThreadLocalRandom;
 
 class TestHelpers {
-  static String genRandomKey(int maxKeyLength) {
-    int keyLength = ThreadLocalRandom.current().nextInt(0, maxKeyLength);
+  static String genRandomKey(int minKeyLength, int maxKeyLength) {
+    int keyLength = ThreadLocalRandom.current().nextInt(minKeyLength, maxKeyLength);
     StringBuilder sb = new StringBuilder(keyLength);
     for (int j = 0; j < keyLength; j++) {
       char c = (char) ThreadLocalRandom.current().nextInt('a', 'z' + 1);
