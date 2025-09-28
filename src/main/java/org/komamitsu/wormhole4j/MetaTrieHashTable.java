@@ -58,18 +58,18 @@ class MetaTrieHashTable<T> {
       super(anchorPrefix);
       this.leftMostLeafNode = leftMostLeafNode;
       this.rightMostLeafNode = rightMostLeafNode;
-      this.bitmap = new BitSet();
+      this.bitmap = new BitSet(128);
       bitmap.set(initBitIndex);
     }
 
-    Character findOneSibling(char sibling) {
+    Character findOneSibling(char fromIndex) {
       // Search left siblings.
-      int index = bitmap.previousSetBit(sibling);
+      int index = bitmap.previousSetBit(fromIndex);
       if (index >= 0) {
         return (char) index;
       }
       // Search right siblings.
-      index = bitmap.nextSetBit(sibling);
+      index = bitmap.nextSetBit(fromIndex);
       if (index >= 0) {
         return (char) index;
       }
