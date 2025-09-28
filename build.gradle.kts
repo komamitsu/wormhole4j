@@ -60,9 +60,6 @@ dependencies {
 java {
     withSourcesJar()
     withJavadocJar()
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(8))
-    }
 }
 
 spotless {
@@ -86,6 +83,8 @@ val benchmark = task<Test>("benchmark") {
     classpath = sourceSets["benchmark"].runtimeClasspath
     useJUnitPlatform()
     outputs.upToDateWhen { false }
+    // jvmArgs = listOf("-XX:StartFlightRecording=disk=false,dumponexit=true,filename=profile.jfr", "-XX:FlightRecorderOptions=stackdepth=128")
+    // jvmArgs = listOf("-agentpath:/path/to/libasyncProfiler.so=start,event=cpu,interval=100us,file=profile.html")
 }
 
 publishing {
