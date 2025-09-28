@@ -121,11 +121,12 @@ class WormholeTest {
       // Arrange
       Wormhole<Integer> wormhole = new Wormhole<>(leafNodeSize);
       Wormhole.Validator<Integer> validator = new Wormhole.Validator<>(wormhole);
+      int minKeyLength = 4;
       int maxKeyLength = 16;
       int recordCount = 50000;
       Map<String, Integer> expected = new LinkedHashMap<>(recordCount);
       for (int i = 0; i < recordCount; i++) {
-        String key = genRandomKey(maxKeyLength);
+        String key = genRandomKey(minKeyLength, maxKeyLength);
         int value = ThreadLocalRandom.current().nextInt();
         expected.put(key, value);
         wormhole.put(key, value);
@@ -644,12 +645,13 @@ class WormholeTest {
       // Arrange
       Wormhole<Integer> wormhole = new Wormhole<>(leafNodeSize);
       Wormhole.Validator<Integer> validator = new Wormhole.Validator<>(wormhole);
+      int minKeyLength = 4;
       int maxKeyLength = 16;
       int recordCount = 50000;
       TreeMap<String, Integer> expected = new TreeMap<>();
       List<String> keys = new ArrayList<>(recordCount);
       for (int i = 0; i < recordCount; i++) {
-        String key = genRandomKey(maxKeyLength);
+        String key = genRandomKey(minKeyLength, maxKeyLength);
         int value = ThreadLocalRandom.current().nextInt();
         expected.put(key, value);
         keys.add(key);
@@ -663,7 +665,7 @@ class WormholeTest {
       for (int i = 0; i < 1000; i++) {
         int count = ThreadLocalRandom.current().nextInt(10000);
         {
-          String key = genRandomKey(maxKeyLength);
+          String key = genRandomKey(minKeyLength, maxKeyLength);
           expectedKeyValues.clear();
           for (Map.Entry<String, Integer> entry :
               expected.subMap(key, "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz").entrySet()) {
@@ -1020,11 +1022,12 @@ class WormholeTest {
       // Arrange
       Wormhole<Integer> wormhole = new Wormhole<>(leafNodeSize);
       Wormhole.Validator<Integer> validator = new Wormhole.Validator<>(wormhole);
+      int minKeyLength = 4;
       int maxKeyLength = 16;
       int recordCount = 30000;
       Map<String, Integer> expected = new HashMap<>(recordCount);
       for (int i = 0; i < recordCount; i++) {
-        String key = genRandomKey(maxKeyLength);
+        String key = genRandomKey(minKeyLength, maxKeyLength);
         int value = ThreadLocalRandom.current().nextInt();
         expected.put(key, value);
         wormhole.put(key, value);
