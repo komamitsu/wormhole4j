@@ -19,22 +19,23 @@ package org.komamitsu.wormhole4j;
 import java.util.Objects;
 
 /**
- * Represents a key-value pair stored in a {@link Wormhole}.
+ * Represents a key-value pair stored in a {@link WormholeForStringKey}.
  *
+ * @param <T> the type of the key
  * @param <T> the type of the value
  */
-public class KeyValue<T> {
-  private final String key;
+public class KeyValue<K, T> {
+  private final Key<K> key;
   private T value;
 
-  KeyValue(String key, T value) {
+  KeyValue(Key<K> key, T value) {
     this.key = key;
     this.value = value;
   }
 
   @Override
   public String toString() {
-    return "KeyValue{" + "key='" + Utils.printableKey(key) + '\'' + ", value=" + value + '}';
+    return "KeyValue{" + "key=" + key + ", value=" + value + '}';
   }
 
   /**
@@ -42,8 +43,17 @@ public class KeyValue<T> {
    *
    * @return the key
    */
-  public String getKey() {
-    return key;
+  public K getKey() {
+    return key.key;
+  }
+
+  /**
+   * Returns the encoded key.
+   *
+   * @return the encoded key
+   */
+  String getEncodedKey() {
+    return key.encodedKey;
   }
 
   /**
@@ -63,12 +73,12 @@ public class KeyValue<T> {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-    KeyValue<?> keyValue = (KeyValue<?>) o;
+    KeyValue<?, ?> keyValue = (KeyValue<?, ?>) o;
     return Objects.equals(key, keyValue.key) && Objects.equals(value, keyValue.value);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(key, value);
+    return Objects.hash(key.key, value);
   }
 }
