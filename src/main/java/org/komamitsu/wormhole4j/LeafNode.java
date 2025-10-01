@@ -437,8 +437,8 @@ class LeafNode<K, T> {
 
   @Nullable
   private <R> R pointSearchLeaf(
-      String key, BiFunction<KeyValue<K, T>, Integer, R> kvAndTagIndexReceivingFunc) {
-    short keyHash = calculateKeyHash(key);
+      String encodedKey, BiFunction<KeyValue<K, T>, Integer, R> kvAndTagIndexReceivingFunc) {
+    short keyHash = calculateKeyHash(encodedKey);
     int leafSize = keyValues.size();
     int tagIndex = keyHash * leafSize / (Short.MAX_VALUE + 1);
     while (tagIndex > 0 && keyHash <= tags.getHashTag(tagIndex - 1)) {
@@ -449,7 +449,7 @@ class LeafNode<K, T> {
     }
     while (tagIndex < leafSize && tags.getHashTag(tagIndex) == keyHash) {
       KeyValue<K, T> kv = tags.getKeyValue(tagIndex);
-      if (kv.getKey().equals(key)) {
+      if (kv.getEncodedKey().equals(encodedKey)) {
         return kvAndTagIndexReceivingFunc.apply(kv, tagIndex);
       }
       tagIndex++;
@@ -458,8 +458,8 @@ class LeafNode<K, T> {
   }
 
   @Nullable
-  KeyValue<K, T> pointSearchLeaf(String key) {
-    return pointSearchLeaf(key, (kv, tagIndex) -> kv);
+  KeyValue<K, T> pointSearchLeaf(String encodedKey) {
+    return pointSearchLeaf(encodedKey, (kv, tagIndex) -> kv);
   }
 
   void incSort() {

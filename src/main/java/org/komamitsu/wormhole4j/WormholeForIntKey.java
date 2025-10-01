@@ -17,6 +17,18 @@
 package org.komamitsu.wormhole4j;
 
 public class WormholeForIntKey<V> extends WormholeInternal<Integer, V> {
+  public WormholeForIntKey() {
+    super();
+  }
+
+  public WormholeForIntKey(int leafNodeSize) {
+    super(leafNodeSize);
+  }
+
+  public WormholeForIntKey(int leafNodeSize, boolean debugMode) {
+    super(leafNodeSize, debugMode);
+  }
+
   @Override
   String encodeKey(Integer key) {
     return String.format("%08x", 0x80000000 ^ key);
