@@ -16,7 +16,7 @@
 
 package org.komamitsu.wormhole4j;
 
-public class WormholeForIntKey<V> extends WormholeInternal<Integer, V> {
+public class WormholeForIntKey<V> extends Wormhole<Integer, V> {
   public WormholeForIntKey() {
     super();
   }

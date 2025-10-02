@@ -19,16 +19,16 @@ package org.komamitsu.wormhole4j;
 import java.util.Objects;
 
 /**
- * Represents a key-value pair stored in a {@link WormholeForStringKey}.
+ * Represents a key-value pair stored in a {@link Wormhole}.
  *
- * @param <T> the type of the key
- * @param <T> the type of the value
+ * @param <K> the type of the key
+ * @param <V> the type of the value
  */
-public class KeyValue<K, T> {
+public class KeyValue<K, V> {
   private final Key<K> key;
-  private T value;
+  private V value;
 
-  KeyValue(Key<K> key, T value) {
+  KeyValue(Key<K> key, V value) {
     this.key = key;
     this.value = value;
   }
@@ -61,11 +61,11 @@ public class KeyValue<K, T> {
    *
    * @return the value
    */
-  public T getValue() {
+  public V getValue() {
     return value;
   }
 
-  void setValue(T value) {
+  void setValue(V value) {
     this.value = value;
   }
 

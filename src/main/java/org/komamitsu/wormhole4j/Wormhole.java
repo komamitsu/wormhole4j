@@ -30,10 +30,10 @@ import javax.annotation.Nullable;
  * @param <K> the type of keys stored in this index
  * @param <T> the type of values stored in this index
  */
-abstract class WormholeInternal<K, T> {
+abstract class Wormhole<K, T> {
   private static final int DEFAULT_LEAF_NODE_SIZE = 128;
-  public static final String SMALLEST_TOKEN = "\0";
-  public static final char BITMAP_INDEX_OF_SMALLEST_TOKEN = 0;
+  static final String SMALLEST_TOKEN = "\0";
+  static final char BITMAP_INDEX_OF_SMALLEST_TOKEN = 0;
   private final MetaTrieHashTable<K, T> table = new MetaTrieHashTable<>();
   private final int leafNodeSize;
   private final int leafNodeMergeSize;
@@ -41,7 +41,7 @@ abstract class WormholeInternal<K, T> {
   private final Function<String, String> validAnchorKeyProvider;
 
   /** Creates a Wormhole with the default leaf node size. */
-  public WormholeInternal() {
+  public Wormhole() {
     this(DEFAULT_LEAF_NODE_SIZE);
   }
 
@@ -50,7 +50,7 @@ abstract class WormholeInternal<K, T> {
    *
    * @param leafNodeSize maximum number of entries in a leaf node
    */
-  public WormholeInternal(int leafNodeSize) {
+  public Wormhole(int leafNodeSize) {
     this(leafNodeSize, false);
   }
 
@@ -60,7 +60,7 @@ abstract class WormholeInternal<K, T> {
    * @param leafNodeSize maximum number of entries in a leaf node
    * @param debugMode enables internal consistency checks if {@code true}
    */
-  public WormholeInternal(int leafNodeSize, boolean debugMode) {
+  public Wormhole(int leafNodeSize, boolean debugMode) {
     this.leafNodeSize = leafNodeSize;
     this.leafNodeMergeSize = leafNodeSize * 3 / 4;
     validAnchorKeyProvider = this::provideValidAnchorKey;
@@ -396,9 +396,9 @@ abstract class WormholeInternal<K, T> {
   }
 
   static class Validator<K, T> {
-    private final WormholeInternal<K, T> wormhole;
+    private final Wormhole<K, T> wormhole;
 
-    Validator(WormholeInternal<K, T> wormhole) {
+    Validator(Wormhole<K, T> wormhole) {
       this.wormhole = wormhole;
     }
 

@@ -18,19 +18,22 @@ package org.komamitsu.wormhole4j;
 
 import java.util.Objects;
 
-class Key<T> {
-  final T key;
+class Key<K> {
+  final K key;
   final String encodedKey;
 
-  Key(T key, String encodedKey) {
+  Key(K key, String encodedKey) {
     this.key = key;
     this.encodedKey = encodedKey;
   }
 
-  // Only for testing
-  Key(T key) {
+  private Key(K key) {
     this.key = key;
     this.encodedKey = null;
+  }
+
+  static <K> Key<K> createForTest(K key) {
+    return new Key<>(key);
   }
 
   @Override
@@ -57,7 +60,7 @@ class Key<T> {
     return Objects.hashCode(key);
   }
 
-  public T getKey() {
+  public K getKey() {
     return key;
   }
 }

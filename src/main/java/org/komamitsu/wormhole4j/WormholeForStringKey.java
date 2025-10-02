@@ -16,7 +16,7 @@
 
 package org.komamitsu.wormhole4j;
 
-public class WormholeForStringKey<V> extends WormholeInternal<String, V> {
+public class WormholeForStringKey<V> extends Wormhole<String, V> {
   public WormholeForStringKey() {
     super();
   }
