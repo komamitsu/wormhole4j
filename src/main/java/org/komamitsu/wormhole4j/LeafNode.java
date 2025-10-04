@@ -698,14 +698,14 @@ class LeafNode<K, V> {
         throw new AssertionError(
             String.format(
                 "The key is smaller than the anchor key. Key: %s, Anchor key: %s",
-                kv.getKey(), normalizedAnchorKey));
+                kv.getKey(), Utils.printableKey(normalizedAnchorKey)));
       }
       if (normalizedRightAnchorKey != null
           && normalizedRightAnchorKey.compareTo(kv.getEncodedKey()) < 0) {
         throw new AssertionError(
             String.format(
                 "The anchor key of the right leaf node is smaller than the key. Key: %s, Right leaf node's anchor key: %s",
-                Utils.printableKey(kv.getEncodedKey()), normalizedRightAnchorKey));
+                kv.getKey(), Utils.printableKey(normalizedRightAnchorKey)));
       }
     }
 
