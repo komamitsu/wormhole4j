@@ -31,6 +31,7 @@ public class WormholeForIntKey<V> extends Wormhole<Integer, V> {
 
   @Override
   String encodeKey(Integer key) {
+    // Encode an int into a lexicographically ordered hexadecimal string.
     return String.format("%08x", 0x80000000 ^ key);
   }
 }
