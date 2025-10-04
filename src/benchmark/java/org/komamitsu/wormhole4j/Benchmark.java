@@ -161,7 +161,7 @@ class Benchmark {
           @Override
           public ThrowableRunnable<RuntimeException> createTask(List<String> keys) {
             return () -> {
-              Wormhole<Integer> wormhole = new Wormhole<>();
+              WormholeForStringKey<Integer> wormhole = new WormholeForStringKey<>();
               for (int i = 0; i < recordCount; i++) {
                 wormhole.put(keys.get(i), i);
               }
@@ -253,7 +253,7 @@ class Benchmark {
   @Test
   void getFromWormhole() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<Wormhole<Integer>>, RuntimeException>() {
+        new TestCase<ResourceAndKeys<WormholeForStringKey<Integer>>, RuntimeException>() {
           @Override
           public String label() {
             return "Get from Wormhole (Wormhole4j)";
@@ -265,9 +265,9 @@ class Benchmark {
           }
 
           @Override
-          public ResourceAndKeys<Wormhole<Integer>> init() {
+          public ResourceAndKeys<WormholeForStringKey<Integer>> init() {
             List<String> keys = new ArrayList<>(recordCount);
-            Wormhole<Integer> wormhole = new Wormhole<>();
+            WormholeForStringKey<Integer> wormhole = new WormholeForStringKey<>();
             for (int i = 0; i < recordCount; i++) {
               String key = TestHelpers.genRandomKey(minKeyLength, maxKeyLength);
               keys.add(key);
@@ -278,9 +278,9 @@ class Benchmark {
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<Wormhole<Integer>> resourceAndKeys) {
+              ResourceAndKeys<WormholeForStringKey<Integer>> resourceAndKeys) {
             return () -> {
-              Wormhole<Integer> wormhole = resourceAndKeys.resource;
+              WormholeForStringKey<Integer> wormhole = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
                 int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
@@ -376,7 +376,7 @@ class Benchmark {
   @Test
   void updateWormhole() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<Wormhole<Integer>>, RuntimeException>() {
+        new TestCase<ResourceAndKeys<WormholeForStringKey<Integer>>, RuntimeException>() {
           @Override
           public String label() {
             return "Update Wormhole (Wormhole4j)";
@@ -388,9 +388,9 @@ class Benchmark {
           }
 
           @Override
-          public ResourceAndKeys<Wormhole<Integer>> init() {
+          public ResourceAndKeys<WormholeForStringKey<Integer>> init() {
             List<String> keys = new ArrayList<>(recordCount);
-            Wormhole<Integer> wormhole = new Wormhole<>();
+            WormholeForStringKey<Integer> wormhole = new WormholeForStringKey<>();
             for (int i = 0; i < recordCount; i++) {
               String key = TestHelpers.genRandomKey(minKeyLength, maxKeyLength);
               keys.add(key);
@@ -401,9 +401,9 @@ class Benchmark {
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<Wormhole<Integer>> resourceAndKeys) {
+              ResourceAndKeys<WormholeForStringKey<Integer>> resourceAndKeys) {
             return () -> {
-              Wormhole<Integer> wormhole = resourceAndKeys.resource;
+              WormholeForStringKey<Integer> wormhole = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
                 int keyIndex = ThreadLocalRandom.current().nextInt(recordCount);
@@ -499,7 +499,7 @@ class Benchmark {
   @Test
   void deleteFromWormhole() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<Wormhole<Integer>>, RuntimeException>() {
+        new TestCase<ResourceAndKeys<WormholeForStringKey<Integer>>, RuntimeException>() {
           @Override
           public String label() {
             return "Delete from Wormhole (Wormhole4j)";
@@ -516,9 +516,9 @@ class Benchmark {
           }
 
           @Override
-          public ResourceAndKeys<Wormhole<Integer>> init() {
+          public ResourceAndKeys<WormholeForStringKey<Integer>> init() {
             List<String> keys = new ArrayList<>(recordCount);
-            Wormhole<Integer> wormhole = new Wormhole<>();
+            WormholeForStringKey<Integer> wormhole = new WormholeForStringKey<>();
             for (int i = 0; i < recordCount; i++) {
               String key = TestHelpers.genRandomKey(minKeyLength, maxKeyLength);
               keys.add(key);
@@ -530,9 +530,9 @@ class Benchmark {
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<Wormhole<Integer>> resourceAndKeys) {
+              ResourceAndKeys<WormholeForStringKey<Integer>> resourceAndKeys) {
             return () -> {
-              Wormhole<Integer> wormhole = resourceAndKeys.resource;
+              WormholeForStringKey<Integer> wormhole = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
                 String key = keys.get(i);
@@ -640,7 +640,7 @@ class Benchmark {
   @Test
   void scanFromWormhole() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<Wormhole<Integer>>, RuntimeException>() {
+        new TestCase<ResourceAndKeys<WormholeForStringKey<Integer>>, RuntimeException>() {
           @Override
           public String label() {
             return "Scan from Wormhole (Wormhole4j)";
@@ -652,9 +652,9 @@ class Benchmark {
           }
 
           @Override
-          public ResourceAndKeys<Wormhole<Integer>> init() {
+          public ResourceAndKeys<WormholeForStringKey<Integer>> init() {
             List<String> keys = new ArrayList<>(recordCount);
-            Wormhole<Integer> wormhole = new Wormhole<>();
+            WormholeForStringKey<Integer> wormhole = new WormholeForStringKey<>();
             for (int i = 0; i < recordCount; i++) {
               String key = TestHelpers.genRandomKey(minKeyLength, maxKeyLength);
               keys.add(key);
@@ -666,9 +666,9 @@ class Benchmark {
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<Wormhole<Integer>> resourceAndKeys) {
+              ResourceAndKeys<WormholeForStringKey<Integer>> resourceAndKeys) {
             return () -> {
-              Wormhole<Integer> wormhole = resourceAndKeys.resource;
+              WormholeForStringKey<Integer> wormhole = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
                 int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);

@@ -21,20 +21,21 @@ import java.util.Objects;
 /**
  * Represents a key-value pair stored in a {@link Wormhole}.
  *
- * @param <T> the type of the value
+ * @param <K> the type of the key
+ * @param <V> the type of the value
  */
-public class KeyValue<T> {
-  private final String key;
-  private T value;
+public class KeyValue<K, V> {
+  private final Key<K> key;
+  private V value;
 
-  KeyValue(String key, T value) {
+  KeyValue(Key<K> key, V value) {
     this.key = key;
     this.value = value;
   }
 
   @Override
   public String toString() {
-    return "KeyValue{" + "key='" + Utils.printableKey(key) + '\'' + ", value=" + value + '}';
+    return "KeyValue{" + "key=" + key + ", value=" + value + '}';
   }
 
   /**
@@ -42,8 +43,17 @@ public class KeyValue<T> {
    *
    * @return the key
    */
-  public String getKey() {
-    return key;
+  public K getKey() {
+    return key.key;
+  }
+
+  /**
+   * Returns the encoded key.
+   *
+   * @return the encoded key
+   */
+  String getEncodedKey() {
+    return key.encodedKey;
   }
 
   /**
@@ -51,11 +61,11 @@ public class KeyValue<T> {
    *
    * @return the value
    */
-  public T getValue() {
+  public V getValue() {
     return value;
   }
 
-  void setValue(T value) {
+  void setValue(V value) {
     this.value = value;
   }
 
@@ -63,12 +73,12 @@ public class KeyValue<T> {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-    KeyValue<?> keyValue = (KeyValue<?>) o;
+    KeyValue<?, ?> keyValue = (KeyValue<?, ?>) o;
     return Objects.equals(key, keyValue.key) && Objects.equals(value, keyValue.value);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(key, value);
+    return Objects.hash(key.key, value);
   }
 }

@@ -16,14 +16,16 @@
 
 package org.komamitsu.wormhole4j;
 
+import static org.komamitsu.wormhole4j.Wormhole.*;
+
 import java.util.*;
 import javax.annotation.Nullable;
 
-class MetaTrieHashTable<T> {
-  private final Map<String, NodeMeta<T>> table = new HashMap<>();
+class MetaTrieHashTable<K, V> {
+  private final Map<String, NodeMeta<K, V>> table = new HashMap<>();
   private int maxAnchorLength;
 
-  abstract static class NodeMeta<T> {
+  abstract static class NodeMeta<K, T> {
     final String anchorPrefix;
 
     public NodeMeta(String anchorPrefix) {
@@ -31,10 +33,10 @@ class MetaTrieHashTable<T> {
     }
   }
 
-  static class NodeMetaLeaf<T> extends NodeMeta<T> {
-    final LeafNode<T> leafNode;
+  static class NodeMetaLeaf<K, T> extends NodeMeta<K, T> {
+    final LeafNode<K, T> leafNode;
 
-    NodeMetaLeaf(String anchorPrefix, LeafNode<T> leafNode) {
+    NodeMetaLeaf(String anchorPrefix, LeafNode<K, T> leafNode) {
       super(anchorPrefix);
       this.leafNode = leafNode;
     }
@@ -45,15 +47,15 @@ class MetaTrieHashTable<T> {
     }
   }
 
-  static class NodeMetaInternal<T> extends NodeMeta<T> {
-    private LeafNode<T> leftMostLeafNode;
-    private LeafNode<T> rightMostLeafNode;
+  static class NodeMetaInternal<K, T> extends NodeMeta<K, T> {
+    private LeafNode<K, T> leftMostLeafNode;
+    private LeafNode<K, T> rightMostLeafNode;
     final BitSet bitmap;
 
     NodeMetaInternal(
         String anchorPrefix,
-        LeafNode<T> leftMostLeafNode,
-        LeafNode<T> rightMostLeafNode,
+        LeafNode<K, T> leftMostLeafNode,
+        LeafNode<K, T> rightMostLeafNode,
         char initBitIndex) {
       super(anchorPrefix);
       this.leftMostLeafNode = leftMostLeafNode;
@@ -76,19 +78,19 @@ class MetaTrieHashTable<T> {
       return null;
     }
 
-    LeafNode<T> getLeftMostLeafNode() {
+    LeafNode<K, T> getLeftMostLeafNode() {
       return leftMostLeafNode;
     }
 
-    LeafNode<T> getRightMostLeafNode() {
+    LeafNode<K, T> getRightMostLeafNode() {
       return rightMostLeafNode;
     }
 
-    void setLeftMostLeafNode(LeafNode<T> leftMostLeafNode) {
+    void setLeftMostLeafNode(LeafNode<K, T> leftMostLeafNode) {
       this.leftMostLeafNode = leftMostLeafNode;
     }
 
-    void setRightMostLeafNode(LeafNode<T> rightMostLeafNode) {
+    void setRightMostLeafNode(LeafNode<K, T> rightMostLeafNode) {
       this.rightMostLeafNode = rightMostLeafNode;
     }
 
@@ -105,26 +107,26 @@ class MetaTrieHashTable<T> {
     }
   }
 
-  NodeMeta<T> get(String key) {
+  NodeMeta<K, V> get(String key) {
     return table.get(key);
   }
 
-  void put(String key, NodeMeta<T> nodeMeta) {
+  void put(String key, NodeMeta<K, V> nodeMeta) {
     table.put(key, nodeMeta);
     maxAnchorLength = Math.max(maxAnchorLength, key.length());
   }
 
-  Collection<NodeMeta<T>> values() {
+  Collection<NodeMeta<K, V>> values() {
     return table.values();
   }
 
-  Set<Map.Entry<String, NodeMeta<T>>> entrySet() {
+  Set<Map.Entry<String, NodeMeta<K, V>>> entrySet() {
     return table.entrySet();
   }
 
-  void handleSplitNodes(String newAnchorKey, LeafNode<T> newLeafNode) {
-    NodeMetaLeaf<T> newNodeMeta = new NodeMetaLeaf<>(newAnchorKey, newLeafNode);
-    NodeMeta<T> existingNodeMeta = get(newAnchorKey);
+  void handleSplitNodes(String newAnchorKey, LeafNode<K, V> newLeafNode) {
+    NodeMetaLeaf<K, V> newNodeMeta = new NodeMetaLeaf<>(newAnchorKey, newLeafNode);
+    NodeMeta<K, V> existingNodeMeta = get(newAnchorKey);
     if (existingNodeMeta != null) {
       throw new AssertionError(
           String.format(
@@ -136,7 +138,7 @@ class MetaTrieHashTable<T> {
     // Update the ancestor NodeMeta instances for the new leaf node.
     for (int prefixLen = 0; prefixLen < newAnchorKey.length(); prefixLen++) {
       String prefix = newAnchorKey.substring(0, prefixLen);
-      NodeMeta<T> node = table.get(prefix);
+      NodeMeta<K, V> node = table.get(prefix);
       if (node == null) {
         put(
             prefix,
@@ -146,18 +148,17 @@ class MetaTrieHashTable<T> {
       }
 
       if (node instanceof NodeMetaLeaf) {
-        LeafNode<T> leafNode = ((NodeMetaLeaf<T>) node).leafNode;
+        LeafNode<K, V> leafNode = ((NodeMetaLeaf<K, V>) node).leafNode;
 
         // If there is a leaf node which has the same prefix, append the smallest token to the
         // prefix of the leaf node and add an internal node with the same prefix instead of the
         // original leaf node.
-        String prefixWithSmallestToken = prefix + Wormhole.SMALLEST_TOKEN;
-        NodeMetaLeaf<T> updatedNode = new NodeMetaLeaf<>(prefixWithSmallestToken, leafNode);
+        String prefixWithSmallestToken = prefix + SMALLEST_TOKEN;
+        NodeMetaLeaf<K, V> updatedNode = new NodeMetaLeaf<>(prefixWithSmallestToken, leafNode);
         put(prefixWithSmallestToken, updatedNode);
 
-        NodeMetaInternal<T> parent =
-            new NodeMetaInternal<>(
-                prefix, leafNode, leafNode, Wormhole.BITMAP_INDEX_OF_SMALLEST_TOKEN);
+        NodeMetaInternal<K, V> parent =
+            new NodeMetaInternal<>(prefix, leafNode, leafNode, BITMAP_INDEX_OF_SMALLEST_TOKEN);
         put(prefix, parent);
 
         node = parent;
@@ -165,7 +166,7 @@ class MetaTrieHashTable<T> {
 
       assert node instanceof NodeMetaInternal;
 
-      NodeMetaInternal<T> internalNode = (NodeMetaInternal<T>) node;
+      NodeMetaInternal<K, V> internalNode = (NodeMetaInternal<K, V>) node;
 
       // The pseudocode in the paper does not update existing internal nodes' bitmap. However,
       // this update is probably necessary.
@@ -184,7 +185,7 @@ class MetaTrieHashTable<T> {
     }
   }
 
-  NodeMeta<T> searchLongestPrefixMatch(String searchKey) {
+  NodeMeta<K, V> searchLongestPrefixMatch(String searchKey) {
     String lpm = searchLongestPrefixMatchKey(searchKey);
     return table.get(lpm);
   }
@@ -204,19 +205,19 @@ class MetaTrieHashTable<T> {
   }
 
   @Nullable
-  NodeMetaLeaf<T> findNodeMetaLeaf(String anchorKey) {
+  NodeMetaLeaf<K, V> findNodeMetaLeaf(String anchorKey) {
     {
-      NodeMeta<T> nodeMeta = table.get(anchorKey);
+      NodeMeta<K, V> nodeMeta = table.get(anchorKey);
       if (nodeMeta instanceof NodeMetaLeaf) {
-        return (NodeMetaLeaf<T>) nodeMeta;
+        return (NodeMetaLeaf<K, V>) nodeMeta;
       }
     }
 
     {
-      String anchorKeyWithSmallestToken = anchorKey + Wormhole.SMALLEST_TOKEN;
-      NodeMeta<T> nodeMeta = table.get(anchorKeyWithSmallestToken);
+      String anchorKeyWithSmallestToken = anchorKey + SMALLEST_TOKEN;
+      NodeMeta<K, V> nodeMeta = table.get(anchorKeyWithSmallestToken);
       if (nodeMeta instanceof NodeMetaLeaf) {
-        return (NodeMetaLeaf<T>) nodeMeta;
+        return (NodeMetaLeaf<K, V>) nodeMeta;
       }
     }
 
@@ -224,19 +225,19 @@ class MetaTrieHashTable<T> {
   }
 
   @Nullable
-  NodeMetaInternal<T> findNodeMetaInternal(String anchorKey) {
+  NodeMetaInternal<K, V> findNodeMetaInternal(String anchorKey) {
     {
-      NodeMeta<T> nodeMeta = table.get(anchorKey);
+      NodeMeta<K, V> nodeMeta = table.get(anchorKey);
       if (nodeMeta instanceof NodeMetaInternal) {
-        return (NodeMetaInternal<T>) nodeMeta;
+        return (NodeMetaInternal<K, V>) nodeMeta;
       }
     }
 
     {
-      String anchorKeyWithSmallestToken = anchorKey + Wormhole.SMALLEST_TOKEN;
-      NodeMeta<T> nodeMeta = table.get(anchorKeyWithSmallestToken);
+      String anchorKeyWithSmallestToken = anchorKey + SMALLEST_TOKEN;
+      NodeMeta<K, V> nodeMeta = table.get(anchorKeyWithSmallestToken);
       if (nodeMeta instanceof NodeMetaInternal) {
-        return (NodeMetaInternal<T>) nodeMeta;
+        return (NodeMetaInternal<K, V>) nodeMeta;
       }
     }
 
@@ -244,11 +245,11 @@ class MetaTrieHashTable<T> {
   }
 
   String removeNodeMetaLeaf(String origAnchorKey) {
-    NodeMeta<T> nodeMeta = table.get(origAnchorKey);
+    NodeMeta<K, V> nodeMeta = table.get(origAnchorKey);
     String anchorKey =
-        nodeMeta instanceof NodeMetaLeaf ? origAnchorKey : origAnchorKey + Wormhole.SMALLEST_TOKEN;
+        nodeMeta instanceof NodeMetaLeaf ? origAnchorKey : origAnchorKey + SMALLEST_TOKEN;
 
-    NodeMeta<T> removed = table.remove(anchorKey);
+    NodeMeta<K, V> removed = table.remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(
           String.format("Node meta leaf for anchor key '%s' not found for removal", anchorKey));
@@ -267,13 +268,11 @@ class MetaTrieHashTable<T> {
   }
 
   String removeNodeMetaInternal(String origAnchorKey) {
-    NodeMeta<T> nodeMeta = table.get(origAnchorKey);
+    NodeMeta<K, V> nodeMeta = table.get(origAnchorKey);
     String anchorKey =
-        nodeMeta instanceof NodeMetaInternal
-            ? origAnchorKey
-            : origAnchorKey + Wormhole.SMALLEST_TOKEN;
+        nodeMeta instanceof NodeMetaInternal ? origAnchorKey : origAnchorKey + SMALLEST_TOKEN;
 
-    NodeMeta<T> removed = table.remove(anchorKey);
+    NodeMeta<K, V> removed = table.remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(
           String.format("Node meta internal for anchor key '%s' not found for removal", anchorKey));
