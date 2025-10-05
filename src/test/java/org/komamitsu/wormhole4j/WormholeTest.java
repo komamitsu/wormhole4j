@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.Parameter;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.komamitsu.wormhole4j.WormholeBase.Validator;
 
 @ParameterizedClass
 @ValueSource(ints = {3, 128})
@@ -120,7 +121,7 @@ class WormholeTest {
     void withManyLeafNodes_ShouldReturnThem() {
       // Arrange
       Wormhole<Integer> wormhole = new Wormhole<>(leafNodeSize);
-      Wormhole.Validator<String, Integer> validator = new Wormhole.Validator<>(wormhole);
+      Validator<String, Integer> validator = new Validator<>(wormhole);
       int minKeyLength = 4;
       int maxKeyLength = 16;
       int recordCount = 50000;
@@ -644,7 +645,7 @@ class WormholeTest {
     void withManyLeafNodes_ShouldReturnThem() {
       // Arrange
       Wormhole<Integer> wormhole = new Wormhole<>(leafNodeSize);
-      Wormhole.Validator<String, Integer> validator = new Wormhole.Validator<>(wormhole);
+      Validator<String, Integer> validator = new Validator<>(wormhole);
       int minKeyLength = 4;
       int maxKeyLength = 16;
       int recordCount = 50000;
@@ -1021,7 +1022,7 @@ class WormholeTest {
     void withManyLeafNodes_ShouldReturnIt() {
       // Arrange
       Wormhole<Integer> wormhole = new Wormhole<>(leafNodeSize);
-      Wormhole.Validator<String, Integer> validator = new Wormhole.Validator<>(wormhole);
+      Validator<String, Integer> validator = new Validator<>(wormhole);
       int minKeyLength = 4;
       int maxKeyLength = 16;
       int recordCount = 30000;
