@@ -90,6 +90,8 @@ It used other sorted maps for comparison as follows:
 * **Further optimization**
 * **Persistence support** – Add an optional persistent variant of Wormhole.
 * **Thread safety** – Provide a thread-safe version for concurrent access.
+* **Support non-string type keys**
+  * An experimental implementation, `WormholeForIntKey`, is already available, although the performance isn't as good as the default version for string keys.
 
 ## License
 

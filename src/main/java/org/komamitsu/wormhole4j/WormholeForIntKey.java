@@ -16,7 +16,12 @@
 
 package org.komamitsu.wormhole4j;
 
-public class WormholeForIntKey<V> extends Wormhole<Integer, V> {
+/**
+ * A Wormhole implementation for integer keys. This is experimental.
+ *
+ * @param <V> the type of values stored in this Wormhole
+ */
+public class WormholeForIntKey<V> extends WormholeBase<Integer, V> {
   public WormholeForIntKey() {
     super();
   }

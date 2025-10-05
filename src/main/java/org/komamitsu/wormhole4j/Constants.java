@@ -16,21 +16,9 @@
 
 package org.komamitsu.wormhole4j;
 
-public class WormholeForStringKey<V> extends Wormhole<String, V> {
-  public WormholeForStringKey() {
-    super();
-  }
+final class Constants {
+  static final String SMALLEST_TOKEN = "\0";
+  static final char BITMAP_INDEX_OF_SMALLEST_TOKEN = 0;
 
-  public WormholeForStringKey(int leafNodeSize) {
-    super(leafNodeSize);
-  }
-
-  public WormholeForStringKey(int leafNodeSize, boolean debugMode) {
-    super(leafNodeSize, debugMode);
-  }
-
-  @Override
-  String encodeKey(String key) {
-    return key;
-  }
+  private Constants() {}
 }

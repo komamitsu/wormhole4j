@@ -27,10 +27,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.Parameter;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.komamitsu.wormhole4j.WormholeBase.Validator;
 
 @ParameterizedClass
 @ValueSource(ints = {3, 128})
-class WormholeForStringKeyTest {
+class WormholeTest {
   @Parameter int leafNodeSize;
 
   @Nested
@@ -38,7 +39,7 @@ class WormholeForStringKeyTest {
     @Test
     void withOneLeafNodeWithOneEmptyRecord_ShouldReturnIt() {
       // Arrange
-      WormholeForStringKey<String> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      Wormhole<String> wormhole = new Wormhole<>(leafNodeSize, true);
       wormhole.put("", "foo");
 
       // Act & Assert
@@ -48,7 +49,7 @@ class WormholeForStringKeyTest {
     @Test
     void withOneLeafNodeWithOneRecord_ShouldReturnIt() {
       // Arrange
-      WormholeForStringKey<String> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      Wormhole<String> wormhole = new Wormhole<>(leafNodeSize, true);
       wormhole.put("James", "semaj");
 
       // Act & Assert
@@ -61,7 +62,7 @@ class WormholeForStringKeyTest {
     @Test
     void withOneLeafNodeWithMaxRecords_ShouldReturnIt() {
       // Arrange
-      WormholeForStringKey<String> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      Wormhole<String> wormhole = new Wormhole<>(leafNodeSize, true);
       wormhole.put("James", "semaj");
       wormhole.put("John", "nhoj");
       wormhole.put("Jason", "nosaj");
@@ -78,7 +79,7 @@ class WormholeForStringKeyTest {
     @Test
     void withTwoLeafNodes_ShouldReturnIt() {
       // Arrange
-      WormholeForStringKey<String> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      Wormhole<String> wormhole = new Wormhole<>(leafNodeSize, true);
       wormhole.put("James", "semaj");
       wormhole.put("Joseph", "hpesoj");
       wormhole.put("John", "nhoj");
@@ -101,7 +102,7 @@ class WormholeForStringKeyTest {
     @Test
     void withTwoLeafNodes_UsingSameCharForKey_ShouldReturnIt() {
       // Arrange
-      WormholeForStringKey<Integer> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      Wormhole<Integer> wormhole = new Wormhole<>(leafNodeSize, true);
       wormhole.put("aaaaa", 5);
       wormhole.put("a", 1);
       wormhole.put("aaa", 3);
@@ -119,9 +120,8 @@ class WormholeForStringKeyTest {
     @Test
     void withManyLeafNodes_ShouldReturnThem() {
       // Arrange
-      WormholeForStringKey<Integer> wormhole = new WormholeForStringKey<>(leafNodeSize);
-      WormholeForStringKey.Validator<String, Integer> validator =
-          new WormholeForStringKey.Validator<>(wormhole);
+      Wormhole<Integer> wormhole = new Wormhole<>(leafNodeSize);
+      Validator<String, Integer> validator = new Validator<>(wormhole);
       int minKeyLength = 4;
       int maxKeyLength = 16;
       int recordCount = 50000;
@@ -146,7 +146,7 @@ class WormholeForStringKeyTest {
     @Test
     void withOneLeafNodeWithOneEmptyRecord_ShouldReturnIt() {
       // Arrange
-      WormholeForStringKey<String> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      Wormhole<String> wormhole = new Wormhole<>(leafNodeSize, true);
       wormhole.put("", "foo");
 
       // Act & Assert
@@ -220,7 +220,7 @@ class WormholeForStringKeyTest {
     @Test
     void withOneLeafNodeWithOneRecord_ShouldReturnIt() {
       // Arrange
-      WormholeForStringKey<String> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      Wormhole<String> wormhole = new Wormhole<>(leafNodeSize, true);
       wormhole.put("James", "semaj");
 
       // Act & Assert
@@ -316,7 +316,7 @@ class WormholeForStringKeyTest {
     @Test
     void withOneLeafNodeWithMaxRecords_ShouldReturnIt() {
       // Arrange
-      WormholeForStringKey<String> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      Wormhole<String> wormhole = new Wormhole<>(leafNodeSize, true);
       wormhole.put("James", "semaj");
       wormhole.put("John", "nhoj");
       wormhole.put("Jason", "nosaj");
@@ -460,7 +460,7 @@ class WormholeForStringKeyTest {
     @Test
     void withTwoLeafNodes_ShouldReturnIt() {
       // Arrange
-      WormholeForStringKey<String> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      Wormhole<String> wormhole = new Wormhole<>(leafNodeSize, true);
       wormhole.put("James", "semaj");
       wormhole.put("Joseph", "hpesoj");
       wormhole.put("John", "nhoj");
@@ -571,7 +571,7 @@ class WormholeForStringKeyTest {
     @Test
     void withTwoLeafNodes_UsingSameCharForKey_ShouldReturnIt() {
       // Arrange
-      WormholeForStringKey<Integer> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      Wormhole<Integer> wormhole = new Wormhole<>(leafNodeSize, true);
       wormhole.put("aaaaa", 5);
       wormhole.put("a", 1);
       wormhole.put("aaa", 3);
@@ -644,9 +644,8 @@ class WormholeForStringKeyTest {
     @Test
     void withManyLeafNodes_ShouldReturnThem() {
       // Arrange
-      WormholeForStringKey<Integer> wormhole = new WormholeForStringKey<>(leafNodeSize);
-      WormholeForStringKey.Validator<String, Integer> validator =
-          new WormholeForStringKey.Validator<>(wormhole);
+      Wormhole<Integer> wormhole = new Wormhole<>(leafNodeSize);
+      Validator<String, Integer> validator = new Validator<>(wormhole);
       int minKeyLength = 4;
       int maxKeyLength = 16;
       int recordCount = 50000;
@@ -740,7 +739,7 @@ class WormholeForStringKeyTest {
     @Test
     void withOneRecord_GivenSameEmptyKey_ShouldReturnTrueAndDeleteIt() {
       // Arrange
-      WormholeForStringKey<String> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      Wormhole<String> wormhole = new Wormhole<>(leafNodeSize, true);
       wormhole.put("", "foo");
 
       // Act & Assert
@@ -752,7 +751,7 @@ class WormholeForStringKeyTest {
     @Test
     void withOneRecord_GivenSameKey_ShouldReturnTrueAndDeleteIt() {
       // Arrange
-      WormholeForStringKey<String> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      Wormhole<String> wormhole = new Wormhole<>(leafNodeSize, true);
       wormhole.put("James", "semaj");
 
       // Act & Assert
@@ -768,7 +767,7 @@ class WormholeForStringKeyTest {
     @Test
     void withOneRecord_GivenDifferentKey_ShouldReturnFalseAndNotDeleteIt() {
       // Arrange
-      WormholeForStringKey<String> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      Wormhole<String> wormhole = new Wormhole<>(leafNodeSize, true);
       wormhole.put("James", "semaj");
 
       // Act & Assert
@@ -786,7 +785,7 @@ class WormholeForStringKeyTest {
     @Test
     void withOneLeafNodeWithMaxRecords_ShouldDeleteThem() {
       // Arrange
-      WormholeForStringKey<String> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      Wormhole<String> wormhole = new Wormhole<>(leafNodeSize, true);
       wormhole.put("James", "semaj");
       wormhole.put("John", "nhoj");
       wormhole.put("Jason", "nosaj");
@@ -814,7 +813,7 @@ class WormholeForStringKeyTest {
     @Test
     void withTwoLeafNodes_WhenDeletingFromFirstLeaf_ShouldDeleteThem() {
       // Arrange
-      WormholeForStringKey<String> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      Wormhole<String> wormhole = new Wormhole<>(leafNodeSize, true);
       wormhole.put("James", "semaj");
       wormhole.put("Joseph", "hpesoj");
       wormhole.put("John", "nhoj");
@@ -866,7 +865,7 @@ class WormholeForStringKeyTest {
     @Test
     void withTwoLeafNodes_WhenDeletingFromLastLeaf_ShouldDeleteThem() {
       // Arrange
-      WormholeForStringKey<String> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      Wormhole<String> wormhole = new Wormhole<>(leafNodeSize, true);
       wormhole.put("James", "semaj");
       wormhole.put("Joseph", "hpesoj");
       wormhole.put("John", "nhoj");
@@ -918,7 +917,7 @@ class WormholeForStringKeyTest {
     @Test
     void withTwoLeafNodes_UsingSameCharForKey_WhenDeletingFromFirstLeaf_ShouldDeleteThem() {
       // Arrange
-      WormholeForStringKey<Integer> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      Wormhole<Integer> wormhole = new Wormhole<>(leafNodeSize, true);
       wormhole.put("aaaaa", 5);
       wormhole.put("a", 1);
       wormhole.put("aaa", 3);
@@ -970,7 +969,7 @@ class WormholeForStringKeyTest {
     @Test
     void withTwoLeafNodes_UsingSameCharForKey_WhenDeletingFromLastLeaf_ShouldDeleteThem() {
       // Arrange
-      WormholeForStringKey<Integer> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      Wormhole<Integer> wormhole = new Wormhole<>(leafNodeSize, true);
       wormhole.put("aaaaa", 5);
       wormhole.put("a", 1);
       wormhole.put("aaa", 3);
@@ -1022,9 +1021,8 @@ class WormholeForStringKeyTest {
     @Test
     void withManyLeafNodes_ShouldReturnIt() {
       // Arrange
-      WormholeForStringKey<Integer> wormhole = new WormholeForStringKey<>(leafNodeSize);
-      WormholeForStringKey.Validator<String, Integer> validator =
-          new WormholeForStringKey.Validator<>(wormhole);
+      Wormhole<Integer> wormhole = new Wormhole<>(leafNodeSize);
+      Validator<String, Integer> validator = new Validator<>(wormhole);
       int minKeyLength = 4;
       int maxKeyLength = 16;
       int recordCount = 30000;
