@@ -18,10 +18,9 @@ package org.komamitsu.wormhole4j;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectSortedMap;
-import org.junit.jupiter.api.Test;
-
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import org.junit.jupiter.api.Test;
 
 class BenchmarkForIntKey extends Benchmark {
   private final Random random = new Random();
@@ -230,7 +229,8 @@ class BenchmarkForIntKey extends Benchmark {
   @Test
   void getFromAVLTreeMap() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<Object2ObjectSortedMap<Integer, Integer>>, RuntimeException>() {
+        new TestCase<
+            ResourceAndKeys<Object2ObjectSortedMap<Integer, Integer>>, RuntimeException>() {
           @Override
           public String label() {
             return "Get from AVL tree map (Fastutil)";
@@ -353,7 +353,8 @@ class BenchmarkForIntKey extends Benchmark {
   @Test
   void updateAVLTreeMap() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<Object2ObjectSortedMap<Integer, Integer>>, RuntimeException>() {
+        new TestCase<
+            ResourceAndKeys<Object2ObjectSortedMap<Integer, Integer>>, RuntimeException>() {
           @Override
           public String label() {
             return "Update AVL tree map (Fastutil)";
@@ -488,7 +489,8 @@ class BenchmarkForIntKey extends Benchmark {
   @Test
   void deleteFromAVLTreeMap() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<Object2ObjectSortedMap<Integer, Integer>>, RuntimeException>() {
+        new TestCase<
+            ResourceAndKeys<Object2ObjectSortedMap<Integer, Integer>>, RuntimeException>() {
           @Override
           public String label() {
             return "Delete AVL tree map (Fastutil)";
@@ -633,7 +635,8 @@ class BenchmarkForIntKey extends Benchmark {
   @Test
   void scanFromAVLTreeMap() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<Object2ObjectSortedMap<Integer, Integer>>, RuntimeException>() {
+        new TestCase<
+            ResourceAndKeys<Object2ObjectSortedMap<Integer, Integer>>, RuntimeException>() {
           @Override
           public String label() {
             return "Scan from AVL tree map (Fastutil)";

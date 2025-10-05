@@ -18,10 +18,9 @@ package org.komamitsu.wormhole4j;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectSortedMap;
-import org.junit.jupiter.api.Test;
-
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import org.junit.jupiter.api.Test;
 
 class BenchmarkForStringKey extends Benchmark {
   private final Random random = new Random();
