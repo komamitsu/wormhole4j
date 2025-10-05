@@ -556,7 +556,7 @@ class BenchmarkForStringKey extends Benchmark {
               WormholeForStringKey<Integer> wormhole = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
-                int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
+                int keyIndex1 = ThreadLocalRandom.current().nextInt(keys.size());
                 int keyIndex2 =
                     Math.min(
                         keys.size() - 1,
@@ -604,7 +604,7 @@ class BenchmarkForStringKey extends Benchmark {
               TreeMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
-                int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
+                int keyIndex1 = ThreadLocalRandom.current().nextInt(keys.size());
                 int keyIndex2 =
                     Math.min(
                         keys.size() - 1,
@@ -655,7 +655,7 @@ class BenchmarkForStringKey extends Benchmark {
               Object2ObjectSortedMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
-                int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
+                int keyIndex1 = ThreadLocalRandom.current().nextInt(keys.size());
                 int keyIndex2 =
                     Math.min(
                         keys.size() - 1,

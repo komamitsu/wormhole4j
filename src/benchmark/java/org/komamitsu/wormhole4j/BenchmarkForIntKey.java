@@ -559,7 +559,7 @@ class BenchmarkForIntKey extends Benchmark {
               WormholeForIntKey<Integer> wormhole = resourceAndKeys.resource;
               List<Integer> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
-                int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
+                int keyIndex1 = ThreadLocalRandom.current().nextInt(keys.size());
                 int keyIndex2 =
                     Math.min(
                         keys.size() - 1,
@@ -607,7 +607,7 @@ class BenchmarkForIntKey extends Benchmark {
               TreeMap<Integer, Integer> map = resourceAndKeys.resource;
               List<Integer> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
-                int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
+                int keyIndex1 = ThreadLocalRandom.current().nextInt(keys.size());
                 int keyIndex2 =
                     Math.min(
                         keys.size() - 1,
@@ -659,7 +659,7 @@ class BenchmarkForIntKey extends Benchmark {
               Object2ObjectSortedMap<Integer, Integer> map = resourceAndKeys.resource;
               List<Integer> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
-                int keyIndex1 = ThreadLocalRandom.current().nextInt(recordCount);
+                int keyIndex1 = ThreadLocalRandom.current().nextInt(keys.size());
                 int keyIndex2 =
                     Math.min(
                         keys.size() - 1,
