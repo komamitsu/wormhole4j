@@ -131,11 +131,11 @@ abstract class Benchmark {
     System.out.printf("StdDev: %f per second%n", stdDev);
   }
 
-  private static class ResourceAndKeys<T> {
-    private final T resource;
-    private final List<String> keys;
+  static class ResourceAndKeys<R, K> {
+    final R resource;
+    final List<K> keys;
 
-    public ResourceAndKeys(T resource, List<String> keys) {
+    ResourceAndKeys(R resource, List<K> keys) {
       this.resource = resource;
       this.keys = keys;
     }

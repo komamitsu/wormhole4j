@@ -132,20 +132,10 @@ class BenchmarkForStringKey extends Benchmark {
         });
   }
 
-  private static class ResourceAndKeys<T> {
-    private final T resource;
-    private final List<String> keys;
-
-    public ResourceAndKeys(T resource, List<String> keys) {
-      this.resource = resource;
-      this.keys = keys;
-    }
-  }
-
   @Test
   void getFromWormhole() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<WormholeForStringKey<Integer>>, RuntimeException>() {
+        new TestCase<ResourceAndKeys<WormholeForStringKey<Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
             return "Get from Wormhole (Wormhole4j)";
@@ -157,7 +147,7 @@ class BenchmarkForStringKey extends Benchmark {
           }
 
           @Override
-          public ResourceAndKeys<WormholeForStringKey<Integer>> init() {
+          public ResourceAndKeys<WormholeForStringKey<Integer>, String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             WormholeForStringKey<Integer> wormhole = new WormholeForStringKey<>();
             for (int i = 0; i < recordCount; i++) {
@@ -170,7 +160,7 @@ class BenchmarkForStringKey extends Benchmark {
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<WormholeForStringKey<Integer>> resourceAndKeys) {
+              ResourceAndKeys<WormholeForStringKey<Integer>, String> resourceAndKeys) {
             return () -> {
               WormholeForStringKey<Integer> wormhole = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
@@ -186,7 +176,7 @@ class BenchmarkForStringKey extends Benchmark {
   @Test
   void getFromRedBlackTreeMap() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<TreeMap<String, Integer>>, RuntimeException>() {
+        new TestCase<ResourceAndKeys<TreeMap<String, Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
             return "Get from Red-Black tree (TreeMap)";
@@ -198,7 +188,7 @@ class BenchmarkForStringKey extends Benchmark {
           }
 
           @Override
-          public ResourceAndKeys<TreeMap<String, Integer>> init() {
+          public ResourceAndKeys<TreeMap<String, Integer>, String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             TreeMap<String, Integer> map = new TreeMap<>();
             for (int i = 0; i < recordCount; i++) {
@@ -211,7 +201,7 @@ class BenchmarkForStringKey extends Benchmark {
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<TreeMap<String, Integer>> resourceAndKeys) {
+              ResourceAndKeys<TreeMap<String, Integer>, String> resourceAndKeys) {
             return () -> {
               TreeMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
@@ -227,7 +217,8 @@ class BenchmarkForStringKey extends Benchmark {
   @Test
   void getFromAVLTreeMap() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<Object2ObjectSortedMap<String, Integer>>, RuntimeException>() {
+        new TestCase<
+            ResourceAndKeys<Object2ObjectSortedMap<String, Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
             return "Get from AVL tree map (Fastutil)";
@@ -239,7 +230,7 @@ class BenchmarkForStringKey extends Benchmark {
           }
 
           @Override
-          public ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> init() {
+          public ResourceAndKeys<Object2ObjectSortedMap<String, Integer>, String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             Object2ObjectSortedMap<String, Integer> map = new Object2ObjectAVLTreeMap<>();
             for (int i = 0; i < recordCount; i++) {
@@ -252,7 +243,7 @@ class BenchmarkForStringKey extends Benchmark {
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> resourceAndKeys) {
+              ResourceAndKeys<Object2ObjectSortedMap<String, Integer>, String> resourceAndKeys) {
             return () -> {
               Object2ObjectSortedMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
@@ -268,7 +259,7 @@ class BenchmarkForStringKey extends Benchmark {
   @Test
   void updateWormhole() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<WormholeForStringKey<Integer>>, RuntimeException>() {
+        new TestCase<ResourceAndKeys<WormholeForStringKey<Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
             return "Update Wormhole (Wormhole4j)";
@@ -280,7 +271,7 @@ class BenchmarkForStringKey extends Benchmark {
           }
 
           @Override
-          public ResourceAndKeys<WormholeForStringKey<Integer>> init() {
+          public ResourceAndKeys<WormholeForStringKey<Integer>, String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             WormholeForStringKey<Integer> wormhole = new WormholeForStringKey<>();
             for (int i = 0; i < recordCount; i++) {
@@ -293,7 +284,7 @@ class BenchmarkForStringKey extends Benchmark {
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<WormholeForStringKey<Integer>> resourceAndKeys) {
+              ResourceAndKeys<WormholeForStringKey<Integer>, String> resourceAndKeys) {
             return () -> {
               WormholeForStringKey<Integer> wormhole = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
@@ -309,7 +300,7 @@ class BenchmarkForStringKey extends Benchmark {
   @Test
   void updateRedBlackTreeMap() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<TreeMap<String, Integer>>, RuntimeException>() {
+        new TestCase<ResourceAndKeys<TreeMap<String, Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
             return "Update Red-Black tree (TreeMap)";
@@ -321,7 +312,7 @@ class BenchmarkForStringKey extends Benchmark {
           }
 
           @Override
-          public ResourceAndKeys<TreeMap<String, Integer>> init() {
+          public ResourceAndKeys<TreeMap<String, Integer>, String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             TreeMap<String, Integer> map = new TreeMap<>();
             for (int i = 0; i < recordCount; i++) {
@@ -334,7 +325,7 @@ class BenchmarkForStringKey extends Benchmark {
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<TreeMap<String, Integer>> resourceAndKeys) {
+              ResourceAndKeys<TreeMap<String, Integer>, String> resourceAndKeys) {
             return () -> {
               TreeMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
@@ -350,7 +341,8 @@ class BenchmarkForStringKey extends Benchmark {
   @Test
   void updateAVLTreeMap() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<Object2ObjectSortedMap<String, Integer>>, RuntimeException>() {
+        new TestCase<
+            ResourceAndKeys<Object2ObjectSortedMap<String, Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
             return "Update AVL tree map (Fastutil)";
@@ -362,7 +354,7 @@ class BenchmarkForStringKey extends Benchmark {
           }
 
           @Override
-          public ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> init() {
+          public ResourceAndKeys<Object2ObjectSortedMap<String, Integer>, String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             Object2ObjectSortedMap<String, Integer> map = new Object2ObjectAVLTreeMap<>();
             for (int i = 0; i < recordCount; i++) {
@@ -375,7 +367,7 @@ class BenchmarkForStringKey extends Benchmark {
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> resourceAndKeys) {
+              ResourceAndKeys<Object2ObjectSortedMap<String, Integer>, String> resourceAndKeys) {
             return () -> {
               Object2ObjectSortedMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
@@ -391,7 +383,7 @@ class BenchmarkForStringKey extends Benchmark {
   @Test
   void deleteFromWormhole() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<WormholeForStringKey<Integer>>, RuntimeException>() {
+        new TestCase<ResourceAndKeys<WormholeForStringKey<Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
             return "Delete from Wormhole (Wormhole4j)";
@@ -408,7 +400,7 @@ class BenchmarkForStringKey extends Benchmark {
           }
 
           @Override
-          public ResourceAndKeys<WormholeForStringKey<Integer>> init() {
+          public ResourceAndKeys<WormholeForStringKey<Integer>, String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             WormholeForStringKey<Integer> wormhole = new WormholeForStringKey<>();
             for (int i = 0; i < recordCount; i++) {
@@ -422,7 +414,7 @@ class BenchmarkForStringKey extends Benchmark {
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<WormholeForStringKey<Integer>> resourceAndKeys) {
+              ResourceAndKeys<WormholeForStringKey<Integer>, String> resourceAndKeys) {
             return () -> {
               WormholeForStringKey<Integer> wormhole = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
@@ -438,7 +430,7 @@ class BenchmarkForStringKey extends Benchmark {
   @Test
   void deleteFromRedBlackTreeMap() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<TreeMap<String, Integer>>, RuntimeException>() {
+        new TestCase<ResourceAndKeys<TreeMap<String, Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
             return "Delete from Red-Black tree (TreeMap)";
@@ -455,7 +447,7 @@ class BenchmarkForStringKey extends Benchmark {
           }
 
           @Override
-          public ResourceAndKeys<TreeMap<String, Integer>> init() {
+          public ResourceAndKeys<TreeMap<String, Integer>, String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             TreeMap<String, Integer> map = new TreeMap<>();
             for (int i = 0; i < recordCount; i++) {
@@ -469,7 +461,7 @@ class BenchmarkForStringKey extends Benchmark {
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<TreeMap<String, Integer>> resourceAndKeys) {
+              ResourceAndKeys<TreeMap<String, Integer>, String> resourceAndKeys) {
             return () -> {
               TreeMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
@@ -485,7 +477,8 @@ class BenchmarkForStringKey extends Benchmark {
   @Test
   void deleteFromAVLTreeMap() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<Object2ObjectSortedMap<String, Integer>>, RuntimeException>() {
+        new TestCase<
+            ResourceAndKeys<Object2ObjectSortedMap<String, Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
             return "Delete AVL tree map (Fastutil)";
@@ -502,7 +495,7 @@ class BenchmarkForStringKey extends Benchmark {
           }
 
           @Override
-          public ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> init() {
+          public ResourceAndKeys<Object2ObjectSortedMap<String, Integer>, String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             Object2ObjectSortedMap<String, Integer> map = new Object2ObjectAVLTreeMap<>();
             for (int i = 0; i < recordCount; i++) {
@@ -516,7 +509,7 @@ class BenchmarkForStringKey extends Benchmark {
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> resourceAndKeys) {
+              ResourceAndKeys<Object2ObjectSortedMap<String, Integer>, String> resourceAndKeys) {
             return () -> {
               Object2ObjectSortedMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
@@ -532,7 +525,7 @@ class BenchmarkForStringKey extends Benchmark {
   @Test
   void scanFromWormhole() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<WormholeForStringKey<Integer>>, RuntimeException>() {
+        new TestCase<ResourceAndKeys<WormholeForStringKey<Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
             return "Scan from Wormhole (Wormhole4j)";
@@ -544,7 +537,7 @@ class BenchmarkForStringKey extends Benchmark {
           }
 
           @Override
-          public ResourceAndKeys<WormholeForStringKey<Integer>> init() {
+          public ResourceAndKeys<WormholeForStringKey<Integer>, String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             WormholeForStringKey<Integer> wormhole = new WormholeForStringKey<>();
             for (int i = 0; i < recordCount; i++) {
@@ -558,7 +551,7 @@ class BenchmarkForStringKey extends Benchmark {
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<WormholeForStringKey<Integer>> resourceAndKeys) {
+              ResourceAndKeys<WormholeForStringKey<Integer>, String> resourceAndKeys) {
             return () -> {
               WormholeForStringKey<Integer> wormhole = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
@@ -580,7 +573,7 @@ class BenchmarkForStringKey extends Benchmark {
   @Test
   void scanFromRedBlackTreeMap() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<TreeMap<String, Integer>>, RuntimeException>() {
+        new TestCase<ResourceAndKeys<TreeMap<String, Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
             return "Scan from Red-Black tree (TreeMap)";
@@ -592,7 +585,7 @@ class BenchmarkForStringKey extends Benchmark {
           }
 
           @Override
-          public ResourceAndKeys<TreeMap<String, Integer>> init() {
+          public ResourceAndKeys<TreeMap<String, Integer>, String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             TreeMap<String, Integer> map = new TreeMap<>();
             for (int i = 0; i < recordCount; i++) {
@@ -606,7 +599,7 @@ class BenchmarkForStringKey extends Benchmark {
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<TreeMap<String, Integer>> resourceAndKeys) {
+              ResourceAndKeys<TreeMap<String, Integer>, String> resourceAndKeys) {
             return () -> {
               TreeMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
@@ -630,7 +623,8 @@ class BenchmarkForStringKey extends Benchmark {
   @Test
   void scanFromAVLTreeMap() throws Throwable {
     execute(
-        new TestCase<ResourceAndKeys<Object2ObjectSortedMap<String, Integer>>, RuntimeException>() {
+        new TestCase<
+            ResourceAndKeys<Object2ObjectSortedMap<String, Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
             return "Scan from AVL tree map (Fastutil)";
@@ -642,7 +636,7 @@ class BenchmarkForStringKey extends Benchmark {
           }
 
           @Override
-          public ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> init() {
+          public ResourceAndKeys<Object2ObjectSortedMap<String, Integer>, String> init() {
             List<String> keys = new ArrayList<>(recordCount);
             Object2ObjectSortedMap<String, Integer> map = new Object2ObjectAVLTreeMap<>();
             for (int i = 0; i < recordCount; i++) {
@@ -656,7 +650,7 @@ class BenchmarkForStringKey extends Benchmark {
 
           @Override
           public ThrowableRunnable<RuntimeException> createTask(
-              ResourceAndKeys<Object2ObjectSortedMap<String, Integer>> resourceAndKeys) {
+              ResourceAndKeys<Object2ObjectSortedMap<String, Integer>, String> resourceAndKeys) {
             return () -> {
               Object2ObjectSortedMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
