@@ -33,7 +33,7 @@ class BenchmarkForStringKey extends Benchmark {
         new TestCase<List<String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Insert to Wormhole (Wormhole4j)";
+            return "[String key] Insert to Wormhole (Wormhole4j)";
           }
 
           @Override
@@ -68,7 +68,7 @@ class BenchmarkForStringKey extends Benchmark {
         new TestCase<List<String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Insert to Red-Black tree (TreeMap)";
+            return "[String key] Insert to Red-Black tree (TreeMap)";
           }
 
           @Override
@@ -103,7 +103,7 @@ class BenchmarkForStringKey extends Benchmark {
         new TestCase<List<String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Insert to AVL tree map (Fastutil)";
+            return "[String key] Insert to AVL tree map (Fastutil)";
           }
 
           @Override
@@ -138,7 +138,7 @@ class BenchmarkForStringKey extends Benchmark {
         new TestCase<ResourceAndKeys<WormholeForStringKey<Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Get from Wormhole (Wormhole4j)";
+            return "[String key] Get from Wormhole (Wormhole4j)";
           }
 
           @Override
@@ -179,7 +179,7 @@ class BenchmarkForStringKey extends Benchmark {
         new TestCase<ResourceAndKeys<TreeMap<String, Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Get from Red-Black tree (TreeMap)";
+            return "[String key] Get from Red-Black tree (TreeMap)";
           }
 
           @Override
@@ -221,7 +221,7 @@ class BenchmarkForStringKey extends Benchmark {
             ResourceAndKeys<Object2ObjectSortedMap<String, Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Get from AVL tree map (Fastutil)";
+            return "[String key] Get from AVL tree map (Fastutil)";
           }
 
           @Override
@@ -262,7 +262,7 @@ class BenchmarkForStringKey extends Benchmark {
         new TestCase<ResourceAndKeys<WormholeForStringKey<Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Update Wormhole (Wormhole4j)";
+            return "[String key] Update Wormhole (Wormhole4j)";
           }
 
           @Override
@@ -303,7 +303,7 @@ class BenchmarkForStringKey extends Benchmark {
         new TestCase<ResourceAndKeys<TreeMap<String, Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Update Red-Black tree (TreeMap)";
+            return "[String key] Update Red-Black tree (TreeMap)";
           }
 
           @Override
@@ -345,7 +345,7 @@ class BenchmarkForStringKey extends Benchmark {
             ResourceAndKeys<Object2ObjectSortedMap<String, Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Update AVL tree map (Fastutil)";
+            return "[String key] Update AVL tree map (Fastutil)";
           }
 
           @Override
@@ -386,7 +386,7 @@ class BenchmarkForStringKey extends Benchmark {
         new TestCase<ResourceAndKeys<WormholeForStringKey<Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Delete from Wormhole (Wormhole4j)";
+            return "[String key] Delete from Wormhole (Wormhole4j)";
           }
 
           @Override
@@ -433,7 +433,7 @@ class BenchmarkForStringKey extends Benchmark {
         new TestCase<ResourceAndKeys<TreeMap<String, Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Delete from Red-Black tree (TreeMap)";
+            return "[String key] Delete from Red-Black tree (TreeMap)";
           }
 
           @Override
@@ -481,7 +481,7 @@ class BenchmarkForStringKey extends Benchmark {
             ResourceAndKeys<Object2ObjectSortedMap<String, Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Delete AVL tree map (Fastutil)";
+            return "[String key] Delete from AVL tree map (Fastutil)";
           }
 
           @Override
@@ -528,7 +528,7 @@ class BenchmarkForStringKey extends Benchmark {
         new TestCase<ResourceAndKeys<WormholeForStringKey<Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Scan from Wormhole (Wormhole4j)";
+            return "[String key] Scan from Wormhole (Wormhole4j)";
           }
 
           @Override
@@ -576,7 +576,7 @@ class BenchmarkForStringKey extends Benchmark {
         new TestCase<ResourceAndKeys<TreeMap<String, Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Scan from Red-Black tree (TreeMap)";
+            return "[String key] Scan from Red-Black tree (TreeMap)";
           }
 
           @Override
@@ -627,7 +627,7 @@ class BenchmarkForStringKey extends Benchmark {
             ResourceAndKeys<Object2ObjectSortedMap<String, Integer>, String>, RuntimeException>() {
           @Override
           public String label() {
-            return "Scan from AVL tree map (Fastutil)";
+            return "[String key] Scan from AVL tree map (Fastutil)";
           }
 
           @Override
