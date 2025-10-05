@@ -16,7 +16,7 @@
 
 package org.komamitsu.wormhole4j;
 
-import static org.komamitsu.wormhole4j.Wormhole.SMALLEST_TOKEN;
+import static org.komamitsu.wormhole4j.Constants.SMALLEST_TOKEN;
 
 import java.util.*;
 import java.util.function.BiFunction;
