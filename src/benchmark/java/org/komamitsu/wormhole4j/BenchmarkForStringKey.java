@@ -23,8 +23,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.Test;
 
 class BenchmarkForStringKey extends Benchmark {
-  private final Random random = new Random();
-
   private String getRandomKey() {
     return TestHelpers.genRandomKey(minKeyLength, maxKeyLength);
   }
@@ -177,7 +175,7 @@ class BenchmarkForStringKey extends Benchmark {
               WormholeForStringKey<Integer> wormhole = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
-                int keyIndex = random.nextInt(keys.size());
+                int keyIndex = ThreadLocalRandom.current().nextInt(keys.size());
                 wormhole.get(keys.get(keyIndex));
               }
             };
@@ -218,7 +216,7 @@ class BenchmarkForStringKey extends Benchmark {
               TreeMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
-                int keyIndex = random.nextInt(keys.size());
+                int keyIndex = ThreadLocalRandom.current().nextInt(keys.size());
                 map.get(keys.get(keyIndex));
               }
             };
@@ -259,7 +257,7 @@ class BenchmarkForStringKey extends Benchmark {
               Object2ObjectSortedMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
-                int keyIndex = random.nextInt(keys.size());
+                int keyIndex = ThreadLocalRandom.current().nextInt(keys.size());
                 map.get(keys.get(keyIndex));
               }
             };
@@ -300,7 +298,7 @@ class BenchmarkForStringKey extends Benchmark {
               WormholeForStringKey<Integer> wormhole = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
-                int keyIndex = random.nextInt(keys.size());
+                int keyIndex = ThreadLocalRandom.current().nextInt(keys.size());
                 wormhole.put(keys.get(keyIndex), i);
               }
             };
@@ -341,7 +339,7 @@ class BenchmarkForStringKey extends Benchmark {
               TreeMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
-                int keyIndex = random.nextInt(keys.size());
+                int keyIndex = ThreadLocalRandom.current().nextInt(keys.size());
                 map.put(keys.get(keyIndex), i);
               }
             };
@@ -382,7 +380,7 @@ class BenchmarkForStringKey extends Benchmark {
               Object2ObjectSortedMap<String, Integer> map = resourceAndKeys.resource;
               List<String> keys = resourceAndKeys.keys;
               for (int i = 0; i < count(); i++) {
-                int keyIndex = random.nextInt(keys.size());
+                int keyIndex = ThreadLocalRandom.current().nextInt(keys.size());
                 map.put(keys.get(keyIndex), i);
               }
             };
