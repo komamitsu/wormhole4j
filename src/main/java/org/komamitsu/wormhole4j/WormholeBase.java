@@ -260,21 +260,11 @@ abstract class WormholeBase<K, T> {
   }
 
   private void initialize() {
+    String key = "";
     LeafNode<K, T> rootLeafNode =
-        new LeafNode<>(validAnchorKeyProvider, Constants.SMALLEST_TOKEN, leafNodeSize, null, null);
-    {
-      // Add the root.
-      String key = "";
-      table.put(
-          key,
-          new MetaTrieHashTable.NodeMetaInternal<>(
-              key, rootLeafNode, rootLeafNode, Constants.BITMAP_INDEX_OF_SMALLEST_TOKEN));
-    }
-    {
-      // Add the first node.
-      String key = Constants.SMALLEST_TOKEN;
-      table.put(key, new MetaTrieHashTable.NodeMetaLeaf<>(key, rootLeafNode));
-    }
+        new LeafNode<>(validAnchorKeyProvider, key, leafNodeSize, null, null);
+    // Add the root.
+    table.put(key, new MetaTrieHashTable.NodeMetaLeaf<>(key, rootLeafNode));
   }
 
   private LeafNode<K, T> searchTrieHashTable(String encodedKey) {
@@ -409,31 +399,52 @@ abstract class WormholeBase<K, T> {
       }
     }
 
-    private void validateLeafNodes(List<LeafNode<K, T>> leafNodes) {
-      leafNodes.sort(Comparator.comparing(a -> a.anchorKey));
-      for (int i = 0; i < leafNodes.size(); i++) {
-        LeafNode<K, T> leafNode = leafNodes.get(i);
+    private void validateLeafNodes(LeafNode<K, T> leftMostLeafNode, LeafNode<K, T> rightMostLeafNode) {
+      LeafNode<K, T> leafNode = leftMostLeafNode;
+      LeafNode<K, T> lastLeafNode = null;
+      while (leafNode != null) {
         leafNode.validate();
-        if (i > 0) {
-          if (leafNode.getLeft() != leafNodes.get(i - 1)) {
+        if (leafNode != leftMostLeafNode) {
+          if (leafNode.getLeft().getRight() != leafNode) {
             throw new AssertionError(
                 String.format(
-                    "The left node of the leaf node is wrong. Leaf node: %s, Expected left node: %s",
-                    leafNode, leafNodes.get(i - 1)));
+                    "The left node of the leaf node doesn't point the leaf node. Leaf node: %s; Left leaf node: %s",
+                    leafNode, leafNode.getLeft()));
           }
         }
-        if (i < leafNodes.size() - 1) {
-          if (leafNode.getRight() != leafNodes.get(i + 1)) {
+        if (leafNode != rightMostLeafNode) {
+          if (leafNode.getRight().getLeft() != leafNode) {
             throw new AssertionError(
                 String.format(
-                    "The right node of the leaf node is wrong. Leaf node: %s, Expected right node: %s",
-                    leafNode, leafNodes.get(i + 1)));
+                    "The right node of the leaf node doesn't point the leaf node. Leaf node: %s; Right leaf node: %s",
+                    leafNode, leafNode.getLeft()));
           }
         }
+        lastLeafNode = leafNode;
+        leafNode = leafNode.getRight();
+      }
+
+      if (lastLeafNode != rightMostLeafNode) {
+        throw new AssertionError(
+            String.format(
+                "The last leaf node isn't the right most leaf node. Last leaf node: %s; Right most leaf node: %s",
+                lastLeafNode, rightMostLeafNode));
       }
     }
 
-    private void validateHashTable(Collection<MetaTrieHashTable.NodeMeta<K, T>> nodeMetas) {
+    private void validateHashTable() {
+      for (Map.Entry<String, MetaTrieHashTable.NodeMeta<K, T>> entry : wormhole.table.entrySet()) {
+        String key = entry.getKey();
+        MetaTrieHashTable.NodeMeta<K, T> nodeMeta = entry.getValue();
+        if (!nodeMeta.anchorPrefix.equals(key)) {
+          throw new AssertionError(
+              String.format(
+                  "The node metadata anchor key is different from the key of the hash table. Key: %s, Node metadata anchor key: %s",
+                  key, nodeMeta.anchorPrefix));
+        }
+      }
+
+      Collection<MetaTrieHashTable.NodeMeta<K, T>> nodeMetas = new HashSet<>(wormhole.table.values());
       LinkedList<String> anchorKeyQueue = new LinkedList<>();
       anchorKeyQueue.addLast("");
       while (!anchorKeyQueue.isEmpty()) {
@@ -494,37 +505,32 @@ abstract class WormholeBase<K, T> {
         nodeMetaInternal.bitmap.stream()
             .forEach(childHeadChar -> anchorKeyQueue.addLast(anchorKey + ((char) childHeadChar)));
       }
-    }
-
-    private void validateInternal() {
-      List<LeafNode<K, T>> leafNodes = new ArrayList<>();
-      MetaTrieHashTable<K, T> table = wormhole.table;
-      Collection<MetaTrieHashTable.NodeMeta<K, T>> nodeMetas = new HashSet<>(table.values());
-      // Collect leaf nodes.
-      for (Map.Entry<String, MetaTrieHashTable.NodeMeta<K, T>> entry : table.entrySet()) {
-        String key = entry.getKey();
-        MetaTrieHashTable.NodeMeta<K, T> nodeMeta = entry.getValue();
-        if (!nodeMeta.anchorPrefix.equals(key)) {
-          throw new AssertionError(
-              String.format(
-                  "The node metadata anchor key is different from the key of the hash table. Key: %s, Node metadata anchor key: %s",
-                  key, nodeMeta.anchorPrefix));
-        }
-        if (nodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf) {
-          LeafNode<K, T> leafNode = ((MetaTrieHashTable.NodeMetaLeaf<K, T>) nodeMeta).leafNode;
-          leafNodes.add(leafNode);
-        }
-        // Node meta internals are validated later.
-      }
-
-      validateLeafNodes(leafNodes);
-
-      validateHashTable(nodeMetas);
 
       if (!nodeMetas.isEmpty()) {
         throw new AssertionError(
             String.format("There are orphan node metas. Orphan node metas: %s", nodeMetas));
       }
+    }
+
+    private void validateInternal() {
+      MetaTrieHashTable<K, T> table = wormhole.table;
+
+      LeafNode<K, T> leftMostLeafNode;
+      LeafNode<K, T> rightMostLeafNode;
+      MetaTrieHashTable.NodeMeta<K, T> rootNodeMeta = table.get("");
+      if (rootNodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf<K,T>) {
+        MetaTrieHashTable.NodeMetaLeaf<K, T> nodeMetaLeaf = (MetaTrieHashTable.NodeMetaLeaf<K, T>) rootNodeMeta;
+        leftMostLeafNode = nodeMetaLeaf.leafNode;
+        rightMostLeafNode = nodeMetaLeaf.leafNode;
+      }
+      else {
+        MetaTrieHashTable.NodeMetaInternal<K, T> nodeMetaInternal = (MetaTrieHashTable.NodeMetaInternal<K, T>) rootNodeMeta;
+        leftMostLeafNode = nodeMetaInternal.getLeftMostLeafNode();
+        rightMostLeafNode = nodeMetaInternal.getRightMostLeafNode();
+      }
+      validateLeafNodes(leftMostLeafNode, rightMostLeafNode);
+
+      validateHashTable();
     }
   }
 }

@@ -54,12 +54,14 @@ class MetaTrieHashTable<K, V> {
         String anchorPrefix,
         LeafNode<K, T> leftMostLeafNode,
         LeafNode<K, T> rightMostLeafNode,
-        char initBitIndex) {
+        @Nullable Character initBitIndex) {
       super(anchorPrefix);
       this.leftMostLeafNode = leftMostLeafNode;
       this.rightMostLeafNode = rightMostLeafNode;
       this.bitmap = new BitSet(128);
-      bitmap.set(initBitIndex);
+      if (initBitIndex != null) {
+        bitmap.set(initBitIndex);
+      }
     }
 
     Character findOneSibling(char fromIndex) {
@@ -148,9 +150,14 @@ class MetaTrieHashTable<K, V> {
       if (node instanceof NodeMetaLeaf) {
         LeafNode<K, V> leafNode = ((NodeMetaLeaf<K, V>) node).leafNode;
 
-        // If there is a leaf node which has the same prefix, append the smallest token to the
-        // prefix of the leaf node and add an internal node with the same prefix instead of the
-        // original leaf node.
+        // In the original paper, if there is a leaf node which has the same prefix, append the
+        // smallest token to the prefix of the leaf node and add an internal node with the same
+        // prefix instead of the original leaf node. Wormhole4j followed this approach in
+        // v0.0.*.
+        // However, the author improved the approach by removing the smallest token in their
+        // reference implementation https://github.com/wuxb45/wormhole. Wormhole4j v0.1.* or
+        // later follows the approach.
+        /*
         String prefixWithSmallestToken = prefix + Constants.SMALLEST_TOKEN;
         NodeMetaLeaf<K, V> updatedNode = new NodeMetaLeaf<>(prefixWithSmallestToken, leafNode);
         put(prefixWithSmallestToken, updatedNode);
@@ -161,6 +168,9 @@ class MetaTrieHashTable<K, V> {
         put(prefix, parent);
 
         node = parent;
+         */
+        node = new NodeMetaInternal<>(prefix, leafNode, newLeafNode, null);
+        put(prefix, node);
       }
 
       assert node instanceof NodeMetaInternal;
@@ -205,19 +215,9 @@ class MetaTrieHashTable<K, V> {
 
   @Nullable
   NodeMetaLeaf<K, V> findNodeMetaLeaf(String anchorKey) {
-    {
-      NodeMeta<K, V> nodeMeta = table.get(anchorKey);
-      if (nodeMeta instanceof NodeMetaLeaf) {
-        return (NodeMetaLeaf<K, V>) nodeMeta;
-      }
-    }
-
-    {
-      String anchorKeyWithSmallestToken = anchorKey + Constants.SMALLEST_TOKEN;
-      NodeMeta<K, V> nodeMeta = table.get(anchorKeyWithSmallestToken);
-      if (nodeMeta instanceof NodeMetaLeaf) {
-        return (NodeMetaLeaf<K, V>) nodeMeta;
-      }
+    NodeMeta<K, V> nodeMeta = table.get(anchorKey);
+    if (nodeMeta instanceof NodeMetaLeaf) {
+      return (NodeMetaLeaf<K, V>) nodeMeta;
     }
 
     return null;
@@ -225,29 +225,17 @@ class MetaTrieHashTable<K, V> {
 
   @Nullable
   NodeMetaInternal<K, V> findNodeMetaInternal(String anchorKey) {
-    {
-      NodeMeta<K, V> nodeMeta = table.get(anchorKey);
-      if (nodeMeta instanceof NodeMetaInternal) {
-        return (NodeMetaInternal<K, V>) nodeMeta;
-      }
-    }
-
-    {
-      String anchorKeyWithSmallestToken = anchorKey + Constants.SMALLEST_TOKEN;
-      NodeMeta<K, V> nodeMeta = table.get(anchorKeyWithSmallestToken);
-      if (nodeMeta instanceof NodeMetaInternal) {
-        return (NodeMetaInternal<K, V>) nodeMeta;
-      }
+    NodeMeta<K, V> nodeMeta = table.get(anchorKey);
+    if (nodeMeta instanceof NodeMetaInternal) {
+      return (NodeMetaInternal<K, V>) nodeMeta;
     }
 
     return null;
   }
 
-  String removeNodeMetaLeaf(String origAnchorKey) {
-    NodeMeta<K, V> nodeMeta = table.get(origAnchorKey);
-    String anchorKey =
-        nodeMeta instanceof NodeMetaLeaf ? origAnchorKey : origAnchorKey + Constants.SMALLEST_TOKEN;
-
+  String removeNodeMetaLeaf(String anchorKey) {
+    NodeMeta<K, V> nodeMeta = table.get(anchorKey);
+    assert nodeMeta instanceof NodeMetaLeaf;
     NodeMeta<K, V> removed = table.remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(
@@ -266,13 +254,9 @@ class MetaTrieHashTable<K, V> {
             NodeMetaLeaf.class.getName(), removed.getClass().getName()));
   }
 
-  String removeNodeMetaInternal(String origAnchorKey) {
-    NodeMeta<K, V> nodeMeta = table.get(origAnchorKey);
-    String anchorKey =
-        nodeMeta instanceof NodeMetaInternal
-            ? origAnchorKey
-            : origAnchorKey + Constants.SMALLEST_TOKEN;
-
+  String removeNodeMetaInternal(String anchorKey) {
+    NodeMeta<K, V> nodeMeta = table.get(anchorKey);
+    assert nodeMeta instanceof NodeMetaLeaf;
     NodeMeta<K, V> removed = table.remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(

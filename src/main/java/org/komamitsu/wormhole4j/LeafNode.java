@@ -16,8 +16,6 @@
 
 package org.komamitsu.wormhole4j;
 
-import static org.komamitsu.wormhole4j.Constants.SMALLEST_TOKEN;
-
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -680,16 +678,9 @@ class LeafNode<K, V> {
 
   void validate() {
     String normalizedAnchorKey = anchorKey;
-    if (normalizedAnchorKey.endsWith(SMALLEST_TOKEN)) {
-      normalizedAnchorKey = normalizedAnchorKey.substring(0, normalizedAnchorKey.length() - 1);
-    }
     String normalizedRightAnchorKey = null;
     if (right != null) {
       normalizedRightAnchorKey = right.anchorKey;
-      if (normalizedRightAnchorKey.endsWith(SMALLEST_TOKEN)) {
-        normalizedRightAnchorKey =
-            normalizedRightAnchorKey.substring(0, normalizedRightAnchorKey.length() - 1);
-      }
     }
 
     for (int i = 0; i < size(); i++) {
