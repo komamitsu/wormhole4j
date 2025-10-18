@@ -234,8 +234,6 @@ class MetaTrieHashTable<K, V> {
   }
 
   String removeNodeMetaLeaf(String anchorKey) {
-    NodeMeta<K, V> nodeMeta = table.get(anchorKey);
-    assert nodeMeta instanceof NodeMetaLeaf;
     NodeMeta<K, V> removed = table.remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(
@@ -255,8 +253,6 @@ class MetaTrieHashTable<K, V> {
   }
 
   String removeNodeMetaInternal(String anchorKey) {
-    NodeMeta<K, V> nodeMeta = table.get(anchorKey);
-    assert nodeMeta instanceof NodeMetaLeaf;
     NodeMeta<K, V> removed = table.remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(
