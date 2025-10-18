@@ -331,7 +331,10 @@ abstract class WormholeBase<K, T> {
     if (existingNodeMeta == null) {
       return anchorKey;
     }
+    return null;
 
+    // TODO: Remove this. SMALLEST_TOKEN shouldn't be used.
+    /*
     // "Append 0s to key when necessary"
     anchorKey = anchorKey + Constants.SMALLEST_TOKEN;
     existingNodeMeta = table.get(anchorKey);
@@ -339,6 +342,7 @@ abstract class WormholeBase<K, T> {
       return null;
     }
     return anchorKey;
+     */
   }
 
   private LeafNode<K, T> split(LeafNode<K, T> leafNode) {
@@ -399,7 +403,8 @@ abstract class WormholeBase<K, T> {
       }
     }
 
-    private void validateLeafNodes(LeafNode<K, T> leftMostLeafNode, LeafNode<K, T> rightMostLeafNode) {
+    private void validateLeafNodes(
+        LeafNode<K, T> leftMostLeafNode, LeafNode<K, T> rightMostLeafNode) {
       LeafNode<K, T> leafNode = leftMostLeafNode;
       LeafNode<K, T> lastLeafNode = null;
       while (leafNode != null) {
@@ -444,7 +449,8 @@ abstract class WormholeBase<K, T> {
         }
       }
 
-      Collection<MetaTrieHashTable.NodeMeta<K, T>> nodeMetas = new HashSet<>(wormhole.table.values());
+      Collection<MetaTrieHashTable.NodeMeta<K, T>> nodeMetas =
+          new HashSet<>(wormhole.table.values());
       LinkedList<String> anchorKeyQueue = new LinkedList<>();
       anchorKeyQueue.addLast("");
       while (!anchorKeyQueue.isEmpty()) {
@@ -518,13 +524,14 @@ abstract class WormholeBase<K, T> {
       LeafNode<K, T> leftMostLeafNode;
       LeafNode<K, T> rightMostLeafNode;
       MetaTrieHashTable.NodeMeta<K, T> rootNodeMeta = table.get("");
-      if (rootNodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf<K,T>) {
-        MetaTrieHashTable.NodeMetaLeaf<K, T> nodeMetaLeaf = (MetaTrieHashTable.NodeMetaLeaf<K, T>) rootNodeMeta;
+      if (rootNodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf<K, T>) {
+        MetaTrieHashTable.NodeMetaLeaf<K, T> nodeMetaLeaf =
+            (MetaTrieHashTable.NodeMetaLeaf<K, T>) rootNodeMeta;
         leftMostLeafNode = nodeMetaLeaf.leafNode;
         rightMostLeafNode = nodeMetaLeaf.leafNode;
-      }
-      else {
-        MetaTrieHashTable.NodeMetaInternal<K, T> nodeMetaInternal = (MetaTrieHashTable.NodeMetaInternal<K, T>) rootNodeMeta;
+      } else {
+        MetaTrieHashTable.NodeMetaInternal<K, T> nodeMetaInternal =
+            (MetaTrieHashTable.NodeMetaInternal<K, T>) rootNodeMeta;
         leftMostLeafNode = nodeMetaInternal.getLeftMostLeafNode();
         rightMostLeafNode = nodeMetaInternal.getRightMostLeafNode();
       }
