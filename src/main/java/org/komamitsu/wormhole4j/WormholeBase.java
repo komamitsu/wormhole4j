@@ -297,7 +297,9 @@ abstract class WormholeBase<K, T> {
     char missingToken = encodedKey.charAt(anchorPrefixLength);
     Character siblingToken = nodeMetaInternal.findOneSibling(missingToken);
     if (siblingToken == null) {
-      throw new AssertionError("Any sibling token is not found");
+      // TODO: Test and add comment.
+      // throw new AssertionError("Any sibling token is not found");
+      return nodeMetaInternal.getLeftMostLeafNode();
     }
 
     MetaTrieHashTable.NodeMeta<K, T> childNode =
@@ -367,7 +369,8 @@ abstract class WormholeBase<K, T> {
       if (childNodeRemoved) {
         nodeMetaInternal.bitmap.clear(anchorKey.charAt(prefixlen));
       }
-      if (nodeMetaInternal.bitmap.isEmpty()) {
+      // The root node meta must be left.
+      if (!nodeMetaInternal.anchorPrefix.isEmpty() && nodeMetaInternal.bitmap.isEmpty()) {
         table.removeNodeMetaInternal(prefix);
         childNodeRemoved = true;
       } else {
