@@ -213,27 +213,7 @@ class MetaTrieHashTable<K, V> {
     return searchKey.substring(0, m);
   }
 
-  @Nullable
-  NodeMetaLeaf<K, V> findNodeMetaLeaf(String anchorKey) {
-    NodeMeta<K, V> nodeMeta = table.get(anchorKey);
-    if (nodeMeta instanceof NodeMetaLeaf) {
-      return (NodeMetaLeaf<K, V>) nodeMeta;
-    }
-
-    return null;
-  }
-
-  @Nullable
-  NodeMetaInternal<K, V> findNodeMetaInternal(String anchorKey) {
-    NodeMeta<K, V> nodeMeta = table.get(anchorKey);
-    if (nodeMeta instanceof NodeMetaInternal) {
-      return (NodeMetaInternal<K, V>) nodeMeta;
-    }
-
-    return null;
-  }
-
-  String removeNodeMetaLeaf(String anchorKey) {
+  void removeNodeMeta(String anchorKey) {
     NodeMeta<K, V> removed = table.remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(
@@ -242,14 +222,6 @@ class MetaTrieHashTable<K, V> {
     if (anchorKey.length() >= maxAnchorLength) {
       maxAnchorLength = calcMaxAnchorLength();
     }
-    if (removed instanceof NodeMetaLeaf) {
-      return anchorKey;
-    }
-
-    throw new AssertionError(
-        String.format(
-            "Removed node meta is an unexpected type. Expected: %s, Actual: %s",
-            NodeMetaLeaf.class.getName(), removed.getClass().getName()));
   }
 
   String removeNodeMetaInternal(String anchorKey) {
