@@ -16,13 +16,12 @@
 
 package org.komamitsu.wormhole4j;
 
-import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaInternal;
-import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
-
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import javax.annotation.Nullable;
+import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaInternal;
+import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
 
 /**
  * Wormhole is an in-memory ordered index for key-value pairs.
@@ -276,8 +275,7 @@ abstract class WormholeBase<K, T> {
       return ((MetaTrieHashTable.NodeMetaLeaf<K, T>) nodeMeta).leafNode;
     }
 
-    NodeMetaInternal<K, T> nodeMetaInternal =
-        (NodeMetaInternal<K, T>) nodeMeta;
+    NodeMetaInternal<K, T> nodeMetaInternal = (NodeMetaInternal<K, T>) nodeMeta;
     int anchorPrefixLength = nodeMetaInternal.anchorPrefix.length();
 
     // The leaf type is INTERNAL.
@@ -319,8 +317,7 @@ abstract class WormholeBase<K, T> {
         return leafNode;
       }
     } else {
-      NodeMetaInternal<K, T> childNodeInternal =
-          (NodeMetaInternal<K, T>) childNode;
+      NodeMetaInternal<K, T> childNodeInternal = (NodeMetaInternal<K, T>) childNode;
       if (missingToken < siblingToken) {
         // The child node is a subtree right to the target node.
         return childNodeInternal.getLeftMostLeafNode().getLeft();
@@ -368,9 +365,8 @@ abstract class WormholeBase<K, T> {
       MetaTrieHashTable.NodeMetaLeaf<K, T> nodeMetaLeaf = null;
       if (nodeMeta instanceof NodeMetaInternal<K, T>) {
         nodeMetaInternal = (NodeMetaInternal<K, T>) nodeMeta;
-      }
-      else {
-        assert nodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf<K,T>;
+      } else {
+        assert nodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf<K, T>;
         nodeMetaLeaf = (NodeMetaLeaf<K, T>) nodeMeta;
       }
 
@@ -385,7 +381,10 @@ abstract class WormholeBase<K, T> {
       // Remove internal node meta if it points a single leaf node.
       // This condition is added following the reference implementation.
       if (!nodeMeta.anchorPrefix.isEmpty()
-          && (nodeMetaLeaf != null || nodeMetaInternal.getLeftMostLeafNode().equals(nodeMetaInternal.getRightMostLeafNode()))) {
+          && (nodeMetaLeaf != null
+              || nodeMetaInternal
+                  .getLeftMostLeafNode()
+                  .equals(nodeMetaInternal.getRightMostLeafNode()))) {
         table.removeNodeMeta(prefix);
         childNodeRemoved = true;
       } else {
@@ -484,8 +483,7 @@ abstract class WormholeBase<K, T> {
           continue;
         }
 
-        NodeMetaInternal<K, T> nodeMetaInternal =
-            (NodeMetaInternal<K, T>) nodeMeta;
+        NodeMetaInternal<K, T> nodeMetaInternal = (NodeMetaInternal<K, T>) nodeMeta;
 
         LeafNode<K, T> leftMostLeafNode = nodeMetaInternal.getLeftMostLeafNode();
         if (leftMostLeafNode != null) {
@@ -550,8 +548,7 @@ abstract class WormholeBase<K, T> {
         leftMostLeafNode = nodeMetaLeaf.leafNode;
         rightMostLeafNode = nodeMetaLeaf.leafNode;
       } else {
-        NodeMetaInternal<K, T> nodeMetaInternal =
-            (NodeMetaInternal<K, T>) rootNodeMeta;
+        NodeMetaInternal<K, T> nodeMetaInternal = (NodeMetaInternal<K, T>) rootNodeMeta;
         leftMostLeafNode = nodeMetaInternal.getLeftMostLeafNode();
         rightMostLeafNode = nodeMetaInternal.getRightMostLeafNode();
       }
