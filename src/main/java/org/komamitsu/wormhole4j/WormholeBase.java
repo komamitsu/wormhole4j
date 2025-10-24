@@ -363,10 +363,10 @@ abstract class WormholeBase<K, T> {
       MetaTrieHashTable.NodeMeta<K, T> nodeMeta = table.get(prefix);
       NodeMetaInternal<K, T> nodeMetaInternal = null;
       MetaTrieHashTable.NodeMetaLeaf<K, T> nodeMetaLeaf = null;
-      if (nodeMeta instanceof NodeMetaInternal<K, T>) {
+      if (nodeMeta instanceof NodeMetaInternal) {
         nodeMetaInternal = (NodeMetaInternal<K, T>) nodeMeta;
       } else {
-        assert nodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf<K, T>;
+        assert nodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf;
         nodeMetaLeaf = (NodeMetaLeaf<K, T>) nodeMeta;
       }
 
@@ -542,7 +542,7 @@ abstract class WormholeBase<K, T> {
       LeafNode<K, T> leftMostLeafNode;
       LeafNode<K, T> rightMostLeafNode;
       MetaTrieHashTable.NodeMeta<K, T> rootNodeMeta = table.get("");
-      if (rootNodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf<K, T>) {
+      if (rootNodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf) {
         MetaTrieHashTable.NodeMetaLeaf<K, T> nodeMetaLeaf =
             (MetaTrieHashTable.NodeMetaLeaf<K, T>) rootNodeMeta;
         leftMostLeafNode = nodeMetaLeaf.leafNode;
