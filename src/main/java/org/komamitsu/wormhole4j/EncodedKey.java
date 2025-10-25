@@ -17,7 +17,7 @@
 package org.komamitsu.wormhole4j;
 
 import java.nio.ByteBuffer;
-import java.util.Objects;
+import java.util.Arrays;
 import net.openhft.hashing.LongHashFunction;
 
 class EncodedKey implements Comparable<EncodedKey> {
@@ -95,9 +95,10 @@ class EncodedKey implements Comparable<EncodedKey> {
 
   @Override
   public boolean equals(Object o) {
+    if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     EncodedKey that = (EncodedKey) o;
-    return Objects.deepEquals(content, that.content);
+    return Arrays.equals(content, that.content);
   }
 
   @Override
@@ -131,7 +132,7 @@ class EncodedKey implements Comparable<EncodedKey> {
   }
 
   int get(int pos) {
-    return content[pos];
+    return content[pos] & 0xFF;
   }
 
   EncodedKey appendFrom(EncodedKey encodedKey, int pos) {

@@ -231,7 +231,7 @@ class LeafNode<K, V> {
         while (getEncodedKey(l).compareTo(pivot) < 0) {
           l++;
         }
-        while (getEncodedKey(l).compareTo(pivot) > 0) {
+        while (getEncodedKey(h).compareTo(pivot) > 0) {
           h--;
         }
         if (l <= h) {
