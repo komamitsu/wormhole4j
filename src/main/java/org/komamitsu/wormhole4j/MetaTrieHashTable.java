@@ -20,13 +20,13 @@ import java.util.*;
 import javax.annotation.Nullable;
 
 class MetaTrieHashTable<K, V> {
-  private final Map<String, NodeMeta<K, V>> table = new HashMap<>();
+  private final Map<EncodedKey, NodeMeta<K, V>> table = new HashMap<>();
   private int maxAnchorLength;
 
   abstract static class NodeMeta<K, T> {
-    final String anchorPrefix;
+    final EncodedKey anchorPrefix;
 
-    public NodeMeta(String anchorPrefix) {
+    public NodeMeta(EncodedKey anchorPrefix) {
       this.anchorPrefix = anchorPrefix;
     }
   }
@@ -34,7 +34,7 @@ class MetaTrieHashTable<K, V> {
   static class NodeMetaLeaf<K, T> extends NodeMeta<K, T> {
     final LeafNode<K, T> leafNode;
 
-    NodeMetaLeaf(String anchorPrefix, LeafNode<K, T> leafNode) {
+    NodeMetaLeaf(EncodedKey anchorPrefix, LeafNode<K, T> leafNode) {
       super(anchorPrefix);
       this.leafNode = leafNode;
     }
@@ -51,10 +51,10 @@ class MetaTrieHashTable<K, V> {
     final BitSet bitmap;
 
     NodeMetaInternal(
-        String anchorPrefix,
+        EncodedKey anchorPrefix,
         LeafNode<K, T> leftMostLeafNode,
         LeafNode<K, T> rightMostLeafNode,
-        @Nullable Character initBitIndex) {
+        @Nullable Integer initBitIndex) {
       super(anchorPrefix);
       this.leftMostLeafNode = leftMostLeafNode;
       this.rightMostLeafNode = rightMostLeafNode;
@@ -64,16 +64,16 @@ class MetaTrieHashTable<K, V> {
       }
     }
 
-    Character findOneSibling(char fromIndex) {
+    Integer findOneSibling(int fromIndex) {
       // Search left siblings.
       int index = bitmap.previousSetBit(fromIndex);
       if (index >= 0) {
-        return (char) index;
+        return index;
       }
       // Search right siblings.
       index = bitmap.nextSetBit(fromIndex);
       if (index >= 0) {
-        return (char) index;
+        return index;
       }
       return null;
     }
@@ -107,11 +107,11 @@ class MetaTrieHashTable<K, V> {
     }
   }
 
-  NodeMeta<K, V> get(String key) {
+  NodeMeta<K, V> get(EncodedKey key) {
     return table.get(key);
   }
 
-  void put(String key, NodeMeta<K, V> nodeMeta) {
+  void put(EncodedKey key, NodeMeta<K, V> nodeMeta) {
     table.put(key, nodeMeta);
     maxAnchorLength = Math.max(maxAnchorLength, key.length());
   }
@@ -120,11 +120,11 @@ class MetaTrieHashTable<K, V> {
     return table.values();
   }
 
-  Set<Map.Entry<String, NodeMeta<K, V>>> entrySet() {
+  Set<Map.Entry<EncodedKey, NodeMeta<K, V>>> entrySet() {
     return table.entrySet();
   }
 
-  void handleSplitNodes(String newAnchorKey, LeafNode<K, V> newLeafNode) {
+  void handleSplitNodes(EncodedKey newAnchorKey, LeafNode<K, V> newLeafNode) {
     NodeMetaLeaf<K, V> newNodeMeta = new NodeMetaLeaf<>(newAnchorKey, newLeafNode);
     NodeMeta<K, V> existingNodeMeta = get(newAnchorKey);
     if (existingNodeMeta != null) {
@@ -137,13 +137,12 @@ class MetaTrieHashTable<K, V> {
 
     // Update the ancestor NodeMeta instances for the new leaf node.
     for (int prefixLen = 0; prefixLen < newAnchorKey.length(); prefixLen++) {
-      String prefix = newAnchorKey.substring(0, prefixLen);
+      EncodedKey prefix = newAnchorKey.slice(0, prefixLen);
       NodeMeta<K, V> node = table.get(prefix);
       if (node == null) {
         put(
             prefix,
-            new NodeMetaInternal<>(
-                prefix, newLeafNode, newLeafNode, newAnchorKey.charAt(prefixLen)));
+            new NodeMetaInternal<>(prefix, newLeafNode, newLeafNode, newAnchorKey.get(prefixLen)));
         continue;
       }
 
@@ -179,7 +178,7 @@ class MetaTrieHashTable<K, V> {
 
       // The pseudocode in the paper does not update existing internal nodes' bitmap. However,
       // this update is probably necessary.
-      internalNode.bitmap.set(newAnchorKey.charAt(prefixLen));
+      internalNode.bitmap.set(newAnchorKey.get(prefixLen));
 
       // The pseudocode in the paper checks and updates the original leaf node. However, this
       // loop traverses the ancestors of the new leaf node's anchor key, and the ancestors'
@@ -194,26 +193,26 @@ class MetaTrieHashTable<K, V> {
     }
   }
 
-  NodeMeta<K, V> searchLongestPrefixMatch(String searchKey) {
-    String lpm = searchLongestPrefixMatchKey(searchKey);
+  NodeMeta<K, V> searchLongestPrefixMatch(EncodedKey searchKey) {
+    EncodedKey lpm = searchLongestPrefixMatchKey(searchKey);
     return table.get(lpm);
   }
 
-  private String searchLongestPrefixMatchKey(String searchKey) {
+  private EncodedKey searchLongestPrefixMatchKey(EncodedKey searchKey) {
     int m = 0;
     int n = Math.min(searchKey.length(), maxAnchorLength) + 1;
     while (m + 1 < n) {
       int prefixLen = (m + n) / 2;
-      if (table.containsKey(searchKey.substring(0, prefixLen))) {
+      if (table.containsKey(searchKey.slice(0, prefixLen))) {
         m = prefixLen;
       } else {
         n = prefixLen;
       }
     }
-    return searchKey.substring(0, m);
+    return searchKey.slice(0, m);
   }
 
-  void removeNodeMeta(String anchorKey) {
+  void removeNodeMeta(EncodedKey anchorKey) {
     NodeMeta<K, V> removed = table.remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(
@@ -224,7 +223,7 @@ class MetaTrieHashTable<K, V> {
     }
   }
 
-  String removeNodeMetaInternal(String anchorKey) {
+  EncodedKey removeNodeMetaInternal(EncodedKey anchorKey) {
     NodeMeta<K, V> removed = table.remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(
@@ -245,7 +244,7 @@ class MetaTrieHashTable<K, V> {
 
   private int calcMaxAnchorLength() {
     int max = 0;
-    for (String key : table.keySet()) {
+    for (EncodedKey key : table.keySet()) {
       if (max < key.length()) {
         max = key.length();
       }

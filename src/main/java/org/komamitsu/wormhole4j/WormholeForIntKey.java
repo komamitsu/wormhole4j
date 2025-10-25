@@ -16,6 +16,8 @@
 
 package org.komamitsu.wormhole4j;
 
+import java.nio.ByteBuffer;
+
 /**
  * A Wormhole implementation for integer keys. This is experimental.
  *
@@ -35,8 +37,9 @@ public class WormholeForIntKey<V> extends WormholeBase<Integer, V> {
   }
 
   @Override
-  String encodeKey(Integer key) {
-    // Encode an int into a lexicographically ordered hexadecimal string.
-    return String.format("%08x", 0x80000000 ^ key);
+  EncodedKey encodeKey(Integer key) {
+    ByteBuffer buf = ByteBuffer.allocate(4);
+    buf.putInt(key);
+    return new EncodedKey(buf.array());
   }
 }

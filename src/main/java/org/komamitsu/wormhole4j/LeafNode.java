@@ -23,14 +23,14 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 class LeafNode<K, V> {
-  final String anchorKey;
+  final EncodedKey anchorKey;
   private final int maxSize;
   private final KeyValues<K, V> keyValues;
   // All references are always sorted by hash.
   private final Tags<K, V> tags;
   // Some references are sorted by key.
   private final KeyReferences<K, V> keyReferences;
-  private final Function<String, String> validAnchorKeyProvider;
+  private final Function<EncodedKey, EncodedKey> validAnchorKeyProvider;
 
   @Nullable private LeafNode<K, V> left;
   @Nullable private LeafNode<K, V> right;
@@ -102,7 +102,7 @@ class LeafNode<K, V> {
 
     private int calcTag(int keyValueIndex, KeyValue<K, T> keyValue) {
       assert keyValueIndex <= 0xFFFF;
-      String key = keyValue.getEncodedKey();
+      EncodedKey key = keyValue.getEncodedKey();
       return calculateKeyHash(key) << 16 | keyValueIndex;
     }
 
@@ -212,7 +212,7 @@ class LeafNode<K, V> {
       return entries[index];
     }
 
-    private String getEncodedKey(int index) {
+    private EncodedKey getEncodedKey(int index) {
       return keyValues.get(getKeyValueIndex(index)).getEncodedKey();
     }
 
@@ -224,14 +224,14 @@ class LeafNode<K, V> {
       if (low >= high) {
         return;
       }
-      String pivot = getEncodedKey((low + high) >>> 1);
+      EncodedKey pivot = getEncodedKey((low + high) >>> 1);
       int l = low;
       int h = high;
       while (l <= h) {
         while (getEncodedKey(l).compareTo(pivot) < 0) {
           l++;
         }
-        while (getEncodedKey(h).compareTo(pivot) > 0) {
+        while (getEncodedKey(l).compareTo(pivot) > 0) {
           h--;
         }
         if (l <= h) {
@@ -255,8 +255,8 @@ class LeafNode<K, V> {
 
       int idxForSortedKeyRef = 0;
       int idxForUnsortedKeyRef = numOfSortedEntries;
-      String keyFromSortedKeyRef = null;
-      String keyFromUnsortedKeyRef = null;
+      EncodedKey keyFromSortedKeyRef = null;
+      EncodedKey keyFromUnsortedKeyRef = null;
       while (true) {
         if (keyFromSortedKeyRef == null && idxForSortedKeyRef < numOfSortedEntries) {
           keyFromSortedKeyRef = getEncodedKey(idxForSortedKeyRef);
@@ -355,7 +355,7 @@ class LeafNode<K, V> {
      *     specified key. Note that this guarantees that the return value will be &gt;= 0 if and
      *     only if the key is found.
      */
-    private int search(String key) {
+    private int search(EncodedKey key) {
       if (count == 0) {
         return 0;
       }
@@ -364,7 +364,7 @@ class LeafNode<K, V> {
       int m;
       while (l < r) {
         m = (l + r) >>> 1;
-        String k = getEncodedKey(m);
+        EncodedKey k = getEncodedKey(m);
         int compared = key.compareTo(k);
         if (compared < 0) {
           r = m;
@@ -392,8 +392,8 @@ class LeafNode<K, V> {
   }
 
   LeafNode(
-      Function<String, String> validAnchorKeyProvider,
-      String anchorKey,
+      Function<EncodedKey, EncodedKey> validAnchorKeyProvider,
+      EncodedKey anchorKey,
       int maxSize,
       @Nullable LeafNode<K, V> left,
       @Nullable LeafNode<K, V> right) {
@@ -425,17 +425,17 @@ class LeafNode<K, V> {
     this.right = right;
   }
 
-  private String getKeyByKeyRefIndex(int keyRefIndex) {
+  private EncodedKey getKeyByKeyRefIndex(int keyRefIndex) {
     return keyReferences.getEncodedKey(keyRefIndex);
   }
 
-  private static short calculateKeyHash(String key) {
+  private static short calculateKeyHash(EncodedKey key) {
     return (short) (0x7FFF & key.hashCode());
   }
 
   @Nullable
   private <R> R pointSearchLeaf(
-      String encodedKey, BiFunction<KeyValue<K, V>, Integer, R> kvAndTagIndexReceivingFunc) {
+      EncodedKey encodedKey, BiFunction<KeyValue<K, V>, Integer, R> kvAndTagIndexReceivingFunc) {
     short keyHash = calculateKeyHash(encodedKey);
     int leafSize = keyValues.size();
     int tagIndex = keyHash * leafSize / (Short.MAX_VALUE + 1);
@@ -456,7 +456,7 @@ class LeafNode<K, V> {
   }
 
   @Nullable
-  KeyValue<K, V> pointSearchLeaf(String encodedKey) {
+  KeyValue<K, V> pointSearchLeaf(EncodedKey encodedKey) {
     return pointSearchLeaf(encodedKey, (kv, tagIndex) -> kv);
   }
 
@@ -467,7 +467,7 @@ class LeafNode<K, V> {
   }
 
   private Tuple<LeafNode<K, V>, List<Integer>> copyToNewLeafNode(
-      String newAnchor, int startKeyRefIndex) {
+      EncodedKey newAnchor, int startKeyRefIndex) {
     if (!keyReferences.isSorted()) {
       throw new AssertionError(
           String.format(
@@ -530,12 +530,12 @@ class LeafNode<K, V> {
     tags.sort();
   }
 
-  Tuple<String, LeafNode<K, V>> splitToNewLeafNode() {
+  Tuple<EncodedKey, LeafNode<K, V>> splitToNewLeafNode() {
     incSort();
 
-    Tuple<Integer, String> found = findSplitPositionAndNewAnchorInLeafNode();
+    Tuple<Integer, EncodedKey> found = findSplitPositionAndNewAnchorInLeafNode();
     int splitPosIndex = found.first;
-    String newAnchor = found.second;
+    EncodedKey newAnchor = found.second;
 
     Tuple<LeafNode<K, V>, List<Integer>> copied = copyToNewLeafNode(newAnchor, splitPosIndex);
     LeafNode<K, V> newLeafNode = copied.first;
@@ -553,9 +553,8 @@ class LeafNode<K, V> {
   @Override
   public String toString() {
     return "LeafNode{"
-        + "anchorKey='"
-        + Utils.printableKey(anchorKey)
-        + '\''
+        + "anchorKey="
+        + anchorKey
         + ", maxSize="
         + maxSize
         + ", keyValues="
@@ -564,16 +563,18 @@ class LeafNode<K, V> {
         + tags
         + ", keyReferences="
         + keyReferences
+        + ", validAnchorKeyProvider="
+        + validAnchorKeyProvider
         + ", left="
-        + (left == null ? "null" : Utils.printableKey(left.anchorKey))
+        + (left == null ? "null" : left.anchorKey)
         + ", right="
-        + (right == null ? "null" : Utils.printableKey(right.anchorKey))
+        + (right == null ? "null" : right.anchorKey)
         + '}';
   }
 
   boolean iterateKeyValues(
-      @Nullable String startKey,
-      @Nullable String endKey,
+      @Nullable EncodedKey startKey,
+      @Nullable EncodedKey endKey,
       boolean isEndKeyExclusive,
       Function<KeyValue<K, V>, Boolean> function) {
     int startIndexInclusive;
@@ -617,7 +618,7 @@ class LeafNode<K, V> {
     keyReferences.add(keyValues.getLastIndex());
   }
 
-  boolean delete(String key) {
+  boolean delete(EncodedKey key) {
     incSort();
     int keyReferenceIndex = keyReferences.search(key);
     if (keyReferenceIndex < 0) {
@@ -651,14 +652,14 @@ class LeafNode<K, V> {
     setRight(right.getRight());
   }
 
-  private Tuple<Integer, String> findSplitPositionAndNewAnchorInLeafNode() {
+  private Tuple<Integer, EncodedKey> findSplitPositionAndNewAnchorInLeafNode() {
     for (int i = size() / 2; i < size(); i++) {
       assert i > 0;
-      String k1 = getKeyByKeyRefIndex(i - 1);
-      String k2 = getKeyByKeyRefIndex(i);
+      EncodedKey k1 = getKeyByKeyRefIndex(i - 1);
+      EncodedKey k2 = getKeyByKeyRefIndex(i);
 
-      String lcp = Utils.extractLongestCommonPrefix(k1, k2);
-      String newAnchor = lcp + k2.charAt(lcp.length());
+      EncodedKey lcp = k1.extractLongestCommonPrefix(k2);
+      EncodedKey newAnchor = lcp.appendFrom(k2, lcp.length());
 
       // Check the anchor key ordering condition: left-key < anchor-key ≤ node-key
       if (newAnchor.compareTo(k1) <= 0) {
@@ -667,7 +668,7 @@ class LeafNode<K, V> {
       // For anchor-key ≤ node-key, the relationship of `newAnchor` and `k2` always satisfy it.
 
       // Check the anchor key prefix condition.
-      String validatedAnchorKey = validAnchorKeyProvider.apply(newAnchor);
+      EncodedKey validatedAnchorKey = validAnchorKeyProvider.apply(newAnchor);
       if (validatedAnchorKey == null) {
         continue;
       }
@@ -677,8 +678,8 @@ class LeafNode<K, V> {
   }
 
   void validate() {
-    String normalizedAnchorKey = anchorKey;
-    String normalizedRightAnchorKey = null;
+    EncodedKey normalizedAnchorKey = anchorKey;
+    EncodedKey normalizedRightAnchorKey = null;
     if (right != null) {
       normalizedRightAnchorKey = right.anchorKey;
     }
@@ -689,14 +690,14 @@ class LeafNode<K, V> {
         throw new AssertionError(
             String.format(
                 "The key is smaller than the anchor key. Key: %s, Anchor key: %s",
-                kv.getKey(), Utils.printableKey(normalizedAnchorKey)));
+                kv.getKey(), normalizedAnchorKey));
       }
       if (normalizedRightAnchorKey != null
           && normalizedRightAnchorKey.compareTo(kv.getEncodedKey()) < 0) {
         throw new AssertionError(
             String.format(
                 "The anchor key of the right leaf node is smaller than the key. Key: %s, Right leaf node's anchor key: %s",
-                kv.getKey(), Utils.printableKey(normalizedRightAnchorKey)));
+                kv.getKey(), normalizedRightAnchorKey));
       }
     }
 

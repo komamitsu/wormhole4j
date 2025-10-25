@@ -16,6 +16,8 @@
 
 package org.komamitsu.wormhole4j;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * A Wormhole implementation for string keys. This is the default Wormhole class, as support for
  * other key types is still experimental.
@@ -36,7 +38,7 @@ public class Wormhole<V> extends WormholeBase<String, V> {
   }
 
   @Override
-  String encodeKey(String key) {
-    return key;
+  EncodedKey encodeKey(String key) {
+    return new EncodedKey(key.getBytes(StandardCharsets.US_ASCII));
   }
 }
