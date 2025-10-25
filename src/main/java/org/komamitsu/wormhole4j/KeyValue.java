@@ -52,7 +52,7 @@ public class KeyValue<K, V> {
    *
    * @return the encoded key
    */
-  String getEncodedKey() {
+  EncodedKey getEncodedKey() {
     return key.encodedKey;
   }
 

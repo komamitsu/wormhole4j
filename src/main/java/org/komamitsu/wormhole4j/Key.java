@@ -20,9 +20,9 @@ import java.util.Objects;
 
 class Key<K> {
   final K key;
-  final String encodedKey;
+  final EncodedKey encodedKey;
 
-  Key(K key, String encodedKey) {
+  Key(K key, EncodedKey encodedKey) {
     this.key = key;
     this.encodedKey = encodedKey;
   }
@@ -38,13 +38,8 @@ class Key<K> {
 
   @Override
   public String toString() {
-    return "Key{"
-        + "encodedKey='"
-        + (encodedKey != null ? Utils.printableKey(encodedKey) : "null")
-        + '\''
-        + ", key="
-        + key
-        + '}';
+    return String.format(
+        "Key{encodedKey='%s', key='%s'}", (encodedKey != null ? encodedKey : "null"), key);
   }
 
   @Override
