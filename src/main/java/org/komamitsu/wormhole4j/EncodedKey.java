@@ -16,7 +16,6 @@
 
 package org.komamitsu.wormhole4j;
 
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import net.openhft.hashing.LongHashFunction;
 
@@ -76,9 +75,15 @@ class EncodedKey implements Comparable<EncodedKey> {
       if (x1 == x2) {
         continue;
       }
-      return ByteBuffer.wrap(xs1, 0, i).slice().array();
+      return sliceBytes(xs1, 0, i);
     }
-    return ByteBuffer.wrap(xs1, 0, minLen).slice().array();
+    return sliceBytes(xs1, 0, minLen);
+  }
+
+  private static byte[] sliceBytes(byte[] src, int pos, int length) {
+    byte[] newBytes = new byte[length];
+    System.arraycopy(src, pos, newBytes, 0, length);
+    return newBytes;
   }
 
   static byte[] appendCharToKey(byte[] key, byte x) {
@@ -128,7 +133,7 @@ class EncodedKey implements Comparable<EncodedKey> {
   }
 
   EncodedKey slice(int pos, int length) {
-    return new EncodedKey(ByteBuffer.wrap(content, pos, length).slice().array());
+    return new EncodedKey(sliceBytes(content, pos, length));
   }
 
   int get(int pos) {
