@@ -23,18 +23,25 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.params.Parameter;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.komamitsu.wormhole4j.WormholeBase.Validator;
 
 @ParameterizedClass
-@ValueSource(ints = {3, 128})
+@ValueSource(ints = {3, 8, 128})
 class WormholeForIntKeyTest {
   @Parameter int leafNodeSize;
 
+  class Common {
+    boolean isLeafNodeLargeEnough() {
+      return leafNodeSize >= 8;
+    }
+  }
+
   @Nested
-  class Get {
+  class Get extends Common {
     @Test
     void withOneLeafNodeWithOneMinimumKeyRecord_ShouldReturnIt() {
       // Arrange
@@ -107,6 +114,7 @@ class WormholeForIntKeyTest {
     }
 
     @Test
+    @EnabledIf("isLeafNodeLargeEnough")
     void withManyLeafNodes_ShouldReturnThem() {
       // Arrange
       WormholeForIntKey<Integer> wormhole = new WormholeForIntKey<>(leafNodeSize);
@@ -129,7 +137,7 @@ class WormholeForIntKeyTest {
   }
 
   @Nested
-  class Scan {
+  class Scan extends Common {
     @Test
     void withOneLeafNodeWithOneMinimumKeyRecord_ShouldReturnIt() {
       // Arrange
@@ -473,6 +481,7 @@ class WormholeForIntKeyTest {
     }
 
     @Test
+    @EnabledIf("isLeafNodeLargeEnough")
     void withManyLeafNodes_ShouldReturnThem() {
       // Arrange
       WormholeForIntKey<Integer> wormhole = new WormholeForIntKey<>(leafNodeSize);
@@ -564,7 +573,7 @@ class WormholeForIntKeyTest {
   }
 
   @Nested
-  class Delete {
+  class Delete extends Common {
     @Test
     void withOneRecord_GivenSameMinimumKey_ShouldReturnTrueAndDeleteIt() {
       // Arrange
@@ -682,6 +691,7 @@ class WormholeForIntKeyTest {
     }
 
     @Test
+    @EnabledIf("isLeafNodeLargeEnough")
     void withManyLeafNodes_ShouldReturnIt() {
       // Arrange
       WormholeForIntKey<Integer> wormhole = new WormholeForIntKey<>(leafNodeSize);
