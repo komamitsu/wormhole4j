@@ -429,7 +429,7 @@ abstract class WormholeBase<K, T> {
             throw new AssertionError(
                 String.format(
                     "The right node of the leaf node doesn't point the leaf node. Leaf node: %s; Right leaf node: %s",
-                    leafNode, leafNode.getLeft()));
+                    leafNode, leafNode.getRight()));
           }
         }
         lastLeafNode = leafNode;
