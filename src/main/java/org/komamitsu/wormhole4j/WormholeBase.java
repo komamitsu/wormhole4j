@@ -298,8 +298,6 @@ abstract class WormholeBase<K, T> {
     char missingToken = encodedKey.charAt(anchorPrefixLength);
     Character siblingToken = nodeMetaInternal.findOneSibling(missingToken);
     if (siblingToken == null) {
-      // TODO: Test and add comment.
-      // throw new AssertionError("Any sibling token is not found");
       return nodeMetaInternal.getLeftMostLeafNode();
     }
 
@@ -328,23 +326,13 @@ abstract class WormholeBase<K, T> {
     }
   }
 
+  @Nullable
   private String provideValidAnchorKey(String anchorKey) {
     MetaTrieHashTable.NodeMeta<K, T> existingNodeMeta = table.get(anchorKey);
     if (existingNodeMeta == null) {
       return anchorKey;
     }
     return null;
-
-    // TODO: Remove this. SMALLEST_TOKEN shouldn't be used.
-    /*
-    // "Append 0s to key when necessary"
-    anchorKey = anchorKey + Constants.SMALLEST_TOKEN;
-    existingNodeMeta = table.get(anchorKey);
-    if (existingNodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf) {
-      return null;
-    }
-    return anchorKey;
-     */
   }
 
   private LeafNode<K, T> split(LeafNode<K, T> leafNode) {
