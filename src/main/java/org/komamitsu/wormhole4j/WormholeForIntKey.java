@@ -39,7 +39,7 @@ public class WormholeForIntKey<V> extends WormholeBase<Integer, V> {
   @Override
   EncodedKey encodeKey(Integer key) {
     ByteBuffer buf = ByteBuffer.allocate(4);
-    buf.putInt(key);
+    buf.putInt(0x80000000 ^ key);
     return new EncodedKey(buf.array());
   }
 }
