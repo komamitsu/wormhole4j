@@ -76,7 +76,7 @@ class EncodedKey implements Comparable<EncodedKey> {
       if (x1 == x2) {
         continue;
       }
-      return ByteBuffer.wrap(xs1, 0, i - 1).slice().array();
+      return ByteBuffer.wrap(xs1, 0, i).slice().array();
     }
     return ByteBuffer.wrap(xs1, 0, minLen).slice().array();
   }
