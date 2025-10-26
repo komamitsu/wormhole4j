@@ -50,7 +50,6 @@ val benchmarkRuntimeOnly: Configuration by configurations.getting {
 
 dependencies {
     implementation("com.google.code.findbugs:jsr305:3.0.2")
-    implementation("net.openhft:zero-allocation-hashing:0.16")
     testImplementation(platform("org.junit:junit-bom:5.13.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")

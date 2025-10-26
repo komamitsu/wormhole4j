@@ -17,7 +17,6 @@
 package org.komamitsu.wormhole4j;
 
 import java.util.Arrays;
-import net.openhft.hashing.LongHashFunction;
 
 class EncodedKey implements Comparable<EncodedKey> {
   private static final byte[] EMPTY_BYTES = new byte[] {};
@@ -39,7 +38,7 @@ class EncodedKey implements Comparable<EncodedKey> {
     if (bytes.length == 0) {
       return "{}";
     }
-    StringBuilder sb = new StringBuilder(2 + bytes.length * 6); // "{ 0x11, 0x22, ... }"
+    StringBuilder sb = new StringBuilder(2 + bytes.length * 6); // "{0x11, 0x22, ...}"
     sb.append("{");
     for (int i = 0; i < bytes.length; i++) {
       int v = bytes[i] & 0xFF;
@@ -108,8 +107,7 @@ class EncodedKey implements Comparable<EncodedKey> {
 
   @Override
   public int hashCode() {
-    // return Arrays.hashCode(content);
-    return (short) (0x7FFF & LongHashFunction.xx3().hashBytes(content));
+    return Arrays.hashCode(content);
   }
 
   int length() {
