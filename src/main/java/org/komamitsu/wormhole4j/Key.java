@@ -18,11 +18,11 @@ package org.komamitsu.wormhole4j;
 
 import java.util.Objects;
 
-class Key<K> {
+class Key<K, E extends EncodedKey<E>> {
   final K key;
-  final EncodedKey encodedKey;
+  final E encodedKey;
 
-  Key(K key, EncodedKey encodedKey) {
+  Key(K key, E encodedKey) {
     this.key = key;
     this.encodedKey = encodedKey;
   }
@@ -32,9 +32,11 @@ class Key<K> {
     this.encodedKey = null;
   }
 
-  static <K> Key<K> createForTest(K key) {
+  /*
+  static <K, E extends EncodedKey<E>> Key<K, E> createForTest(K key) {
     return new Key<>(key);
   }
+   */
 
   @Override
   public String toString() {
@@ -46,7 +48,7 @@ class Key<K> {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-    Key<?> key1 = (Key<?>) o;
+    Key<?, ?> key1 = (Key<?, ?>) o;
     return Objects.equals(key, key1.key);
   }
 

@@ -24,7 +24,7 @@ import java.nio.charset.StandardCharsets;
  *
  * @param <V> the type of values stored in this Wormhole
  */
-public class Wormhole<V> extends WormholeBase<String, V> {
+public class Wormhole<V> extends WormholeBase<String, ByteArrayEncodedKey, V> {
   public Wormhole() {
     super();
   }
@@ -38,7 +38,12 @@ public class Wormhole<V> extends WormholeBase<String, V> {
   }
 
   @Override
-  EncodedKey encodeKey(String key) {
-    return new EncodedKey(key.getBytes(StandardCharsets.US_ASCII));
+  ByteArrayEncodedKey encodeKey(String key) {
+    return new ByteArrayEncodedKey(key.getBytes(StandardCharsets.US_ASCII));
+  }
+
+  @Override
+  ByteArrayEncodedKey emptyEncodedKey() {
+    return ByteArrayEncodedKey.EMPTY_INSTANCE;
   }
 }
