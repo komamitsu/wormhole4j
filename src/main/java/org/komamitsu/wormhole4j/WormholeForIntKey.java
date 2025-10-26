@@ -23,7 +23,7 @@ import java.nio.ByteBuffer;
  *
  * @param <V> the type of values stored in this Wormhole
  */
-public class WormholeForIntKey<V> extends WormholeBase<Integer, V> {
+public class WormholeForIntKey<V> extends WormholeBase<Integer, ByteArrayEncodedKey, V> {
   public WormholeForIntKey() {
     super();
   }
@@ -37,9 +37,14 @@ public class WormholeForIntKey<V> extends WormholeBase<Integer, V> {
   }
 
   @Override
-  EncodedKey encodeKey(Integer key) {
+  ByteArrayEncodedKey encodeKey(Integer key) {
     ByteBuffer buf = ByteBuffer.allocate(4);
     buf.putInt(0x80000000 ^ key);
-    return new EncodedKey(buf.array());
+    return new ByteArrayEncodedKey(buf.array());
+  }
+
+  @Override
+  ByteArrayEncodedKey emptyEncodedKey() {
+    return ByteArrayEncodedKey.EMPTY_INSTANCE;
   }
 }
