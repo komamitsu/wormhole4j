@@ -32,12 +32,6 @@ class Key<K, E extends EncodedKey<E>> {
     this.encodedKey = null;
   }
 
-  /*
-  static <K, E extends EncodedKey<E>> Key<K, E> createForTest(K key) {
-    return new Key<>(key);
-  }
-   */
-
   @Override
   public String toString() {
     return String.format(

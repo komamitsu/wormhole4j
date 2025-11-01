@@ -85,7 +85,7 @@ class ByteArrayEncodedKey implements EncodedKey<ByteArrayEncodedKey> {
     return newBytes;
   }
 
-  static byte[] appendCharToKey(byte[] key, byte x) {
+  static byte[] appendByteToKey(byte[] key, byte x) {
     byte[] newKey = new byte[key.length + 1];
     System.arraycopy(key, 0, newKey, 0, key.length);
     newKey[key.length] = x;
@@ -145,12 +145,12 @@ class ByteArrayEncodedKey implements EncodedKey<ByteArrayEncodedKey> {
 
   @Override
   public ByteArrayEncodedKey appendFrom(ByteArrayEncodedKey encodedKey, int pos) {
-    return new ByteArrayEncodedKey(appendCharToKey(content, encodedKey.content[pos]));
+    return new ByteArrayEncodedKey(appendByteToKey(content, encodedKey.content[pos]));
   }
 
   @Override
   public ByteArrayEncodedKey append(int value) {
-    return new ByteArrayEncodedKey(appendCharToKey(content, (byte) value));
+    return new ByteArrayEncodedKey(appendByteToKey(content, (byte) value));
   }
 
   @Override
