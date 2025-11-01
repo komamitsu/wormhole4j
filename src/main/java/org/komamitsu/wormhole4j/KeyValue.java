@@ -24,11 +24,11 @@ import java.util.Objects;
  * @param <K> the type of the key
  * @param <V> the type of the value
  */
-public class KeyValue<K, V> {
-  private final Key<K> key;
+public class KeyValue<K, E extends EncodedKey<E>, V> {
+  private final Key<K, E> key;
   private V value;
 
-  KeyValue(Key<K> key, V value) {
+  KeyValue(Key<K, E> key, V value) {
     this.key = key;
     this.value = value;
   }
@@ -52,7 +52,7 @@ public class KeyValue<K, V> {
    *
    * @return the encoded key
    */
-  String getEncodedKey() {
+  E getEncodedKey() {
     return key.encodedKey;
   }
 
@@ -73,7 +73,7 @@ public class KeyValue<K, V> {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-    KeyValue<?, ?> keyValue = (KeyValue<?, ?>) o;
+    KeyValue<?, ?, ?> keyValue = (KeyValue<?, ?, ?>) o;
     return Objects.equals(key, keyValue.key) && Objects.equals(value, keyValue.value);
   }
 

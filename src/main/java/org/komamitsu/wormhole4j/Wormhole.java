@@ -16,13 +16,15 @@
 
 package org.komamitsu.wormhole4j;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * A Wormhole implementation for string keys. This is the default Wormhole class, as support for
  * other key types is still experimental.
  *
  * @param <V> the type of values stored in this Wormhole
  */
-public class Wormhole<V> extends WormholeBase<String, V> {
+public class Wormhole<V> extends WormholeBase<String, StringEncodedKey, V> {
   public Wormhole() {
     super();
   }
@@ -36,7 +38,12 @@ public class Wormhole<V> extends WormholeBase<String, V> {
   }
 
   @Override
-  String encodeKey(String key) {
-    return key;
+  StringEncodedKey encodeKey(String key) {
+    return new StringEncodedKey(key);
+  }
+
+  @Override
+  StringEncodedKey emptyEncodedKey() {
+    return StringEncodedKey.EMPTY_INSTANCE;
   }
 }
