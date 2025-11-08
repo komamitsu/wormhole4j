@@ -563,7 +563,7 @@ class BenchmarkForStringKey extends Benchmark {
                         keyIndex1 + ThreadLocalRandom.current().nextInt(maxScanSize));
                 String key1 = keys.get(keyIndex1);
                 String key2 = keys.get(keyIndex2);
-                wormhole.scanWithExclusiveEndKey(key1, key2, kv -> true);
+                wormhole.scan(key1, key2, true, kv -> true);
               }
             };
           }

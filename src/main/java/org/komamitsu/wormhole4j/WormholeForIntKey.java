@@ -16,27 +16,67 @@
 
 package org.komamitsu.wormhole4j;
 
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.function.Function;
+import javax.annotation.Nullable;
+
 /**
- * A Wormhole implementation for integer keys. This is experimental.
+ * A Wormhole implementation for string keys. This is the default Wormhole class, as support for
+ * other key types is still experimental.
  *
  * @param <V> the type of values stored in this Wormhole
  */
 public class WormholeForIntKey<V> extends WormholeBase<Integer, V> {
   public WormholeForIntKey() {
-    super();
+    super(EncodedKeyType.BYTE_ARRAY);
   }
 
   public WormholeForIntKey(int leafNodeSize) {
-    super(leafNodeSize);
+    super(EncodedKeyType.BYTE_ARRAY, leafNodeSize);
   }
 
   public WormholeForIntKey(int leafNodeSize, boolean debugMode) {
-    super(leafNodeSize, debugMode);
+    super(EncodedKeyType.BYTE_ARRAY, leafNodeSize, debugMode);
   }
 
-  @Override
-  String encodeKey(Integer key) {
-    // Encode an int into a lexicographically ordered hexadecimal string.
-    return String.format("%08x", 0x80000000 ^ key);
+  public void put(Integer key, V value) {
+    putInternal(createEncodedKey(key), key, value);
+  }
+
+  public boolean delete(Integer key) {
+    return deleteInternal(createEncodedKey(key));
+  }
+
+  public V get(Integer key) {
+    return getInternal(createEncodedKey(key));
+  }
+
+  public List<KeyValue<Integer, V>> scanWithCount(Integer startKey, int count) {
+    return scanWithCountInternal(createEncodedKey(startKey), count);
+  }
+
+  public void scan(
+      @Nullable Integer startKey,
+      @Nullable Integer endKey,
+      boolean isEndKeyExclusive,
+      Function<KeyValue<Integer, V>, Boolean> function) {
+    scanInternal(
+        startKey == null ? ByteArrayUtils.EMPTY_BYTES : createEncodedKey(startKey),
+        endKey == null ? null : createEncodedKey(endKey),
+        isEndKeyExclusive,
+        null,
+        function);
+  }
+
+  KeyValue<Integer, V> createKey(Integer key, V value) {
+    return EncodedKeyUtils.createKeyValue(
+        EncodedKeyType.BYTE_ARRAY, createEncodedKey(key), key, value);
+  }
+
+  private byte[] createEncodedKey(int key) {
+    ByteBuffer byteBuf = ByteBuffer.allocate(4);
+    byteBuf.putInt(key ^ 0x80000000);
+    return byteBuf.array();
   }
 }

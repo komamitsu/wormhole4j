@@ -158,69 +158,69 @@ class WormholeTest {
       wormhole.put("", "foo");
 
       // Act & Assert
-      KeyValue<String, String> firstItem = new KeyValue<>(Key.createForTest(""), "foo");
+      KeyValue<String, String> firstItem = wormhole.createKey("", "foo");
       assertThat(wormhole.scanWithCount("", 2)).containsExactly(firstItem);
 
       // With exclusive end keys.
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey("", "", result::add);
+        wormhole.scan("", "", true, result::add);
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey("", null, result::add);
+        wormhole.scan("", null, true, result::add);
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey(null, "", result::add);
+        wormhole.scan(null, "", true, result::add);
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey(null, null, result::add);
+        wormhole.scan(null, null, true, result::add);
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey("a", "z", result::add);
+        wormhole.scan("a", "z", true, result::add);
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey("a", null, result::add);
+        wormhole.scan("a", null, true, result::add);
         assertThat(result).isEmpty();
       }
       // With inclusive end keys.
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey("", "", result::add);
+        wormhole.scan("", "", true, result::add);
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey("", null, result::add);
+        wormhole.scan("", null, true, result::add);
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey(null, "", result::add);
+        wormhole.scan(null, "", true, result::add);
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey(null, null, result::add);
+        wormhole.scan(null, null, true, result::add);
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey("a", "z", result::add);
+        wormhole.scan("a", "z", true, result::add);
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey("a", null, result::add);
+        wormhole.scan("a", null, true, result::add);
         assertThat(result).isEmpty();
       }
     }
@@ -232,7 +232,7 @@ class WormholeTest {
       wormhole.put("James", "semaj");
 
       // Act & Assert
-      KeyValue<String, String> firstItem = new KeyValue<>(Key.createForTest("James"), "semaj");
+      KeyValue<String, String> firstItem = wormhole.createKey("James", "semaj");
       assertThat(wormhole.scanWithCount("J", 0)).isEmpty();
       assertThat(wormhole.scanWithCount("J", 1)).containsExactly(firstItem);
       assertThat(wormhole.scanWithCount("J", 2)).containsExactly(firstItem);
@@ -260,63 +260,63 @@ class WormholeTest {
       // With exclusive end keys.
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey("James", "James", result::add);
+        wormhole.scan("James", "James", true, result::add);
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey(null, "James", result::add);
+        wormhole.scan(null, "James", true, result::add);
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey("James", null, result::add);
+        wormhole.scan("James", null, true, result::add);
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey("Jamesa", "Jamesa", result::add);
+        wormhole.scan("Jamesa", "Jamesa", true, result::add);
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey(null, "Jamer", result::add);
+        wormhole.scan(null, "Jamer", true, result::add);
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey("Jamesa", null, result::add);
+        wormhole.scan("Jamesa", null, true, result::add);
         assertThat(result).isEmpty();
       }
       // With inclusive end keys.
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey("James", "James", result::add);
+        wormhole.scan("James", "James", true, result::add);
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey(null, "James", result::add);
+        wormhole.scan(null, "James", true, result::add);
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey("James", null, result::add);
+        wormhole.scan("James", null, true, result::add);
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey("Jamesa", "Jamesa", result::add);
+        wormhole.scan("Jamesa", "Jamesa", true, result::add);
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey(null, "Jamer", result::add);
+        wormhole.scan(null, "Jamer", true, result::add);
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey("Jamesa", null, result::add);
+        wormhole.scan("Jamesa", null, true, result::add);
         assertThat(result).isEmpty();
       }
     }
@@ -330,9 +330,9 @@ class WormholeTest {
       wormhole.put("Jason", "nosaj");
 
       // Act & Assert
-      KeyValue<String, String> firstItem = new KeyValue<>(Key.createForTest("James"), "semaj");
-      KeyValue<String, String> secondItem = new KeyValue<>(Key.createForTest("Jason"), "nosaj");
-      KeyValue<String, String> thirdItem = new KeyValue<>(Key.createForTest("John"), "nhoj");
+      KeyValue<String, String> firstItem = wormhole.createKey("James", "semaj");
+      KeyValue<String, String> secondItem = wormhole.createKey("Jason", "nosaj");
+      KeyValue<String, String> thirdItem = wormhole.createKey("John", "nhoj");
       assertThat(wormhole.scanWithCount("I", 1)).containsExactly(firstItem);
       assertThat(wormhole.scanWithCount("I", 2)).containsExactly(firstItem, secondItem);
       assertThat(wormhole.scanWithCount("I", 3)).containsExactly(firstItem, secondItem, thirdItem);
@@ -434,33 +434,33 @@ class WormholeTest {
       // With exclusive end keys.
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey("James", "John", result::add);
+        wormhole.scan("James", "John", true, result::add);
         assertThat(result).containsExactly(firstItem, secondItem);
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey("Jamer", "Johna", result::add);
+        wormhole.scan("Jamer", "Johna", true, result::add);
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem);
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey("Jamesa", "Johm", result::add);
+        wormhole.scan("Jamesa", "Johm", true, result::add);
         assertThat(result).containsExactly(secondItem);
       }
       // With inclusive end keys.
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey("James", "John", result::add);
+        wormhole.scan("James", "John", true, result::add);
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem);
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey("Jamer", "Johna", result::add);
+        wormhole.scan("Jamer", "Johna", true, result::add);
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem);
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey("Jamesa", "Johm", result::add);
+        wormhole.scan("Jamesa", "Johm", true, result::add);
         assertThat(result).containsExactly(secondItem);
       }
     }
@@ -476,11 +476,11 @@ class WormholeTest {
       wormhole.put("Jason", "nosaj");
 
       // Act & Assert
-      KeyValue<String, String> firstItem = new KeyValue<>(Key.createForTest("Jacob"), "bocaj");
-      KeyValue<String, String> secondItem = new KeyValue<>(Key.createForTest("James"), "semaj");
-      KeyValue<String, String> thirdItem = new KeyValue<>(Key.createForTest("Jason"), "nosaj");
-      KeyValue<String, String> fourthItem = new KeyValue<>(Key.createForTest("John"), "nhoj");
-      KeyValue<String, String> fifthItem = new KeyValue<>(Key.createForTest("Joseph"), "hpesoj");
+      KeyValue<String, String> firstItem = wormhole.createKey("Jacob", "bocaj");
+      KeyValue<String, String> secondItem = wormhole.createKey("James", "semaj");
+      KeyValue<String, String> thirdItem = wormhole.createKey("Jason", "nosaj");
+      KeyValue<String, String> fourthItem = wormhole.createKey("John", "nhoj");
+      KeyValue<String, String> fifthItem = wormhole.createKey("Joseph", "hpesoj");
       assertThat(wormhole.scanWithCount("I", 1)).containsExactly(firstItem);
       assertThat(wormhole.scanWithCount("I", 2)).containsExactly(firstItem, secondItem);
       assertThat(wormhole.scanWithCount("I", 3)).containsExactly(firstItem, secondItem, thirdItem);
@@ -545,33 +545,33 @@ class WormholeTest {
       // With exclusive end keys.
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey("Jacob", "Joseph", result::add);
+        wormhole.scan("Jacob", "Joseph", true, result::add);
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem);
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey("Jacoa", "Josepha", result::add);
+        wormhole.scan("Jacoa", "Josepha", true, result::add);
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey("Jacoba", "Josepg", result::add);
+        wormhole.scan("Jacoba", "Josepg", true, result::add);
         assertThat(result).containsExactly(secondItem, thirdItem, fourthItem);
       }
       // With inclusive end keys.
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey("Jacob", "Joseph", result::add);
+        wormhole.scan("Jacob", "Joseph", true, result::add);
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey("Jacoa", "Josepha", result::add);
+        wormhole.scan("Jacoa", "Josepha", true, result::add);
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
       }
       {
         List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey("Jacoba", "Josepg", result::add);
+        wormhole.scan("Jacoba", "Josepg", true, result::add);
         assertThat(result).containsExactly(secondItem, thirdItem, fourthItem);
       }
     }
@@ -587,11 +587,11 @@ class WormholeTest {
       wormhole.put("aa", 2);
 
       // Act & Assert
-      KeyValue<String, Integer> firstItem = new KeyValue<>(Key.createForTest("a"), 1);
-      KeyValue<String, Integer> secondItem = new KeyValue<>(Key.createForTest("aa"), 2);
-      KeyValue<String, Integer> thirdItem = new KeyValue<>(Key.createForTest("aaa"), 3);
-      KeyValue<String, Integer> fourthItem = new KeyValue<>(Key.createForTest("aaaa"), 4);
-      KeyValue<String, Integer> fifthItem = new KeyValue<>(Key.createForTest("aaaaa"), 5);
+      KeyValue<String, Integer> firstItem = wormhole.createKey("a", 1);
+      KeyValue<String, Integer> secondItem = wormhole.createKey("aa", 2);
+      KeyValue<String, Integer> thirdItem = wormhole.createKey("aaa", 3);
+      KeyValue<String, Integer> fourthItem = wormhole.createKey("aaaa", 4);
+      KeyValue<String, Integer> fifthItem = wormhole.createKey("aaaaa", 5);
 
       assertThat(wormhole.scanWithCount("", 1)).containsExactly(firstItem);
       assertThat(wormhole.scanWithCount("", 2)).containsExactly(firstItem, secondItem);
@@ -628,23 +628,23 @@ class WormholeTest {
       // With exclusive end keys.
       {
         List<KeyValue<String, Integer>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey("a", "aaaaa", result::add);
+        wormhole.scan("a", "aaaaa", true, result::add);
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem);
       }
       {
         List<KeyValue<String, Integer>> result = new ArrayList<>();
-        wormhole.scanWithExclusiveEndKey("", "aaaab", result::add);
+        wormhole.scan("", "aaaab", true, result::add);
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
       }
       // With inclusive end keys.
       {
         List<KeyValue<String, Integer>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey("a", "aaaaa", result::add);
+        wormhole.scan("a", "aaaaa", true, result::add);
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
       }
       {
         List<KeyValue<String, Integer>> result = new ArrayList<>();
-        wormhole.scanWithInclusiveEndKey("", "aaaab", result::add);
+        wormhole.scan("", "aaaab", true, result::add);
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
       }
     }
@@ -712,9 +712,10 @@ class WormholeTest {
             expectedKeyValues.addAll(expected.subMap(startKey, endKey).entrySet());
 
             List<Map.Entry<String, Integer>> actualKeyValues = new ArrayList<>(count);
-            wormhole.scanWithExclusiveEndKey(
+            wormhole.scan(
                 startKey,
                 endKey,
+                true,
                 kv -> {
                   actualKeyValues.add(new AbstractMap.SimpleEntry<>(kv.getKey(), kv.getValue()));
                   return true;
@@ -728,9 +729,10 @@ class WormholeTest {
             expectedKeyValues.addAll(expected.subMap(startKey, true, endKey, true).entrySet());
 
             List<Map.Entry<String, Integer>> actualKeyValues = new ArrayList<>(count);
-            wormhole.scanWithInclusiveEndKey(
+            wormhole.scan(
                 startKey,
                 endKey,
+                false,
                 kv -> {
                   actualKeyValues.add(new AbstractMap.SimpleEntry<>(kv.getKey(), kv.getValue()));
                   return true;
@@ -788,7 +790,7 @@ class WormholeTest {
       assertThat(wormhole.get("James")).isEqualTo("semaj");
 
       assertThat(wormhole.scanWithCount("", 100000))
-          .containsExactly(new KeyValue<>(Key.createForTest("James"), "semaj"));
+          .containsExactly(wormhole.createKey("James", "semaj"));
     }
 
     @Test

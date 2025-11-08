@@ -16,6 +16,10 @@
 
 package org.komamitsu.wormhole4j;
 
+import java.util.List;
+import java.util.function.Function;
+import javax.annotation.Nullable;
+
 /**
  * A Wormhole implementation for string keys. This is the default Wormhole class, as support for
  * other key types is still experimental.
@@ -24,19 +28,42 @@ package org.komamitsu.wormhole4j;
  */
 public class Wormhole<V> extends WormholeBase<String, V> {
   public Wormhole() {
-    super();
+    super(EncodedKeyType.STRING);
   }
 
   public Wormhole(int leafNodeSize) {
-    super(leafNodeSize);
+    super(EncodedKeyType.STRING, leafNodeSize);
   }
 
   public Wormhole(int leafNodeSize, boolean debugMode) {
-    super(leafNodeSize, debugMode);
+    super(EncodedKeyType.STRING, leafNodeSize, debugMode);
   }
 
-  @Override
-  String encodeKey(String key) {
-    return key;
+  public void put(String key, V value) {
+    putInternal(key, key, value);
+  }
+
+  public boolean delete(String key) {
+    return deleteInternal(key);
+  }
+
+  public V get(String key) {
+    return getInternal(key);
+  }
+
+  public List<KeyValue<String, V>> scanWithCount(String startKey, int count) {
+    return scanWithCountInternal(startKey, count);
+  }
+
+  public void scan(
+      @Nullable String startKey,
+      @Nullable String endKey,
+      boolean isEndKeyExclusive,
+      Function<KeyValue<String, V>, Boolean> function) {
+    scanInternal(startKey == null ? "" : startKey, endKey, isEndKeyExclusive, null, function);
+  }
+
+  KeyValue<String, V> createKey(String key, V value) {
+    return EncodedKeyUtils.createKeyValue(EncodedKeyType.STRING, key, key, value);
   }
 }

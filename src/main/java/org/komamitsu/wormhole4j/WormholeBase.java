@@ -30,19 +30,20 @@ import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
  * String} only.
  *
  * @param <K> the type of keys stored in this index
- * @param <T> the type of values stored in this index
+ * @param <V> the type of values stored in this index
  */
-abstract class WormholeBase<K, T> {
+abstract class WormholeBase<K, V> {
   private static final int DEFAULT_LEAF_NODE_SIZE = 128;
-  private final MetaTrieHashTable<K, T> table = new MetaTrieHashTable<>();
+  private final EncodedKeyType encodedKeyType;
+  private final MetaTrieHashTable<K, V> table;
   private final int leafNodeSize;
   private final int leafNodeMergeSize;
-  @Nullable private final Validator<K, T> validator;
-  private final Function<String, String> validAnchorKeyProvider;
+  @Nullable private final Validator<K, V> validator;
+  private final Function<Object, Object> validAnchorKeyProvider;
 
   /** Creates a Wormhole with the default leaf node size. */
-  public WormholeBase() {
-    this(DEFAULT_LEAF_NODE_SIZE);
+  public WormholeBase(EncodedKeyType encodedKeyType) {
+    this(encodedKeyType, DEFAULT_LEAF_NODE_SIZE);
   }
 
   /**
@@ -50,8 +51,8 @@ abstract class WormholeBase<K, T> {
    *
    * @param leafNodeSize maximum number of entries in a leaf node
    */
-  public WormholeBase(int leafNodeSize) {
-    this(leafNodeSize, false);
+  public WormholeBase(EncodedKeyType encodedKeyType, int leafNodeSize) {
+    this(encodedKeyType, leafNodeSize, false);
   }
 
   /**
@@ -60,9 +61,11 @@ abstract class WormholeBase<K, T> {
    * @param leafNodeSize maximum number of entries in a leaf node
    * @param debugMode enables internal consistency checks if {@code true}
    */
-  public WormholeBase(int leafNodeSize, boolean debugMode) {
+  public WormholeBase(EncodedKeyType encodedKeyType, int leafNodeSize, boolean debugMode) {
+    this.encodedKeyType = encodedKeyType;
     this.leafNodeSize = leafNodeSize;
     this.leafNodeMergeSize = leafNodeSize * 3 / 4;
+    this.table = new MetaTrieHashTable<>(encodedKeyType);
     validAnchorKeyProvider = this::provideValidAnchorKey;
     initialize();
     validator = debugMode ? new Validator<>(this) : null;
@@ -75,37 +78,32 @@ abstract class WormholeBase<K, T> {
     validator.validate();
   }
 
-  abstract String encodeKey(K key);
-
   /**
    * Inserts or updates a key-value pair.
    *
    * @param key the key (must not be {@code null})
    * @param value the value to associate with the key
    */
-  public void put(K key, T value) {
-    String encodedKey = encodeKey(key);
-    LeafNode<K, T> leafNode = searchTrieHashTable(encodedKey);
-    KeyValue<K, T> existingKeyValue = leafNode.pointSearchLeaf(encodedKey);
+  protected void putInternal(Object encodedKey, K key, V value) {
+    LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+    KeyValue<K, V> existingKeyValue = leafNode.pointSearchLeaf(encodedKey);
     if (existingKeyValue != null) {
       existingKeyValue.setValue(value);
       validateIfNeeded();
       return;
     }
 
-    Key<K> k = new Key<>(key, encodedKey);
-
     if (leafNode.size() == leafNodeSize) {
       // Split the node and get a new right leaf node.
-      LeafNode<K, T> newLeafNode = split(leafNode);
-      if (Utils.compareAnchorKeys(encodedKey, newLeafNode.anchorKey) < 0) {
-        leafNode.add(k, value);
+      LeafNode<K, V> newLeafNode = split(leafNode);
+      if (EncodedKeyUtils.compare(encodedKeyType, encodedKey, newLeafNode.anchorKey) < 0) {
+        leafNode.add(encodedKey, key, value);
       } else {
-        newLeafNode.add(k, value);
+        newLeafNode.add(encodedKey, key, value);
       }
     } else {
       assert leafNode.size() < leafNodeSize;
-      leafNode.add(k, value);
+      leafNode.add(encodedKey, key, value);
     }
     validateIfNeeded();
   }
@@ -113,12 +111,11 @@ abstract class WormholeBase<K, T> {
   /**
    * Deletes a key-value pair if present.
    *
-   * @param key the key to remove
+   * @param encodedKey the key to remove
    * @return {@code true} if the key was removed, {@code false} otherwise
    */
-  public boolean delete(K key) {
-    String encodedKey = encodeKey(key);
-    LeafNode<K, T> leafNode = searchTrieHashTable(encodedKey);
+  protected boolean deleteInternal(Object encodedKey) {
+    LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
     if (!leafNode.delete(encodedKey)) {
       return false;
     }
@@ -138,27 +135,26 @@ abstract class WormholeBase<K, T> {
   /**
    * Retrieves the value associated with the specified key.
    *
-   * @param key the key to search for
+   * @param encodedKey the key to search for
    * @return the value, or {@code null} if not found
    */
   @Nullable
-  public T get(K key) {
-    String encodedKey = encodeKey(key);
-    LeafNode<K, T> leafNode = searchTrieHashTable(encodedKey);
-    KeyValue<K, T> keyValue = leafNode.pointSearchLeaf(encodedKey);
+  protected V getInternal(Object encodedKey) {
+    LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+    KeyValue<K, V> keyValue = leafNode.pointSearchLeaf(encodedKey);
     if (keyValue == null) {
       return null;
     }
     return keyValue.getValue();
   }
 
-  private void scanInternal(
-      String encodedStartKey,
-      @Nullable String encodedEndKey,
+  protected void scanInternal(
+      Object encodedStartKey,
+      @Nullable Object encodedEndKey,
       boolean isEndKeyExclusive,
       @Nullable Integer count,
-      Function<KeyValue<K, T>, Boolean> function) {
-    Function<KeyValue<K, T>, Boolean> actualFunction = function;
+      Function<KeyValue<K, V>, Boolean> function) {
+    Function<KeyValue<K, V>, Boolean> actualFunction = function;
     if (count != null) {
       AtomicInteger counter = new AtomicInteger();
       actualFunction =
@@ -170,7 +166,7 @@ abstract class WormholeBase<K, T> {
           };
     }
 
-    LeafNode<K, T> leafNode = searchTrieHashTable(encodedStartKey);
+    LeafNode<K, V> leafNode = searchTrieHashTable(encodedStartKey);
     while (leafNode != null) {
       leafNode.incSort();
       if (!leafNode.iterateKeyValues(
@@ -185,14 +181,14 @@ abstract class WormholeBase<K, T> {
   /**
    * Scans the index starting from a key and collects up to {@code count} pairs.
    *
-   * @param startKey the starting key (inclusive)
+   * @param startEncodedKey the starting key (inclusive)
    * @param count maximum number of results to return
    * @return a list of key-value pairs
    */
-  public List<KeyValue<K, T>> scanWithCount(K startKey, int count) {
-    List<KeyValue<K, T>> result = new ArrayList<>(count);
+  protected List<KeyValue<K, V>> scanWithCountInternal(Object startEncodedKey, int count) {
+    List<KeyValue<K, V>> result = new ArrayList<>(count);
     scanInternal(
-        encodeKey(startKey),
+        startEncodedKey,
         null, /* Not used */
         false,
         count,
@@ -203,85 +199,29 @@ abstract class WormholeBase<K, T> {
     return result;
   }
 
-  /**
-   * Scans a range of keys and applies a function to each result.
-   *
-   * @param startKey the start key (inclusive) or {@code null} for the first key
-   * @param endKey the end key (exclusive or inclusive based on {@code isEndKeyExclusive})
-   * @param isEndKeyExclusive whether {@code endKey} is exclusive
-   * @param function a function applied to each key-value pair; return {@code false} to stop
-   *     scanning
-   */
-  public void scan(
-      @Nullable K startKey,
-      @Nullable K endKey,
-      boolean isEndKeyExclusive,
-      Function<KeyValue<K, T>, Boolean> function) {
-    scanInternal(
-        startKey != null ? encodeKey(startKey) : "",
-        endKey != null ? encodeKey(endKey) : null,
-        isEndKeyExclusive,
-        null,
-        function);
-  }
-
-  /**
-   * Scans a range of keys where the end key is exclusive.
-   *
-   * @param startKey the start key (inclusive) or {@code null} for the first key
-   * @param endKey the end key (exclusive)
-   * @param function a function applied to each key-value pair; return {@code false} to stop
-   *     scanning
-   */
-  public void scanWithExclusiveEndKey(
-      @Nullable K startKey, @Nullable K endKey, Function<KeyValue<K, T>, Boolean> function) {
-    scanInternal(
-        startKey != null ? encodeKey(startKey) : "",
-        endKey != null ? encodeKey(endKey) : null,
-        true,
-        null,
-        function);
-  }
-
-  /**
-   * Scans a range of keys where the end key is inclusive.
-   *
-   * @param startKey the start key (inclusive) or {@code null} for the first key
-   * @param endKey the end key (inclusive)
-   * @param function a function applied to each key-value pair; return {@code false} to stop
-   *     scanning
-   */
-  public void scanWithInclusiveEndKey(
-      @Nullable K startKey, @Nullable K endKey, Function<KeyValue<K, T>, Boolean> function) {
-    scanInternal(
-        startKey != null ? encodeKey(startKey) : "",
-        endKey != null ? encodeKey(endKey) : null,
-        false,
-        null,
-        function);
-  }
-
   private void initialize() {
-    String key = "";
-    LeafNode<K, T> rootLeafNode =
-        new LeafNode<>(validAnchorKeyProvider, key, leafNodeSize, null, null);
+    Object key = EncodedKeyUtils.createEmpty(encodedKeyType);
+    LeafNode<K, V> rootLeafNode =
+        new LeafNode<>(encodedKeyType, validAnchorKeyProvider, key, leafNodeSize, null, null);
     // Add the root.
     table.put(key, new MetaTrieHashTable.NodeMetaLeaf<>(key, rootLeafNode));
   }
 
-  private LeafNode<K, T> searchTrieHashTable(String encodedKey) {
-    MetaTrieHashTable.NodeMeta<K, T> nodeMeta = table.searchLongestPrefixMatch(encodedKey);
+  private LeafNode<K, V> searchTrieHashTable(Object encodedKey) {
+    MetaTrieHashTable.NodeMeta<K, V> nodeMeta =
+        table.searchLongestPrefixMatch(encodedKeyType, encodedKey);
     if (nodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf) {
-      return ((MetaTrieHashTable.NodeMetaLeaf<K, T>) nodeMeta).leafNode;
+      return ((MetaTrieHashTable.NodeMetaLeaf<K, V>) nodeMeta).leafNode;
     }
 
-    NodeMetaInternal<K, T> nodeMetaInternal = (NodeMetaInternal<K, T>) nodeMeta;
-    int anchorPrefixLength = nodeMetaInternal.anchorPrefix.length();
+    NodeMetaInternal<K, V> nodeMetaInternal = (NodeMetaInternal<K, V>) nodeMeta;
+    int anchorPrefixLength = EncodedKeyUtils.length(encodedKeyType, nodeMetaInternal.anchorPrefix);
 
     // The leaf type is INTERNAL.
-    if (anchorPrefixLength == encodedKey.length()) {
-      LeafNode<K, T> leafNode = nodeMetaInternal.getLeftMostLeafNode();
-      if (Utils.compareAnchorKeys(encodedKey, leafNode.anchorKey) < 0) {
+    int encodedKeyLength = EncodedKeyUtils.length(encodedKeyType, encodedKey);
+    if (anchorPrefixLength == encodedKeyLength) {
+      LeafNode<K, V> leafNode = nodeMetaInternal.getLeftMostLeafNode();
+      if (EncodedKeyUtils.compare(encodedKeyType, encodedKey, leafNode.anchorKey) < 0) {
         // For example, if the paper's example had key "J" in the second leaf node and the search
         // key is "J", this special treatment would be necessary.
         return leafNode.getLeft();
@@ -290,32 +230,33 @@ abstract class WormholeBase<K, T> {
       }
     }
 
-    if (anchorPrefixLength > encodedKey.length()) {
+    if (anchorPrefixLength > encodedKeyLength) {
       throw new AssertionError(
           "The length of the anchor prefix is longer than the length of the key");
     }
 
-    char missingToken = encodedKey.charAt(anchorPrefixLength);
-    Character siblingToken = nodeMetaInternal.findOneSibling(missingToken);
+    int missingToken = EncodedKeyUtils.get(encodedKeyType, encodedKey, anchorPrefixLength);
+    Integer siblingToken = nodeMetaInternal.findOneSibling(missingToken);
     if (siblingToken == null) {
       return nodeMetaInternal.getLeftMostLeafNode();
     }
 
-    MetaTrieHashTable.NodeMeta<K, T> childNode =
-        table.get(nodeMetaInternal.anchorPrefix + siblingToken);
+    MetaTrieHashTable.NodeMeta<K, V> childNode =
+        table.get(
+            EncodedKeyUtils.append(encodedKeyType, nodeMetaInternal.anchorPrefix, siblingToken));
     if (childNode == null) {
       throw new AssertionError("Child node is not found");
     }
 
     if (childNode instanceof MetaTrieHashTable.NodeMetaLeaf) {
-      LeafNode<K, T> leafNode = ((MetaTrieHashTable.NodeMetaLeaf<K, T>) childNode).leafNode;
+      LeafNode<K, V> leafNode = ((MetaTrieHashTable.NodeMetaLeaf<K, V>) childNode).leafNode;
       if (missingToken < siblingToken) {
         return leafNode.getLeft();
       } else {
         return leafNode;
       }
     } else {
-      NodeMetaInternal<K, T> childNodeInternal = (NodeMetaInternal<K, T>) childNode;
+      NodeMetaInternal<K, V> childNodeInternal = (NodeMetaInternal<K, V>) childNode;
       if (missingToken < siblingToken) {
         // The child node is a subtree right to the target node.
         return childNodeInternal.getLeftMostLeafNode().getLeft();
@@ -327,48 +268,51 @@ abstract class WormholeBase<K, T> {
   }
 
   @Nullable
-  private String provideValidAnchorKey(String anchorKey) {
-    MetaTrieHashTable.NodeMeta<K, T> existingNodeMeta = table.get(anchorKey);
+  private Object provideValidAnchorKey(Object anchorKey) {
+    MetaTrieHashTable.NodeMeta<K, V> existingNodeMeta = table.get(anchorKey);
     if (existingNodeMeta == null) {
       return anchorKey;
     }
     return null;
   }
 
-  private LeafNode<K, T> split(LeafNode<K, T> leafNode) {
-    Tuple<String, LeafNode<K, T>> newLeafNodeAndAnchor = leafNode.splitToNewLeafNode();
-    String newAnchor = newLeafNodeAndAnchor.first;
-    LeafNode<K, T> newLeafNode = newLeafNodeAndAnchor.second;
+  private LeafNode<K, V> split(LeafNode<K, V> leafNode) {
+    Tuple<Object, LeafNode<K, V>> newLeafNodeAndAnchor = leafNode.splitToNewLeafNode();
+    Object newAnchor = newLeafNodeAndAnchor.first;
+    LeafNode<K, V> newLeafNode = newLeafNodeAndAnchor.second;
     table.handleSplitNodes(newAnchor, newLeafNode);
     return newLeafNode;
   }
 
-  private void merge(LeafNode<K, T> left, LeafNode<K, T> victim) {
+  private void merge(LeafNode<K, V> left, LeafNode<K, V> victim) {
     left.merge(victim);
     boolean childNodeRemoved = false;
-    for (int prefixlen = victim.anchorKey.length(); prefixlen >= 0; prefixlen--) {
-      String prefix = victim.anchorKey.substring(0, prefixlen);
-      MetaTrieHashTable.NodeMeta<K, T> nodeMeta = table.get(prefix);
-      NodeMetaInternal<K, T> nodeMetaInternal = null;
-      MetaTrieHashTable.NodeMetaLeaf<K, T> nodeMetaLeaf = null;
+    for (int prefixlen = EncodedKeyUtils.length(encodedKeyType, victim.anchorKey);
+        prefixlen >= 0;
+        prefixlen--) {
+      Object prefix = EncodedKeyUtils.slice(encodedKeyType, victim.anchorKey, prefixlen);
+      MetaTrieHashTable.NodeMeta<K, V> nodeMeta = table.get(prefix);
+      NodeMetaInternal<K, V> nodeMetaInternal = null;
+      MetaTrieHashTable.NodeMetaLeaf<K, V> nodeMetaLeaf = null;
       if (nodeMeta instanceof NodeMetaInternal) {
-        nodeMetaInternal = (NodeMetaInternal<K, T>) nodeMeta;
+        nodeMetaInternal = (NodeMetaInternal<K, V>) nodeMeta;
       } else {
         assert nodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf;
-        nodeMetaLeaf = (NodeMetaLeaf<K, T>) nodeMeta;
+        nodeMetaLeaf = (NodeMetaLeaf<K, V>) nodeMeta;
       }
 
       // The pseudocode in the paper always clears the bitmap index for the child token.
       // However, it should probably be cleared only when the child node has been removed.
       if (childNodeRemoved) {
         if (nodeMetaInternal != null) {
-          nodeMetaInternal.bitmap.clear(victim.anchorKey.charAt(prefixlen));
+          nodeMetaInternal.bitmap.clear(
+              EncodedKeyUtils.get(encodedKeyType, victim.anchorKey, prefixlen));
         }
       }
       // The root node meta must be left.
       // Remove internal node meta if it points a single leaf node.
       // This condition is added following the reference implementation.
-      if (!nodeMeta.anchorPrefix.isEmpty()
+      if (EncodedKeyUtils.length(encodedKeyType, nodeMeta.anchorPrefix) > 0
           && (nodeMetaLeaf != null
               || nodeMetaInternal
                   .getLeftMostLeafNode()
@@ -445,23 +389,24 @@ abstract class WormholeBase<K, T> {
     }
 
     private void validateHashTable() {
-      for (Map.Entry<String, MetaTrieHashTable.NodeMeta<K, T>> entry : wormhole.table.entrySet()) {
-        String key = entry.getKey();
+      for (Map.Entry<Object, MetaTrieHashTable.NodeMeta<K, T>> entry : wormhole.table.entrySet()) {
+        Object key = entry.getKey();
         MetaTrieHashTable.NodeMeta<K, T> nodeMeta = entry.getValue();
         if (!nodeMeta.anchorPrefix.equals(key)) {
           throw new AssertionError(
               String.format(
                   "The node metadata anchor key is different from the key of the hash table. Key: %s, Node metadata anchor key: %s",
-                  key, nodeMeta.anchorPrefix));
+                  EncodedKeyUtils.toString(wormhole.encodedKeyType, key),
+                  EncodedKeyUtils.toString(wormhole.encodedKeyType, nodeMeta.anchorPrefix)));
         }
       }
 
       Collection<MetaTrieHashTable.NodeMeta<K, T>> nodeMetas =
           new HashSet<>(wormhole.table.values());
-      LinkedList<String> anchorKeyQueue = new LinkedList<>();
+      LinkedList<Object> anchorKeyQueue = new LinkedList<>();
       anchorKeyQueue.addLast("");
       while (!anchorKeyQueue.isEmpty()) {
-        String anchorKey = anchorKeyQueue.removeFirst();
+        Object anchorKey = anchorKeyQueue.removeFirst();
         MetaTrieHashTable.NodeMeta<K, T> nodeMeta = wormhole.table.get(anchorKey);
         if (!(nodeMeta instanceof NodeMetaInternal)) {
           if (!nodeMetas.remove(nodeMeta)) {
@@ -475,7 +420,8 @@ abstract class WormholeBase<K, T> {
 
         LeafNode<K, T> leftMostLeafNode = nodeMetaInternal.getLeftMostLeafNode();
         if (leftMostLeafNode != null) {
-          if (!leftMostLeafNode.anchorKey.startsWith(anchorKey)) {
+          if (!EncodedKeyUtils.startsWith(
+              wormhole.encodedKeyType, leftMostLeafNode.anchorKey, anchorKey)) {
             throw new AssertionError(
                 String.format(
                     "The anchor key of the node meta internal's left most leaf node doesn't start with the node meta internal's anchor key. Node meta internal: %s, Leaf node: %s",
@@ -483,7 +429,8 @@ abstract class WormholeBase<K, T> {
           }
           if (leftMostLeafNode.getLeft() != null) {
             LeafNode<K, T> adjacentLeafNode = leftMostLeafNode.getLeft();
-            if (adjacentLeafNode.anchorKey.startsWith(anchorKey)) {
+            if (EncodedKeyUtils.startsWith(
+                wormhole.encodedKeyType, adjacentLeafNode.anchorKey, anchorKey)) {
               throw new AssertionError(
                   String.format(
                       "The anchor key of the adjacent leaf node left to the node meta internal's left most leaf node starts with the node meta internal's anchor key. Node meta internal: %s, Leaf node: %s",
@@ -494,7 +441,8 @@ abstract class WormholeBase<K, T> {
 
         LeafNode<K, T> rightMostLeafNode = nodeMetaInternal.getRightMostLeafNode();
         if (rightMostLeafNode != null) {
-          if (!rightMostLeafNode.anchorKey.startsWith(anchorKey)) {
+          if (!(EncodedKeyUtils.startsWith(
+              wormhole.encodedKeyType, rightMostLeafNode.anchorKey, anchorKey))) {
             throw new AssertionError(
                 String.format(
                     "The anchor key of the node meta internal's right most leaf node doesn't start with the node meta internal's anchor key. Node meta internal: %s, Leaf node: %s",
@@ -502,7 +450,8 @@ abstract class WormholeBase<K, T> {
           }
           if (rightMostLeafNode.getRight() != null) {
             LeafNode<K, T> adjacentLeafNode = rightMostLeafNode.getRight();
-            if (adjacentLeafNode.anchorKey.startsWith(anchorKey)) {
+            if (EncodedKeyUtils.startsWith(
+                wormhole.encodedKeyType, adjacentLeafNode.anchorKey, anchorKey)) {
               throw new AssertionError(
                   String.format(
                       "The anchor key of the adjacent leaf node right to the node meta internal's left most leaf node starts with the node meta internal's anchor key. Node meta internal: %s, Leaf node: %s",
@@ -515,7 +464,10 @@ abstract class WormholeBase<K, T> {
           throw new AssertionError(String.format("Unexpected node meta. Node meta: %s", nodeMeta));
         }
         nodeMetaInternal.bitmap.stream()
-            .forEach(childHeadChar -> anchorKeyQueue.addLast(anchorKey + ((char) childHeadChar)));
+            .forEach(
+                childHeadChar ->
+                    anchorKeyQueue.addLast(
+                        EncodedKeyUtils.append(wormhole.encodedKeyType, anchorKey, childHeadChar)));
       }
 
       if (!nodeMetas.isEmpty()) {

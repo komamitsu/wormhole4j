@@ -16,6 +16,7 @@
 
 package org.komamitsu.wormhole4j;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 /**
@@ -25,17 +26,43 @@ import java.util.Objects;
  * @param <V> the type of the value
  */
 public class KeyValue<K, V> {
-  private final Key<K> key;
-  private V value;
+  final K key;
+  V value;
+  private final EncodedKeyType encodedKeyType;
+  private final String encodedStringKey;
+  private final byte[] encodedByteArrayKey;
 
-  KeyValue(Key<K> key, V value) {
+  KeyValue(String encodedStringKey, K key, V value) {
+    this.encodedKeyType = EncodedKeyType.STRING;
+    this.encodedStringKey = encodedStringKey;
+    this.encodedByteArrayKey = null;
+    this.key = key;
+    this.value = value;
+  }
+
+  KeyValue(byte[] encodedByteArrayKey, K key, V value) {
+    this.encodedKeyType = EncodedKeyType.BYTE_ARRAY;
+    this.encodedStringKey = null;
+    this.encodedByteArrayKey = encodedByteArrayKey;
     this.key = key;
     this.value = value;
   }
 
   @Override
   public String toString() {
-    return "KeyValue{" + "key=" + key + ", value=" + value + '}';
+    switch (encodedKeyType) {
+      case STRING:
+        return String.format(
+            "KeyValue{key=%s, value=%s, encodedKeyType=%s, encodedString=%s}",
+            key, value, encodedKeyType, encodedStringKey);
+      case BYTE_ARRAY:
+        assert encodedByteArrayKey != null;
+        return String.format(
+            "KeyValue{key=%s, value=%s, encodedKeyType=%s, encodedByteArray=%s}",
+            key, value, encodedKeyType, ByteArrayUtils.toString(encodedByteArrayKey));
+      default:
+        throw new AssertionError();
+    }
   }
 
   /**
@@ -44,7 +71,7 @@ public class KeyValue<K, V> {
    * @return the key
    */
   public K getKey() {
-    return key.key;
+    return key;
   }
 
   /**
@@ -52,8 +79,15 @@ public class KeyValue<K, V> {
    *
    * @return the encoded key
    */
-  String getEncodedKey() {
-    return key.encodedKey;
+  Object getEncodedKey() {
+    switch (encodedKeyType) {
+      case STRING:
+        return encodedStringKey;
+      case BYTE_ARRAY:
+        return encodedByteArrayKey;
+      default:
+        throw new AssertionError();
+    }
   }
 
   /**
@@ -71,14 +105,21 @@ public class KeyValue<K, V> {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
+    if (this == o) {
+      return true;
+    }
     if (o == null || getClass() != o.getClass()) return false;
     KeyValue<?, ?> keyValue = (KeyValue<?, ?>) o;
-    return Objects.equals(key, keyValue.key) && Objects.equals(value, keyValue.value);
+    return Objects.equals(key, keyValue.key)
+        && Objects.equals(value, keyValue.value)
+        && encodedKeyType == keyValue.encodedKeyType
+        && Objects.equals(encodedStringKey, keyValue.encodedStringKey)
+        && Objects.deepEquals(encodedByteArrayKey, keyValue.encodedByteArrayKey);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(key.key, value);
+    return Objects.hash(
+        key, value, encodedKeyType, encodedStringKey, Arrays.hashCode(encodedByteArrayKey));
   }
 }
