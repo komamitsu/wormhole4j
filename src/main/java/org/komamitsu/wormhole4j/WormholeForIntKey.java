@@ -62,7 +62,7 @@ public class WormholeForIntKey<V> extends WormholeBase<Integer, V> {
       boolean isEndKeyExclusive,
       Function<KeyValue<Integer, V>, Boolean> function) {
     scanInternal(
-        startKey == null ? ByteArrayUtils.EMPTY_BYTES : createEncodedKey(startKey),
+        startKey == null ? ByteArray.EMPTY_INSTANCE : createEncodedKey(startKey),
         endKey == null ? null : createEncodedKey(endKey),
         isEndKeyExclusive,
         null,
@@ -74,9 +74,9 @@ public class WormholeForIntKey<V> extends WormholeBase<Integer, V> {
         EncodedKeyType.BYTE_ARRAY, createEncodedKey(key), key, value);
   }
 
-  private byte[] createEncodedKey(int key) {
+  private ByteArray createEncodedKey(int key) {
     ByteBuffer byteBuf = ByteBuffer.allocate(4);
     byteBuf.putInt(key ^ 0x80000000);
-    return byteBuf.array();
+    return new ByteArray(byteBuf.array());
   }
 }

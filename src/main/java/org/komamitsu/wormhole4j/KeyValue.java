@@ -16,7 +16,6 @@
 
 package org.komamitsu.wormhole4j;
 
-import java.util.Arrays;
 import java.util.Objects;
 
 /**
@@ -25,12 +24,12 @@ import java.util.Objects;
  * @param <K> the type of the key
  * @param <V> the type of the value
  */
-public class KeyValue<K, V> {
+public final class KeyValue<K, V> {
   final K key;
   V value;
   private final EncodedKeyType encodedKeyType;
   private final String encodedStringKey;
-  private final byte[] encodedByteArrayKey;
+  private final ByteArray encodedByteArrayKey;
 
   KeyValue(String encodedStringKey, K key, V value) {
     this.encodedKeyType = EncodedKeyType.STRING;
@@ -40,7 +39,7 @@ public class KeyValue<K, V> {
     this.value = value;
   }
 
-  KeyValue(byte[] encodedByteArrayKey, K key, V value) {
+  KeyValue(ByteArray encodedByteArrayKey, K key, V value) {
     this.encodedKeyType = EncodedKeyType.BYTE_ARRAY;
     this.encodedStringKey = null;
     this.encodedByteArrayKey = encodedByteArrayKey;
@@ -59,7 +58,7 @@ public class KeyValue<K, V> {
         assert encodedByteArrayKey != null;
         return String.format(
             "KeyValue{key=%s, value=%s, encodedKeyType=%s, encodedByteArray=%s}",
-            key, value, encodedKeyType, ByteArrayUtils.toString(encodedByteArrayKey));
+            key, value, encodedKeyType, encodedByteArrayKey);
       default:
         throw new AssertionError();
     }
@@ -119,7 +118,6 @@ public class KeyValue<K, V> {
 
   @Override
   public int hashCode() {
-    return Objects.hash(
-        key, value, encodedKeyType, encodedStringKey, Arrays.hashCode(encodedByteArrayKey));
+    return Objects.hash(key, value, encodedKeyType, encodedStringKey, encodedByteArrayKey);
   }
 }

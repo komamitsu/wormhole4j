@@ -22,7 +22,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
-class LeafNode<K, V> {
+final class LeafNode<K, V> {
   private final EncodedKeyType encodedKeyType;
   final Object anchorKey;
   private final int maxSize;
