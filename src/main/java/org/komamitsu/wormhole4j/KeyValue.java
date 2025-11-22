@@ -28,40 +28,27 @@ public final class KeyValue<K, V> {
   final K key;
   V value;
   private final EncodedKeyType encodedKeyType;
-  private final String encodedStringKey;
-  private final ByteArray encodedByteArrayKey;
+  private final Object encodedKey;
 
   KeyValue(String encodedStringKey, K key, V value) {
     this.encodedKeyType = EncodedKeyType.STRING;
-    this.encodedStringKey = encodedStringKey;
-    this.encodedByteArrayKey = null;
+    this.encodedKey = encodedStringKey;
     this.key = key;
     this.value = value;
   }
 
   KeyValue(ByteArray encodedByteArrayKey, K key, V value) {
     this.encodedKeyType = EncodedKeyType.BYTE_ARRAY;
-    this.encodedStringKey = null;
-    this.encodedByteArrayKey = encodedByteArrayKey;
+    this.encodedKey = encodedByteArrayKey;
     this.key = key;
     this.value = value;
   }
 
   @Override
   public String toString() {
-    switch (encodedKeyType) {
-      case STRING:
-        return String.format(
-            "KeyValue{key=%s, value=%s, encodedKeyType=%s, encodedString=%s}",
-            key, value, encodedKeyType, encodedStringKey);
-      case BYTE_ARRAY:
-        assert encodedByteArrayKey != null;
-        return String.format(
-            "KeyValue{key=%s, value=%s, encodedKeyType=%s, encodedByteArray=%s}",
-            key, value, encodedKeyType, encodedByteArrayKey);
-      default:
-        throw new AssertionError();
-    }
+    return String.format(
+        "KeyValue{key=%s, value=%s, encodedKeyType=%s, encodedKey=%s}",
+        key, value, encodedKeyType, encodedKey);
   }
 
   /**
@@ -79,14 +66,7 @@ public final class KeyValue<K, V> {
    * @return the encoded key
    */
   Object getEncodedKey() {
-    switch (encodedKeyType) {
-      case STRING:
-        return encodedStringKey;
-      case BYTE_ARRAY:
-        return encodedByteArrayKey;
-      default:
-        throw new AssertionError();
-    }
+    return encodedKey;
   }
 
   /**
@@ -112,12 +92,11 @@ public final class KeyValue<K, V> {
     return Objects.equals(key, keyValue.key)
         && Objects.equals(value, keyValue.value)
         && encodedKeyType == keyValue.encodedKeyType
-        && Objects.equals(encodedStringKey, keyValue.encodedStringKey)
-        && Objects.deepEquals(encodedByteArrayKey, keyValue.encodedByteArrayKey);
+        && Objects.equals(encodedKey, keyValue.encodedKey);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(key, value, encodedKeyType, encodedStringKey, encodedByteArrayKey);
+    return Objects.hash(key, value, encodedKeyType, encodedKey);
   }
 }

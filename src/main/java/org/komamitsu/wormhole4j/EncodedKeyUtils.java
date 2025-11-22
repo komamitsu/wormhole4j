@@ -43,7 +43,7 @@ final class EncodedKeyUtils {
     }
   }
 
-  static String toString(EncodedKeyType encodedKeyType, Object obj) {
+  static String toString(Object obj) {
     return obj.toString();
   }
 
@@ -62,53 +62,40 @@ final class EncodedKeyUtils {
     }
   }
 
-  static Object extractLongestCommonPrefix(
-      EncodedKeyType encodedKeyType, Object obj1, Object obj2) {
-    switch (encodedKeyType) {
-      case STRING:
-        assert obj1 instanceof String;
-        assert obj2 instanceof String;
-        return extractLongestCommonPrefixForStrings((String) obj1, (String) obj2);
-      case BYTE_ARRAY:
-        assert obj1 instanceof ByteArray;
-        assert obj2 instanceof ByteArray;
-        return ((ByteArray) obj1).extractLongestCommonPrefix((ByteArray) obj2);
-      default:
-        throw new AssertionError();
-    }
-  }
-
-  static String extractLongestCommonPrefixForStrings(String s1, String s2) {
+  private static int longestCommonPrefixLengthForStrings(String s1, String s2) {
     int minLen = Math.min(s1.length(), s2.length());
     if (minLen == 0) {
-      return "";
+      return 0;
     }
     for (int i = 0; i < minLen; i++) {
       if (s1.charAt(i) == s2.charAt(i)) {
         continue;
       }
-      return s1.substring(0, i);
+      return i;
     }
-    return s1.substring(0, minLen);
+    return minLen;
   }
 
   static Object createNewAnchorKey(EncodedKeyType encodedKeyType, Object obj1, Object obj2) {
     switch (encodedKeyType) {
       case STRING:
-        assert obj1 instanceof String;
-        assert obj2 instanceof String;
-        String s1 = (String) obj1;
-        String s2 = (String) obj2;
-        String strLcp = extractLongestCommonPrefixForStrings(s1, s2);
-        return strLcp + s2.charAt(strLcp.length());
+        {
+          assert obj1 instanceof String;
+          assert obj2 instanceof String;
+          String s1 = (String) obj1;
+          String s2 = (String) obj2;
+          int lcpLength = longestCommonPrefixLengthForStrings(s1, s2);
+          return s2.substring(0, lcpLength + 1);
+        }
       case BYTE_ARRAY:
-        assert obj1 instanceof ByteArray;
-        assert obj2 instanceof ByteArray;
-        ByteArray xs1 = (ByteArray) obj1;
-        ByteArray xs2 = (ByteArray) obj2;
-        // TODO: Should we add ByteArray.createNewAnchorKey() to reduce instantiations?
-        ByteArray bytesLcp = xs1.extractLongestCommonPrefix(xs2);
-        return bytesLcp.appendFromOther(xs2, bytesLcp.length());
+        {
+          assert obj1 instanceof ByteArray;
+          assert obj2 instanceof ByteArray;
+          ByteArray xs1 = (ByteArray) obj1;
+          ByteArray xs2 = (ByteArray) obj2;
+          int lcpLength = xs1.longestCommonPrefixLength(xs2);
+          return xs2.slice(0, lcpLength + 1);
+        }
       default:
         throw new AssertionError();
     }
@@ -122,21 +109,6 @@ final class EncodedKeyUtils {
       case BYTE_ARRAY:
         assert obj instanceof ByteArray;
         return ((ByteArray) obj).append(x);
-      default:
-        throw new AssertionError();
-    }
-  }
-
-  static Object appendFromOther(EncodedKeyType encodedKeyType, Object src, Object dst, int pos) {
-    switch (encodedKeyType) {
-      case STRING:
-        assert src instanceof String;
-        assert dst instanceof String;
-        return ((String) src) + ((String) dst).charAt(pos);
-      case BYTE_ARRAY:
-        assert src instanceof ByteArray;
-        assert dst instanceof ByteArray;
-        return ((ByteArray) src).appendFromOther((ByteArray) dst, pos);
       default:
         throw new AssertionError();
     }

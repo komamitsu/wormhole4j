@@ -42,10 +42,10 @@ final class ByteArray implements Comparable<ByteArray> {
     return bytes.length - other.bytes.length;
   }
 
-  ByteArray extractLongestCommonPrefix(ByteArray other) {
+  int longestCommonPrefixLength(ByteArray other) {
     int minLen = Math.min(bytes.length, other.bytes.length);
     if (minLen == 0) {
-      return EMPTY_INSTANCE;
+      return 0;
     }
     for (int i = 0; i < minLen; i++) {
       int x1 = bytes[i] & 0xFF;
@@ -53,9 +53,9 @@ final class ByteArray implements Comparable<ByteArray> {
       if (x1 == x2) {
         continue;
       }
-      return slice(0, i);
+      return i;
     }
-    return slice(0, minLen);
+    return minLen;
   }
 
   ByteArray slice(int pos, int length) {
@@ -69,10 +69,6 @@ final class ByteArray implements Comparable<ByteArray> {
     System.arraycopy(bytes, 0, newKey, 0, bytes.length);
     newKey[bytes.length] = (byte) x;
     return new ByteArray(newKey);
-  }
-
-  ByteArray appendFromOther(ByteArray other, int pos) {
-    return append(other.bytes[pos]);
   }
 
   boolean startsWith(ByteArray prefix) {

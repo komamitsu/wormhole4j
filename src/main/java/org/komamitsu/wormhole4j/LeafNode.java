@@ -562,7 +562,7 @@ final class LeafNode<K, V> {
   public String toString() {
     return "LeafNode{"
         + "anchorKey='"
-        + EncodedKeyUtils.toString(encodedKeyType, anchorKey)
+        + EncodedKeyUtils.toString(anchorKey)
         + '\''
         + ", maxSize="
         + maxSize
@@ -573,9 +573,9 @@ final class LeafNode<K, V> {
         + ", keyReferences="
         + keyReferences
         + ", left="
-        + (left == null ? "null" : EncodedKeyUtils.toString(encodedKeyType, left.anchorKey))
+        + (left == null ? "null" : EncodedKeyUtils.toString(left.anchorKey))
         + ", right="
-        + (right == null ? "null" : EncodedKeyUtils.toString(encodedKeyType, right.anchorKey))
+        + (right == null ? "null" : EncodedKeyUtils.toString(right.anchorKey))
         + '}';
   }
 
@@ -699,7 +699,7 @@ final class LeafNode<K, V> {
         throw new AssertionError(
             String.format(
                 "The key is smaller than the anchor key. Key: %s, Anchor key: %s",
-                kv.getKey(), EncodedKeyUtils.toString(encodedKeyType, normalizedAnchorKey)));
+                kv.getKey(), EncodedKeyUtils.toString(normalizedAnchorKey)));
       }
       if (normalizedRightAnchorKey != null
           && EncodedKeyUtils.compare(encodedKeyType, normalizedRightAnchorKey, kv.getEncodedKey())
@@ -707,7 +707,7 @@ final class LeafNode<K, V> {
         throw new AssertionError(
             String.format(
                 "The anchor key of the right leaf node is smaller than the key. Key: %s, Right leaf node's anchor key: %s",
-                kv.getKey(), EncodedKeyUtils.toString(encodedKeyType, normalizedRightAnchorKey)));
+                kv.getKey(), EncodedKeyUtils.toString(normalizedRightAnchorKey)));
       }
     }
 

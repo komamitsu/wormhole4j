@@ -396,8 +396,7 @@ abstract class WormholeBase<K, V> {
           throw new AssertionError(
               String.format(
                   "The node metadata anchor key is different from the key of the hash table. Key: %s, Node metadata anchor key: %s",
-                  EncodedKeyUtils.toString(wormhole.encodedKeyType, key),
-                  EncodedKeyUtils.toString(wormhole.encodedKeyType, nodeMeta.anchorPrefix)));
+                  EncodedKeyUtils.toString(key), EncodedKeyUtils.toString(nodeMeta.anchorPrefix)));
         }
       }
 
