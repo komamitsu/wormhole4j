@@ -195,7 +195,7 @@ abstract class Wormhole<K, V> {
    *
    * @param startKey the start key (inclusive)
    * @param endKey the end key
-   * @param isEndKeyExclusive whether the end key is exclusive (true by default)
+   * @param isEndKeyExclusive whether the end key is exclusive
    * @param function the function executed for key-value
    */
   public void scan(
@@ -209,11 +209,11 @@ abstract class Wormhole<K, V> {
   /**
    * Scans the index starting from a key and collects up to {@code count} pairs.
    *
-   * @param startKey the start key (inclusive)
+   * @param startKey the start key (inclusive), or {@code null} to start from the beginning
    * @param count maximum number of results to return
    * @return a list of key-value pairs
    */
-  public List<KeyValue<K, V>> scanWithCount(K startKey, int count) {
+  public List<KeyValue<K, V>> scanWithCount(@Nullable K startKey, int count) {
     List<KeyValue<K, V>> result = new ArrayList<>(count);
     scanInternal(
         startKey,
