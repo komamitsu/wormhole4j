@@ -229,7 +229,7 @@ class MetaTrieHashTable<K, V> {
       throw new AssertionError(
           String.format("Node meta leaf for anchor key '%s' not found for removal", anchorKey));
     }
-    if (EncodedKeyUtils.length(encodedKeyType, anchorKey) > maxAnchorLength) {
+    if (EncodedKeyUtils.length(encodedKeyType, anchorKey) >= maxAnchorLength) {
       maxAnchorLength = calcMaxAnchorLength();
     }
   }
@@ -240,7 +240,7 @@ class MetaTrieHashTable<K, V> {
       throw new AssertionError(
           String.format("Node meta internal for anchor key '%s' not found for removal", anchorKey));
     }
-    if (EncodedKeyUtils.length(encodedKeyType, anchorKey) > maxAnchorLength) {
+    if (EncodedKeyUtils.length(encodedKeyType, anchorKey) >= maxAnchorLength) {
       maxAnchorLength = calcMaxAnchorLength();
     }
     if (removed instanceof NodeMetaInternal) {

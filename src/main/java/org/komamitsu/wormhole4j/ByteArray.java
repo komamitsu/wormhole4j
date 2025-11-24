@@ -17,7 +17,6 @@
 package org.komamitsu.wormhole4j;
 
 import java.util.Arrays;
-import java.util.Objects;
 
 final class ByteArray implements Comparable<ByteArray> {
   static final byte[] EMPTY_BYTES = new byte[] {};
@@ -96,9 +95,11 @@ final class ByteArray implements Comparable<ByteArray> {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) return false;
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
     ByteArray byteArray = (ByteArray) o;
-    return Objects.deepEquals(bytes, byteArray.bytes);
+    return Arrays.equals(bytes, byteArray.bytes);
   }
 
   @Override
