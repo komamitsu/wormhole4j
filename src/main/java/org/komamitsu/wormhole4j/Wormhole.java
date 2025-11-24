@@ -32,7 +32,7 @@ import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
  * @param <K> the type of keys stored in this index
  * @param <V> the type of values stored in this index
  */
-abstract class WormholeBase<K, V> {
+abstract class Wormhole<K, V> {
   private static final int DEFAULT_LEAF_NODE_SIZE = 128;
   private final EncodedKeyType encodedKeyType;
   private final MetaTrieHashTable<K, V> table;
@@ -42,7 +42,7 @@ abstract class WormholeBase<K, V> {
   private final Function<Object, Object> validAnchorKeyProvider;
 
   /** Creates a Wormhole with the default leaf node size. */
-  public WormholeBase(EncodedKeyType encodedKeyType) {
+  protected Wormhole(EncodedKeyType encodedKeyType) {
     this(encodedKeyType, DEFAULT_LEAF_NODE_SIZE);
   }
 
@@ -51,7 +51,7 @@ abstract class WormholeBase<K, V> {
    *
    * @param leafNodeSize maximum number of entries in a leaf node
    */
-  public WormholeBase(EncodedKeyType encodedKeyType, int leafNodeSize) {
+  protected Wormhole(EncodedKeyType encodedKeyType, int leafNodeSize) {
     this(encodedKeyType, leafNodeSize, false);
   }
 
@@ -61,7 +61,7 @@ abstract class WormholeBase<K, V> {
    * @param leafNodeSize maximum number of entries in a leaf node
    * @param debugMode enables internal consistency checks if {@code true}
    */
-  public WormholeBase(EncodedKeyType encodedKeyType, int leafNodeSize, boolean debugMode) {
+  protected Wormhole(EncodedKeyType encodedKeyType, int leafNodeSize, boolean debugMode) {
     this.encodedKeyType = encodedKeyType;
     this.leafNodeSize = leafNodeSize;
     this.leafNodeMergeSize = leafNodeSize * 3 / 4;
@@ -78,13 +78,20 @@ abstract class WormholeBase<K, V> {
     validator.validate();
   }
 
+  protected abstract Object createEncodedKey(K key);
+
+  protected abstract Object createEmptyEncodedKey();
+
+  protected abstract KeyValue<K, V> createKeyValue(K key, V value);
+
   /**
    * Inserts or updates a key-value pair.
    *
    * @param key the key (must not be {@code null})
    * @param value the value to associate with the key
    */
-  protected void putInternal(Object encodedKey, K key, V value) {
+  public void put(K key, V value) {
+    Object encodedKey = createEncodedKey(key);
     LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
     KeyValue<K, V> existingKeyValue = leafNode.pointSearchLeaf(encodedKey);
     if (existingKeyValue != null) {
@@ -111,10 +118,11 @@ abstract class WormholeBase<K, V> {
   /**
    * Deletes a key-value pair if present.
    *
-   * @param encodedKey the key to remove
+   * @param key the key (must not be {@code null})
    * @return {@code true} if the key was removed, {@code false} otherwise
    */
-  protected boolean deleteInternal(Object encodedKey) {
+  public boolean delete(K key) {
+    Object encodedKey = createEncodedKey(key);
     LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
     if (!leafNode.delete(encodedKey)) {
       return false;
@@ -135,11 +143,12 @@ abstract class WormholeBase<K, V> {
   /**
    * Retrieves the value associated with the specified key.
    *
-   * @param encodedKey the key to search for
+   * @param key the key (must not be {@code null})
    * @return the value, or {@code null} if not found
    */
   @Nullable
-  protected V getInternal(Object encodedKey) {
+  public V get(K key) {
+    Object encodedKey = createEncodedKey(key);
     LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
     KeyValue<K, V> keyValue = leafNode.pointSearchLeaf(encodedKey);
     if (keyValue == null) {
@@ -148,12 +157,15 @@ abstract class WormholeBase<K, V> {
     return keyValue.getValue();
   }
 
-  protected void scanInternal(
-      Object encodedStartKey,
-      @Nullable Object encodedEndKey,
+  private void scanInternal(
+      @Nullable K startKey,
+      @Nullable K endKey,
       boolean isEndKeyExclusive,
       @Nullable Integer count,
       Function<KeyValue<K, V>, Boolean> function) {
+    Object encodedStartKey =
+        startKey == null ? createEmptyEncodedKey() : createEncodedKey(startKey);
+    Object encodedEndKey = endKey == null ? null : createEncodedKey(endKey);
     Function<KeyValue<K, V>, Boolean> actualFunction = function;
     if (count != null) {
       AtomicInteger counter = new AtomicInteger();
@@ -179,16 +191,32 @@ abstract class WormholeBase<K, V> {
   }
 
   /**
+   * Scans the keys.
+   *
+   * @param startKey the start key (inclusive)
+   * @param endKey the end key
+   * @param isEndKeyExclusive whether the end key is exclusive (true by default)
+   * @param function the function executed for key-value
+   */
+  public void scan(
+      @Nullable K startKey,
+      @Nullable K endKey,
+      boolean isEndKeyExclusive,
+      Function<KeyValue<K, V>, Boolean> function) {
+    scanInternal(startKey, endKey, isEndKeyExclusive, null, function);
+  }
+
+  /**
    * Scans the index starting from a key and collects up to {@code count} pairs.
    *
-   * @param startEncodedKey the starting key (inclusive)
+   * @param startKey the start key (inclusive)
    * @param count maximum number of results to return
    * @return a list of key-value pairs
    */
-  protected List<KeyValue<K, V>> scanWithCountInternal(Object startEncodedKey, int count) {
+  public List<KeyValue<K, V>> scanWithCount(K startKey, int count) {
     List<KeyValue<K, V>> result = new ArrayList<>(count);
     scanInternal(
-        startEncodedKey,
+        startKey,
         null, /* Not used */
         false,
         count,
@@ -339,9 +367,9 @@ abstract class WormholeBase<K, V> {
   }
 
   static class Validator<K, T> {
-    private final WormholeBase<K, T> wormhole;
+    private final Wormhole<K, T> wormhole;
 
-    Validator(WormholeBase<K, T> wormhole) {
+    Validator(Wormhole<K, T> wormhole) {
       this.wormhole = wormhole;
     }
 

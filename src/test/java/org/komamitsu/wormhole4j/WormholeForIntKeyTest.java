@@ -27,7 +27,7 @@ import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.params.Parameter;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.komamitsu.wormhole4j.WormholeBase.Validator;
+import org.komamitsu.wormhole4j.Wormhole.Validator;
 
 @ParameterizedClass
 @ValueSource(ints = {3, 8, 128})
@@ -145,7 +145,7 @@ class WormholeForIntKeyTest {
       wormhole.put(Integer.MIN_VALUE, "foo");
 
       // Act & Assert
-      KeyValue<Integer, String> firstItem = wormhole.createKey(Integer.MIN_VALUE, "foo");
+      KeyValue<Integer, String> firstItem = wormhole.createKeyValue(Integer.MIN_VALUE, "foo");
       assertThat(wormhole.scanWithCount(Integer.MIN_VALUE, 2)).containsExactly(firstItem);
 
       // With exclusive end keys.
@@ -219,7 +219,7 @@ class WormholeForIntKeyTest {
       wormhole.put(10, 100);
 
       // Act & Assert
-      KeyValue<Integer, Integer> firstItem = wormhole.createKey(10, 100);
+      KeyValue<Integer, Integer> firstItem = wormhole.createKeyValue(10, 100);
       assertThat(wormhole.scanWithCount(9, 0)).isEmpty();
       assertThat(wormhole.scanWithCount(9, 1)).containsExactly(firstItem);
       assertThat(wormhole.scanWithCount(9, 2)).containsExactly(firstItem);
@@ -300,9 +300,9 @@ class WormholeForIntKeyTest {
       wormhole.put(10, 100);
 
       // Act & Assert
-      KeyValue<Integer, Integer> firstItem = wormhole.createKey(10, 100);
-      KeyValue<Integer, Integer> secondItem = wormhole.createKey(20, 200);
-      KeyValue<Integer, Integer> thirdItem = wormhole.createKey(30, 300);
+      KeyValue<Integer, Integer> firstItem = wormhole.createKeyValue(10, 100);
+      KeyValue<Integer, Integer> secondItem = wormhole.createKeyValue(20, 200);
+      KeyValue<Integer, Integer> thirdItem = wormhole.createKeyValue(30, 300);
       assertThat(wormhole.scanWithCount(9, 1)).containsExactly(firstItem);
       assertThat(wormhole.scanWithCount(9, 2)).containsExactly(firstItem, secondItem);
       assertThat(wormhole.scanWithCount(9, 3)).containsExactly(firstItem, secondItem, thirdItem);
@@ -373,11 +373,11 @@ class WormholeForIntKeyTest {
       wormhole.put(50, 500);
 
       // Act & Assert
-      KeyValue<Integer, Integer> firstItem = wormhole.createKey(10, 100);
-      KeyValue<Integer, Integer> secondItem = wormhole.createKey(20, 200);
-      KeyValue<Integer, Integer> thirdItem = wormhole.createKey(30, 300);
-      KeyValue<Integer, Integer> fourthItem = wormhole.createKey(40, 400);
-      KeyValue<Integer, Integer> fifthItem = wormhole.createKey(50, 500);
+      KeyValue<Integer, Integer> firstItem = wormhole.createKeyValue(10, 100);
+      KeyValue<Integer, Integer> secondItem = wormhole.createKeyValue(20, 200);
+      KeyValue<Integer, Integer> thirdItem = wormhole.createKeyValue(30, 300);
+      KeyValue<Integer, Integer> fourthItem = wormhole.createKeyValue(40, 400);
+      KeyValue<Integer, Integer> fifthItem = wormhole.createKeyValue(50, 500);
       assertThat(wormhole.scanWithCount(9, 1)).containsExactly(firstItem);
       assertThat(wormhole.scanWithCount(9, 2)).containsExactly(firstItem, secondItem);
       assertThat(wormhole.scanWithCount(9, 3)).containsExactly(firstItem, secondItem, thirdItem);
@@ -614,7 +614,7 @@ class WormholeForIntKeyTest {
       assertThat(wormhole.get(10)).isEqualTo(100);
 
       assertThat(wormhole.scanWithCount(Integer.MIN_VALUE, 100000))
-          .containsExactly(wormhole.createKey(10, 100));
+          .containsExactly(wormhole.createKeyValue(10, 100));
     }
 
     @Test
