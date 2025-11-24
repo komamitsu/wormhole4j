@@ -19,7 +19,7 @@ package org.komamitsu.wormhole4j;
 import java.util.Objects;
 
 /**
- * Represents a key-value pair stored in a {@link WormholeBase}.
+ * Represents a key-value pair stored in a {@link Wormhole}.
  *
  * @param <K> the type of the key
  * @param <V> the type of the value

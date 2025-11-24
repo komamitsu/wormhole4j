@@ -17,16 +17,13 @@
 package org.komamitsu.wormhole4j;
 
 import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.function.Function;
-import javax.annotation.Nullable;
 
 /**
  * A Wormhole implementation for integer keys.
  *
  * @param <V> the type of values stored in this Wormhole
  */
-public class WormholeForIntKey<V> extends WormholeBase<Integer, V> {
+public class WormholeForIntKey<V> extends Wormhole<Integer, V> {
   public WormholeForIntKey() {
     super(EncodedKeyType.BYTE_ARRAY);
   }
@@ -39,43 +36,21 @@ public class WormholeForIntKey<V> extends WormholeBase<Integer, V> {
     super(EncodedKeyType.BYTE_ARRAY, leafNodeSize, debugMode);
   }
 
-  public void put(Integer key, V value) {
-    putInternal(createEncodedKey(key), key, value);
-  }
-
-  public boolean delete(Integer key) {
-    return deleteInternal(createEncodedKey(key));
-  }
-
-  public V get(Integer key) {
-    return getInternal(createEncodedKey(key));
-  }
-
-  public List<KeyValue<Integer, V>> scanWithCount(Integer startKey, int count) {
-    return scanWithCountInternal(createEncodedKey(startKey), count);
-  }
-
-  public void scan(
-      @Nullable Integer startKey,
-      @Nullable Integer endKey,
-      boolean isEndKeyExclusive,
-      Function<KeyValue<Integer, V>, Boolean> function) {
-    scanInternal(
-        startKey == null ? ByteArray.EMPTY_INSTANCE : createEncodedKey(startKey),
-        endKey == null ? null : createEncodedKey(endKey),
-        isEndKeyExclusive,
-        null,
-        function);
-  }
-
-  KeyValue<Integer, V> createKey(Integer key, V value) {
+  @Override
+  protected KeyValue<Integer, V> createKeyValue(Integer key, V value) {
     return EncodedKeyUtils.createKeyValue(
         EncodedKeyType.BYTE_ARRAY, createEncodedKey(key), key, value);
   }
 
-  private ByteArray createEncodedKey(int key) {
+  @Override
+  protected Object createEncodedKey(Integer key) {
     ByteBuffer byteBuf = ByteBuffer.allocate(4);
     byteBuf.putInt(key ^ 0x80000000);
     return new ByteArray(byteBuf.array());
+  }
+
+  @Override
+  protected Object createEmptyEncodedKey() {
+    return ByteArray.EMPTY_INSTANCE;
   }
 }

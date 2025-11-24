@@ -28,7 +28,7 @@ import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.params.Parameter;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.komamitsu.wormhole4j.WormholeBase.Validator;
+import org.komamitsu.wormhole4j.Wormhole.Validator;
 
 @ParameterizedClass
 @ValueSource(ints = {3, 8, 128})
@@ -158,7 +158,7 @@ class WormholeForStringKeyTest {
       wormhole.put("", "foo");
 
       // Act & Assert
-      KeyValue<String, String> firstItem = wormhole.createKey("", "foo");
+      KeyValue<String, String> firstItem = wormhole.createKeyValue("", "foo");
       assertThat(wormhole.scanWithCount("", 2)).containsExactly(firstItem);
 
       // With exclusive end keys.
@@ -232,7 +232,7 @@ class WormholeForStringKeyTest {
       wormhole.put("James", "semaj");
 
       // Act & Assert
-      KeyValue<String, String> firstItem = wormhole.createKey("James", "semaj");
+      KeyValue<String, String> firstItem = wormhole.createKeyValue("James", "semaj");
       assertThat(wormhole.scanWithCount("J", 0)).isEmpty();
       assertThat(wormhole.scanWithCount("J", 1)).containsExactly(firstItem);
       assertThat(wormhole.scanWithCount("J", 2)).containsExactly(firstItem);
@@ -330,9 +330,9 @@ class WormholeForStringKeyTest {
       wormhole.put("Jason", "nosaj");
 
       // Act & Assert
-      KeyValue<String, String> firstItem = wormhole.createKey("James", "semaj");
-      KeyValue<String, String> secondItem = wormhole.createKey("Jason", "nosaj");
-      KeyValue<String, String> thirdItem = wormhole.createKey("John", "nhoj");
+      KeyValue<String, String> firstItem = wormhole.createKeyValue("James", "semaj");
+      KeyValue<String, String> secondItem = wormhole.createKeyValue("Jason", "nosaj");
+      KeyValue<String, String> thirdItem = wormhole.createKeyValue("John", "nhoj");
       assertThat(wormhole.scanWithCount("I", 1)).containsExactly(firstItem);
       assertThat(wormhole.scanWithCount("I", 2)).containsExactly(firstItem, secondItem);
       assertThat(wormhole.scanWithCount("I", 3)).containsExactly(firstItem, secondItem, thirdItem);
@@ -476,11 +476,11 @@ class WormholeForStringKeyTest {
       wormhole.put("Jason", "nosaj");
 
       // Act & Assert
-      KeyValue<String, String> firstItem = wormhole.createKey("Jacob", "bocaj");
-      KeyValue<String, String> secondItem = wormhole.createKey("James", "semaj");
-      KeyValue<String, String> thirdItem = wormhole.createKey("Jason", "nosaj");
-      KeyValue<String, String> fourthItem = wormhole.createKey("John", "nhoj");
-      KeyValue<String, String> fifthItem = wormhole.createKey("Joseph", "hpesoj");
+      KeyValue<String, String> firstItem = wormhole.createKeyValue("Jacob", "bocaj");
+      KeyValue<String, String> secondItem = wormhole.createKeyValue("James", "semaj");
+      KeyValue<String, String> thirdItem = wormhole.createKeyValue("Jason", "nosaj");
+      KeyValue<String, String> fourthItem = wormhole.createKeyValue("John", "nhoj");
+      KeyValue<String, String> fifthItem = wormhole.createKeyValue("Joseph", "hpesoj");
       assertThat(wormhole.scanWithCount("I", 1)).containsExactly(firstItem);
       assertThat(wormhole.scanWithCount("I", 2)).containsExactly(firstItem, secondItem);
       assertThat(wormhole.scanWithCount("I", 3)).containsExactly(firstItem, secondItem, thirdItem);
@@ -587,11 +587,11 @@ class WormholeForStringKeyTest {
       wormhole.put("aa", 2);
 
       // Act & Assert
-      KeyValue<String, Integer> firstItem = wormhole.createKey("a", 1);
-      KeyValue<String, Integer> secondItem = wormhole.createKey("aa", 2);
-      KeyValue<String, Integer> thirdItem = wormhole.createKey("aaa", 3);
-      KeyValue<String, Integer> fourthItem = wormhole.createKey("aaaa", 4);
-      KeyValue<String, Integer> fifthItem = wormhole.createKey("aaaaa", 5);
+      KeyValue<String, Integer> firstItem = wormhole.createKeyValue("a", 1);
+      KeyValue<String, Integer> secondItem = wormhole.createKeyValue("aa", 2);
+      KeyValue<String, Integer> thirdItem = wormhole.createKeyValue("aaa", 3);
+      KeyValue<String, Integer> fourthItem = wormhole.createKeyValue("aaaa", 4);
+      KeyValue<String, Integer> fifthItem = wormhole.createKeyValue("aaaaa", 5);
 
       assertThat(wormhole.scanWithCount("", 1)).containsExactly(firstItem);
       assertThat(wormhole.scanWithCount("", 2)).containsExactly(firstItem, secondItem);
@@ -790,7 +790,7 @@ class WormholeForStringKeyTest {
       assertThat(wormhole.get("James")).isEqualTo("semaj");
 
       assertThat(wormhole.scanWithCount("", 100000))
-          .containsExactly(wormhole.createKey("James", "semaj"));
+          .containsExactly(wormhole.createKeyValue("James", "semaj"));
     }
 
     @Test

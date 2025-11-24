@@ -16,16 +16,12 @@
 
 package org.komamitsu.wormhole4j;
 
-import java.util.List;
-import java.util.function.Function;
-import javax.annotation.Nullable;
-
 /**
  * A Wormhole implementation for string keys.
  *
  * @param <V> the type of values stored in this Wormhole
  */
-public class WormholeForStringKey<V> extends WormholeBase<String, V> {
+public class WormholeForStringKey<V> extends Wormhole<String, V> {
   public WormholeForStringKey() {
     super(EncodedKeyType.STRING);
   }
@@ -38,31 +34,18 @@ public class WormholeForStringKey<V> extends WormholeBase<String, V> {
     super(EncodedKeyType.STRING, leafNodeSize, debugMode);
   }
 
-  public void put(String key, V value) {
-    putInternal(key, key, value);
-  }
-
-  public boolean delete(String key) {
-    return deleteInternal(key);
-  }
-
-  public V get(String key) {
-    return getInternal(key);
-  }
-
-  public List<KeyValue<String, V>> scanWithCount(String startKey, int count) {
-    return scanWithCountInternal(startKey, count);
-  }
-
-  public void scan(
-      @Nullable String startKey,
-      @Nullable String endKey,
-      boolean isEndKeyExclusive,
-      Function<KeyValue<String, V>, Boolean> function) {
-    scanInternal(startKey == null ? "" : startKey, endKey, isEndKeyExclusive, null, function);
-  }
-
-  KeyValue<String, V> createKey(String key, V value) {
+  @Override
+  protected KeyValue<String, V> createKeyValue(String key, V value) {
     return EncodedKeyUtils.createKeyValue(EncodedKeyType.STRING, key, key, value);
+  }
+
+  @Override
+  protected Object createEncodedKey(String key) {
+    return key;
+  }
+
+  @Override
+  protected Object createEmptyEncodedKey() {
+    return "";
   }
 }
