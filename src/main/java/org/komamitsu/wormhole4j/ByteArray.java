@@ -93,7 +93,9 @@ final class ByteArray implements Comparable<ByteArray> {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
+    if (this == o) {
+      return true;
+    }
     if (o == null || getClass() != o.getClass()) return false;
     ByteArray byteArray = (ByteArray) o;
     return Objects.deepEquals(bytes, byteArray.bytes);

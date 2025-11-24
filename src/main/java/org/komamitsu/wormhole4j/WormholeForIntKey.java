@@ -22,8 +22,7 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 /**
- * A Wormhole implementation for string keys. This is the default Wormhole class, as support for
- * other key types is still experimental.
+ * A Wormhole implementation for integer keys.
  *
  * @param <V> the type of values stored in this Wormhole
  */

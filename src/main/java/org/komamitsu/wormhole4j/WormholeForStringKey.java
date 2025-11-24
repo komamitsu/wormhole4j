@@ -21,21 +21,20 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 /**
- * A Wormhole implementation for string keys. This is the default Wormhole class, as support for
- * other key types is still experimental.
+ * A Wormhole implementation for string keys.
  *
  * @param <V> the type of values stored in this Wormhole
  */
-public class Wormhole<V> extends WormholeBase<String, V> {
-  public Wormhole() {
+public class WormholeForStringKey<V> extends WormholeBase<String, V> {
+  public WormholeForStringKey() {
     super(EncodedKeyType.STRING);
   }
 
-  public Wormhole(int leafNodeSize) {
+  public WormholeForStringKey(int leafNodeSize) {
     super(EncodedKeyType.STRING, leafNodeSize);
   }
 
-  public Wormhole(int leafNodeSize, boolean debugMode) {
+  public WormholeForStringKey(int leafNodeSize, boolean debugMode) {
     super(EncodedKeyType.STRING, leafNodeSize, debugMode);
   }
 
