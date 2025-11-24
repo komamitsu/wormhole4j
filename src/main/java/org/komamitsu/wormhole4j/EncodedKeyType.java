@@ -16,14 +16,7 @@
 
 package org.komamitsu.wormhole4j;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import org.junit.jupiter.api.Test;
-
-class UtilsTest {
-
-  @Test
-  void printableKey() {
-    assertThat(Utils.printableKey("abc\0")).isEqualTo("abc⊥");
-  }
+enum EncodedKeyType {
+  STRING,
+  BYTE_ARRAY
 }

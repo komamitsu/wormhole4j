@@ -16,7 +16,7 @@
 
 package org.komamitsu.wormhole4j;
 
-class Tuple<F, S> {
+final class Tuple<F, S> {
   final F first;
   final S second;
 

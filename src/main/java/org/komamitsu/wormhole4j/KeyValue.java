@@ -24,18 +24,31 @@ import java.util.Objects;
  * @param <K> the type of the key
  * @param <V> the type of the value
  */
-public class KeyValue<K, V> {
-  private final Key<K> key;
-  private V value;
+public final class KeyValue<K, V> {
+  final K key;
+  V value;
+  private final EncodedKeyType encodedKeyType;
+  private final Object encodedKey;
 
-  KeyValue(Key<K> key, V value) {
+  KeyValue(String encodedStringKey, K key, V value) {
+    this.encodedKeyType = EncodedKeyType.STRING;
+    this.encodedKey = encodedStringKey;
+    this.key = key;
+    this.value = value;
+  }
+
+  KeyValue(ByteArray encodedByteArrayKey, K key, V value) {
+    this.encodedKeyType = EncodedKeyType.BYTE_ARRAY;
+    this.encodedKey = encodedByteArrayKey;
     this.key = key;
     this.value = value;
   }
 
   @Override
   public String toString() {
-    return "KeyValue{" + "key=" + key + ", value=" + value + '}';
+    return String.format(
+        "KeyValue{key=%s, value=%s, encodedKeyType=%s, encodedKey=%s}",
+        key, value, encodedKeyType, encodedKey);
   }
 
   /**
@@ -44,7 +57,7 @@ public class KeyValue<K, V> {
    * @return the key
    */
   public K getKey() {
-    return key.key;
+    return key;
   }
 
   /**
@@ -52,8 +65,8 @@ public class KeyValue<K, V> {
    *
    * @return the encoded key
    */
-  String getEncodedKey() {
-    return key.encodedKey;
+  Object getEncodedKey() {
+    return encodedKey;
   }
 
   /**
@@ -71,14 +84,19 @@ public class KeyValue<K, V> {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
+    if (this == o) {
+      return true;
+    }
     if (o == null || getClass() != o.getClass()) return false;
     KeyValue<?, ?> keyValue = (KeyValue<?, ?>) o;
-    return Objects.equals(key, keyValue.key) && Objects.equals(value, keyValue.value);
+    return Objects.equals(key, keyValue.key)
+        && Objects.equals(value, keyValue.value)
+        && encodedKeyType == keyValue.encodedKeyType
+        && Objects.equals(encodedKey, keyValue.encodedKey);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(key.key, value);
+    return Objects.hash(key, value, encodedKeyType, encodedKey);
   }
 }
