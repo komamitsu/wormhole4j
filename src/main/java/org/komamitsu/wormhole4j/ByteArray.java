@@ -68,7 +68,7 @@ final class ByteArray implements Comparable<ByteArray> {
   }
 
   ByteArray append(int x) {
-    // TODO: Reuse the bytes if `bytes[length + 1] == x`
+    // TODO: Allocate length * 1.x (or length + x) and reuse the byte array
     byte[] newBytes = new byte[length + 1];
     System.arraycopy(bytes, 0, newBytes, 0, length);
     newBytes[length] = (byte) x;
