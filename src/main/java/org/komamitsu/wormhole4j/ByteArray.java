@@ -16,21 +16,27 @@
 
 package org.komamitsu.wormhole4j;
 
-import java.util.Arrays;
-
 final class ByteArray implements Comparable<ByteArray> {
   static final byte[] EMPTY_BYTES = new byte[] {};
   static final ByteArray EMPTY_INSTANCE = new ByteArray(EMPTY_BYTES);
   private static final char[] HEX_CHARS = "0123456789ABCDEF".toCharArray();
   private final byte[] bytes;
+  private final int length;
 
   ByteArray(byte[] bytes) {
     this.bytes = bytes;
+    this.length = bytes.length;
+  }
+
+  ByteArray(byte[] bytes, int length) {
+    assert bytes.length >= length;
+    this.bytes = bytes;
+    this.length = length;
   }
 
   @Override
   public int compareTo(ByteArray other) {
-    int minLen = Math.min(bytes.length, other.bytes.length);
+    int minLen = Math.min(length, other.length);
     for (int i = 0; i < minLen; i++) {
       int x1 = bytes[i] & 0xFF;
       int x2 = other.bytes[i] & 0xFF;
@@ -38,11 +44,11 @@ final class ByteArray implements Comparable<ByteArray> {
         return x1 - x2;
       }
     }
-    return bytes.length - other.bytes.length;
+    return length - other.length;
   }
 
   int longestCommonPrefixLength(ByteArray other) {
-    int minLen = Math.min(bytes.length, other.bytes.length);
+    int minLen = Math.min(length, other.length);
     if (minLen == 0) {
       return 0;
     }
@@ -57,24 +63,23 @@ final class ByteArray implements Comparable<ByteArray> {
     return minLen;
   }
 
-  ByteArray slice(int pos, int length) {
-    byte[] newBytes = new byte[length];
-    System.arraycopy(bytes, pos, newBytes, 0, length);
-    return new ByteArray(newBytes);
+  ByteArray slice(int length) {
+    return new ByteArray(bytes, length);
   }
 
   ByteArray append(int x) {
-    byte[] newKey = new byte[bytes.length + 1];
-    System.arraycopy(bytes, 0, newKey, 0, bytes.length);
-    newKey[bytes.length] = (byte) x;
-    return new ByteArray(newKey);
+    // TODO: Reuse the bytes if `bytes[length + 1] == x`
+    byte[] newBytes = new byte[length + 1];
+    System.arraycopy(bytes, 0, newBytes, 0, length);
+    newBytes[length] = (byte) x;
+    return new ByteArray(newBytes);
   }
 
   boolean startsWith(ByteArray prefix) {
-    if (bytes.length < prefix.bytes.length) {
+    if (length < prefix.length) {
       return false;
     }
-    for (int i = 0; i < prefix.bytes.length; i++) {
+    for (int i = 0; i < prefix.length; i++) {
       if (bytes[i] != prefix.bytes[i]) {
         return false;
       }
@@ -83,7 +88,7 @@ final class ByteArray implements Comparable<ByteArray> {
   }
 
   int length() {
-    return bytes.length;
+    return length;
   }
 
   int get(int pos) {
@@ -99,25 +104,39 @@ final class ByteArray implements Comparable<ByteArray> {
       return false;
     }
     ByteArray byteArray = (ByteArray) o;
-    return Arrays.equals(bytes, byteArray.bytes);
+    if (length != byteArray.length) {
+      return false;
+    }
+    for (int i = 0; i < length; i++) {
+      if (bytes[i] != byteArray.bytes[i]) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override
   public int hashCode() {
-    return Arrays.hashCode(bytes);
+    // TODO: Cache this.
+    int result = 1;
+    for (int i = 0; i < length; i++) {
+      byte element = bytes[i];
+      result = 31 * result + element;
+    }
+    return result;
   }
 
   @Override
   public String toString() {
-    if (bytes.length == 0) {
+    if (length == 0) {
       return "{}";
     }
-    StringBuilder sb = new StringBuilder(2 + bytes.length * 6); // "{0x11, 0x22, ...}"
+    StringBuilder sb = new StringBuilder(2 + length * 6); // "{0x11, 0x22, ...}"
     sb.append("{");
-    for (int i = 0; i < bytes.length; i++) {
+    for (int i = 0; i < length; i++) {
       int v = bytes[i] & 0xFF;
       sb.append("0x").append(HEX_CHARS[v >>> 4]).append(HEX_CHARS[v & 0x0F]);
-      if (i != bytes.length - 1) {
+      if (i != length - 1) {
         sb.append(", ");
       }
     }
