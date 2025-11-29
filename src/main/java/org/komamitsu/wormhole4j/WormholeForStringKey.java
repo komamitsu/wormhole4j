@@ -23,29 +23,41 @@ package org.komamitsu.wormhole4j;
  */
 public class WormholeForStringKey<V> extends Wormhole<String, V> {
   public WormholeForStringKey() {
-    super(EncodedKeyType.STRING);
+    super(getEncodedKeyType());
   }
 
   public WormholeForStringKey(int leafNodeSize) {
-    super(EncodedKeyType.STRING, leafNodeSize);
+    super(getEncodedKeyType(), leafNodeSize);
   }
 
   public WormholeForStringKey(int leafNodeSize, boolean debugMode) {
-    super(EncodedKeyType.STRING, leafNodeSize, debugMode);
+    super(getEncodedKeyType(), leafNodeSize, debugMode);
+  }
+
+  private static EncodedKeyType getEncodedKeyType() {
+    return StringUtils.isCompactStringsSupported()
+        ? EncodedKeyType.BYTE_ARRAY
+        : EncodedKeyType.STRING;
   }
 
   @Override
   protected KeyValue<String, V> createKeyValue(String key, V value) {
-    return EncodedKeyUtils.createKeyValue(EncodedKeyType.STRING, key, key, value);
+    return EncodedKeyUtils.createKeyValue(getEncodedKeyType(), createEncodedKey(key), key, value);
   }
 
   @Override
   protected Object createEncodedKey(String key) {
+    if (StringUtils.isCompactStringsSupported()) {
+      return new ByteArray(StringUtils.getBytesFromString(key));
+    }
     return key;
   }
 
   @Override
   protected Object createEmptyEncodedKey() {
+    if (StringUtils.isCompactStringsSupported()) {
+      return ByteArray.EMPTY_INSTANCE;
+    }
     return "";
   }
 }
