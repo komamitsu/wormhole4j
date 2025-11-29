@@ -94,7 +94,7 @@ final class EncodedKeyUtils {
           ByteArray xs1 = (ByteArray) obj1;
           ByteArray xs2 = (ByteArray) obj2;
           int lcpLength = xs1.longestCommonPrefixLength(xs2);
-          return xs2.slice(0, lcpLength + 1);
+          return xs2.slice(lcpLength + 1);
         }
       default:
         throw new AssertionError();
@@ -136,7 +136,7 @@ final class EncodedKeyUtils {
         return ((String) obj).substring(0, length);
       case BYTE_ARRAY:
         assert obj instanceof ByteArray;
-        return ((ByteArray) obj).slice(0, length);
+        return ((ByteArray) obj).slice(length);
       default:
         throw new AssertionError();
     }
