@@ -106,6 +106,9 @@ final class ByteArray implements Comparable<ByteArray> {
     if (length != byteArray.length) {
       return false;
     }
+    if (bytes == byteArray.bytes) {
+      return true;
+    }
     for (int i = 0; i < length; i++) {
       if (bytes[i] != byteArray.bytes[i]) {
         return false;
