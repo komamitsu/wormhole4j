@@ -19,22 +19,14 @@ package org.komamitsu.wormhole4j;
 final class EncodedKeyUtils {
   private EncodedKeyUtils() {}
 
-  static Object createEmpty(EncodedKeyType encodedKeyType) {
-    switch (encodedKeyType) {
-      case STRING:
-        return "";
-      case BYTE_ARRAY:
-        return ByteArray.EMPTY_INSTANCE;
-      default:
-        throw new AssertionError();
-    }
-  }
-
   static int length(EncodedKeyType encodedKeyType, Object obj) {
     switch (encodedKeyType) {
       case STRING:
         assert obj instanceof String;
         return ((String) obj).length();
+      case INTEGER:
+        assert obj instanceof IntWrapper;
+        return ((IntWrapper) obj).length();
       case BYTE_ARRAY:
         assert obj instanceof ByteArray;
         return ((ByteArray) obj).length();
@@ -53,6 +45,10 @@ final class EncodedKeyUtils {
         assert obj1 instanceof String;
         assert obj2 instanceof String;
         return ((String) obj1).compareTo((String) obj2);
+      case INTEGER:
+        assert obj1 instanceof IntWrapper;
+        assert obj2 instanceof IntWrapper;
+        return ((IntWrapper) obj1).compareTo((IntWrapper) obj2);
       case BYTE_ARRAY:
         assert obj1 instanceof ByteArray;
         assert obj2 instanceof ByteArray;
@@ -87,6 +83,15 @@ final class EncodedKeyUtils {
           int lcpLength = longestCommonPrefixLengthForStrings(s1, s2);
           return s2.substring(0, lcpLength + 1);
         }
+      case INTEGER:
+        {
+          assert obj1 instanceof IntWrapper;
+          assert obj2 instanceof IntWrapper;
+          IntWrapper i1 = (IntWrapper) obj1;
+          IntWrapper i2 = (IntWrapper) obj2;
+          int lcpLength = i1.longestCommonPrefixLength(i2);
+          return i2.slice(lcpLength + 1);
+        }
       case BYTE_ARRAY:
         {
           assert obj1 instanceof ByteArray;
@@ -106,6 +111,9 @@ final class EncodedKeyUtils {
       case STRING:
         assert obj instanceof String;
         return ((String) obj) + ((char) x);
+      case INTEGER:
+        assert obj instanceof IntWrapper;
+        return ((IntWrapper) obj).append(x);
       case BYTE_ARRAY:
         assert obj instanceof ByteArray;
         return ((ByteArray) obj).append(x);
@@ -120,6 +128,10 @@ final class EncodedKeyUtils {
         assert obj instanceof String;
         assert prefix instanceof String;
         return ((String) obj).startsWith((String) prefix);
+      case INTEGER:
+        assert obj instanceof IntWrapper;
+        assert prefix instanceof IntWrapper;
+        return ((IntWrapper) obj).startsWith((IntWrapper) prefix);
       case BYTE_ARRAY:
         assert obj instanceof ByteArray;
         assert prefix instanceof ByteArray;
@@ -134,6 +146,9 @@ final class EncodedKeyUtils {
       case STRING:
         assert obj instanceof String;
         return ((String) obj).substring(0, length);
+      case INTEGER:
+        assert obj instanceof IntWrapper;
+        return ((IntWrapper) obj).slice(length);
       case BYTE_ARRAY:
         assert obj instanceof ByteArray;
         return ((ByteArray) obj).slice(length);
@@ -147,6 +162,9 @@ final class EncodedKeyUtils {
       case STRING:
         assert obj instanceof String;
         return ((String) obj).charAt(pos);
+      case INTEGER:
+        assert obj instanceof IntWrapper;
+        return ((IntWrapper) obj).get(pos);
       case BYTE_ARRAY:
         assert obj instanceof ByteArray;
         return ((ByteArray) obj).get(pos);
@@ -161,6 +179,9 @@ final class EncodedKeyUtils {
       case STRING:
         assert encodedKey instanceof String;
         return new KeyValue<>((String) encodedKey, key, value);
+      case INTEGER:
+        assert encodedKey instanceof IntWrapper;
+        return new KeyValue<>((IntWrapper) encodedKey, key, value);
       case BYTE_ARRAY:
         assert encodedKey instanceof ByteArray;
         return new KeyValue<>((ByteArray) encodedKey, key, value);
