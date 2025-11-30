@@ -28,45 +28,44 @@ class MetaTrieHashTable<K, V> {
     this.encodedKeyType = encodedKeyType;
   }
 
-  abstract static class NodeMeta<K, V> {
+  static class NodeMeta<K, V> {
     final Object anchorPrefix;
+    @Nullable final LeafNode<K, V> leafNode;
+    @Nullable private LeafNode<K, V> leftMostLeafNode;
+    @Nullable private LeafNode<K, V> rightMostLeafNode;
+    @Nullable final BitSet bitmap;
 
-    public NodeMeta(Object anchorPrefix) {
+    // Construct node meta for leaf.
+    NodeMeta(Object anchorPrefix, LeafNode<K, V> leafNode) {
       this.anchorPrefix = anchorPrefix;
-    }
-  }
-
-  static class NodeMetaLeaf<K, V> extends NodeMeta<K, V> {
-    final LeafNode<K, V> leafNode;
-
-    NodeMetaLeaf(Object anchorPrefix, LeafNode<K, V> leafNode) {
-      super(anchorPrefix);
       this.leafNode = leafNode;
+      leftMostLeafNode = null;
+      rightMostLeafNode = null;
+      bitmap = null;
     }
 
-    @Override
-    public String toString() {
-      return "NodeMetaLeaf{" + "leafNode=" + leafNode + '}';
-    }
-  }
-
-  static class NodeMetaInternal<K, V> extends NodeMeta<K, V> {
-    private LeafNode<K, V> leftMostLeafNode;
-    private LeafNode<K, V> rightMostLeafNode;
-    final BitSet bitmap;
-
-    NodeMetaInternal(
+    // Construct node meta for internal.
+    NodeMeta(
         Object anchorPrefix,
         LeafNode<K, V> leftMostLeafNode,
         LeafNode<K, V> rightMostLeafNode,
         @Nullable Integer initBitIndex) {
-      super(anchorPrefix);
+      this.anchorPrefix = anchorPrefix;
+      leafNode = null;
       this.leftMostLeafNode = leftMostLeafNode;
       this.rightMostLeafNode = rightMostLeafNode;
       this.bitmap = new BitSet(128);
       if (initBitIndex != null) {
         bitmap.set(initBitIndex);
       }
+    }
+
+    boolean isLeaf() {
+      return leafNode != null;
+    }
+
+    boolean isInternal() {
+      return leafNode == null;
     }
 
     Integer findOneSibling(int fromIndex) {
@@ -101,8 +100,12 @@ class MetaTrieHashTable<K, V> {
 
     @Override
     public String toString() {
-      return "NodeMetaInternal{"
-          + "leftMostLeafNode="
+      return "NodeMeta{"
+          + "anchorPrefix="
+          + anchorPrefix
+          + ", leafNode="
+          + leafNode
+          + ", leftMostLeafNode="
           + leftMostLeafNode
           + ", rightMostLeafNode="
           + rightMostLeafNode
@@ -130,7 +133,7 @@ class MetaTrieHashTable<K, V> {
   }
 
   void handleSplitNodes(Object newAnchorKey, LeafNode<K, V> newLeafNode) {
-    NodeMetaLeaf<K, V> newNodeMeta = new NodeMetaLeaf<>(newAnchorKey, newLeafNode);
+    NodeMeta<K, V> newNodeMeta = new NodeMeta<>(newAnchorKey, newLeafNode);
     NodeMeta<K, V> existingNodeMeta = get(newAnchorKey);
     if (existingNodeMeta != null) {
       throw new AssertionError(
@@ -149,7 +152,7 @@ class MetaTrieHashTable<K, V> {
       if (node == null) {
         put(
             prefix,
-            new NodeMetaInternal<>(
+            new NodeMeta<>(
                 prefix,
                 newLeafNode,
                 newLeafNode,
@@ -157,8 +160,8 @@ class MetaTrieHashTable<K, V> {
         continue;
       }
 
-      if (node instanceof NodeMetaLeaf) {
-        LeafNode<K, V> leafNode = ((NodeMetaLeaf<K, V>) node).leafNode;
+      if (node.isLeaf()) {
+        LeafNode<K, V> leafNode = node.leafNode;
 
         // In the original paper, if there is a leaf node which has the same prefix, append the
         // smallest token to the prefix of the leaf node and add an internal node with the same
@@ -179,27 +182,25 @@ class MetaTrieHashTable<K, V> {
 
         node = parent;
          */
-        node = new NodeMetaInternal<>(prefix, leafNode, newLeafNode, null);
+        node = new NodeMeta<>(prefix, leafNode, newLeafNode, null);
         put(prefix, node);
       }
 
-      assert node instanceof NodeMetaInternal;
-
-      NodeMetaInternal<K, V> internalNode = (NodeMetaInternal<K, V>) node;
+      assert node.isInternal();
 
       // The pseudocode in the paper does not update existing internal nodes' bitmap. However,
       // this update is probably necessary.
-      internalNode.bitmap.set(EncodedKeyUtils.get(encodedKeyType, newAnchorKey, prefixLen));
+      node.bitmap.set(EncodedKeyUtils.get(encodedKeyType, newAnchorKey, prefixLen));
 
       // The pseudocode in the paper checks and updates the original leaf node. However, this
       // loop traverses the ancestors of the new leaf node's anchor key, and the ancestors'
       // left-most and right-most ranges are updated to include the new leaf node.
       // Therefore, the new leaf node should probably be checked and set if needed.
-      if (internalNode.getLeftMostLeafNode() == newLeafNode.getRight()) {
-        internalNode.setLeftMostLeafNode(newLeafNode);
+      if (node.getLeftMostLeafNode() == newLeafNode.getRight()) {
+        node.setLeftMostLeafNode(newLeafNode);
       }
-      if (internalNode.getRightMostLeafNode() == newLeafNode.getLeft()) {
-        internalNode.setRightMostLeafNode(newLeafNode);
+      if (node.getRightMostLeafNode() == newLeafNode.getLeft()) {
+        node.setRightMostLeafNode(newLeafNode);
       }
     }
   }
@@ -243,14 +244,12 @@ class MetaTrieHashTable<K, V> {
     if (EncodedKeyUtils.length(encodedKeyType, anchorKey) >= maxAnchorLength) {
       maxAnchorLength = calcMaxAnchorLength();
     }
-    if (removed instanceof NodeMetaInternal) {
+    if (removed.isInternal()) {
       return anchorKey;
     }
 
     throw new AssertionError(
-        String.format(
-            "Removed node meta is an unexpected type. Expected: %s, Actual: %s",
-            NodeMetaInternal.class.getName(), removed.getClass().getName()));
+        String.format("Removed node meta is unexpectedly for leaf. %s", removed));
   }
 
   private int calcMaxAnchorLength() {
