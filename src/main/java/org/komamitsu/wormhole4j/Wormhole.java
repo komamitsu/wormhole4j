@@ -228,7 +228,7 @@ abstract class Wormhole<K, V> {
   }
 
   private void initialize() {
-    Object key = EncodedKeyUtils.createEmpty(encodedKeyType);
+    Object key = createEmptyEncodedKey();
     LeafNode<K, V> rootLeafNode =
         new LeafNode<>(encodedKeyType, validAnchorKeyProvider, key, leafNodeSize, null, null);
     // Add the root.
@@ -431,7 +431,7 @@ abstract class Wormhole<K, V> {
       Collection<MetaTrieHashTable.NodeMeta<K, T>> nodeMetas =
           new HashSet<>(wormhole.table.values());
       LinkedList<Object> anchorKeyQueue = new LinkedList<>();
-      anchorKeyQueue.addLast(EncodedKeyUtils.createEmpty(wormhole.encodedKeyType));
+      anchorKeyQueue.addLast(wormhole.createEmptyEncodedKey());
       while (!anchorKeyQueue.isEmpty()) {
         Object anchorKey = anchorKeyQueue.removeFirst();
         MetaTrieHashTable.NodeMeta<K, T> nodeMeta = wormhole.table.get(anchorKey);
@@ -508,8 +508,7 @@ abstract class Wormhole<K, V> {
 
       LeafNode<K, T> leftMostLeafNode;
       LeafNode<K, T> rightMostLeafNode;
-      MetaTrieHashTable.NodeMeta<K, T> rootNodeMeta =
-          table.get(EncodedKeyUtils.createEmpty(wormhole.encodedKeyType));
+      MetaTrieHashTable.NodeMeta<K, T> rootNodeMeta = table.get(wormhole.createEmptyEncodedKey());
       if (rootNodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf) {
         MetaTrieHashTable.NodeMetaLeaf<K, T> nodeMetaLeaf =
             (MetaTrieHashTable.NodeMetaLeaf<K, T>) rootNodeMeta;

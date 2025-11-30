@@ -30,16 +30,23 @@ public final class KeyValue<K, V> {
   private final EncodedKeyType encodedKeyType;
   private final Object encodedKey;
 
-  KeyValue(String encodedStringKey, K key, V value) {
+  KeyValue(String encodedKey, K key, V value) {
     this.encodedKeyType = EncodedKeyType.STRING;
-    this.encodedKey = encodedStringKey;
+    this.encodedKey = encodedKey;
     this.key = key;
     this.value = value;
   }
 
-  KeyValue(ByteArray encodedByteArrayKey, K key, V value) {
+  KeyValue(IntWrapper encodedKey, K key, V value) {
+    this.encodedKeyType = EncodedKeyType.INTEGER;
+    this.encodedKey = encodedKey;
+    this.key = key;
+    this.value = value;
+  }
+
+  KeyValue(ByteArray encodedKey, K key, V value) {
     this.encodedKeyType = EncodedKeyType.BYTE_ARRAY;
-    this.encodedKey = encodedByteArrayKey;
+    this.encodedKey = encodedKey;
     this.key = key;
     this.value = value;
   }

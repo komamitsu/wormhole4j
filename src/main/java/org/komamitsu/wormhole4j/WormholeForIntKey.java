@@ -16,8 +16,6 @@
 
 package org.komamitsu.wormhole4j;
 
-import java.nio.ByteBuffer;
-
 /**
  * A Wormhole implementation for integer keys.
  *
@@ -25,32 +23,31 @@ import java.nio.ByteBuffer;
  */
 public class WormholeForIntKey<V> extends Wormhole<Integer, V> {
   public WormholeForIntKey() {
-    super(EncodedKeyType.BYTE_ARRAY);
+    super(EncodedKeyType.INTEGER);
   }
 
   public WormholeForIntKey(int leafNodeSize) {
-    super(EncodedKeyType.BYTE_ARRAY, leafNodeSize);
+    super(EncodedKeyType.INTEGER, leafNodeSize);
   }
 
   public WormholeForIntKey(int leafNodeSize, boolean debugMode) {
-    super(EncodedKeyType.BYTE_ARRAY, leafNodeSize, debugMode);
+    super(EncodedKeyType.INTEGER, leafNodeSize, debugMode);
   }
 
   @Override
   protected KeyValue<Integer, V> createKeyValue(Integer key, V value) {
     return EncodedKeyUtils.createKeyValue(
-        EncodedKeyType.BYTE_ARRAY, createEncodedKey(key), key, value);
+        EncodedKeyType.INTEGER, createEncodedKey(key), key, value);
   }
 
   @Override
   protected Object createEncodedKey(Integer key) {
-    ByteBuffer byteBuf = ByteBuffer.allocate(4);
-    byteBuf.putInt(key ^ 0x80000000);
-    return new ByteArray(byteBuf.array());
+    assert key != null;
+    return new IntWrapper(key ^ 0x80000000);
   }
 
   @Override
   protected Object createEmptyEncodedKey() {
-    return ByteArray.EMPTY_INSTANCE;
+    return IntWrapper.EMPTY_INSTANCE;
   }
 }
