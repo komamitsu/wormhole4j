@@ -44,6 +44,13 @@ public final class KeyValue<K, V> {
     this.value = value;
   }
 
+  KeyValue(LongWrapper encodedKey, K key, V value) {
+    this.encodedKeyType = EncodedKeyType.LONG;
+    this.encodedKey = encodedKey;
+    this.key = key;
+    this.value = value;
+  }
+
   KeyValue(ByteArray encodedKey, K key, V value) {
     this.encodedKeyType = EncodedKeyType.BYTE_ARRAY;
     this.encodedKey = encodedKey;
