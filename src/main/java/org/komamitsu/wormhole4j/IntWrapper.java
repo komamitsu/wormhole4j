@@ -34,7 +34,7 @@ final class IntWrapper implements Comparable<IntWrapper> {
 
   IntWrapper(int value) {
     this.length = SIZE;
-    this.value = value & BITMASKS[length];
+    this.value = value;
   }
 
   private IntWrapper(int value, int length) {

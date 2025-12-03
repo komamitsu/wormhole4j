@@ -38,7 +38,7 @@ final class LongWrapper implements Comparable<LongWrapper> {
 
   LongWrapper(long value) {
     this.length = SIZE;
-    this.value = value & BITMASKS[length];
+    this.value = value;
   }
 
   private LongWrapper(long value, int length) {
