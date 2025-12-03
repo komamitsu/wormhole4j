@@ -120,7 +120,7 @@ final class LongWrapper implements Comparable<LongWrapper> {
 
   @Override
   public int hashCode() {
-    return (int) (value * 31 + length);
+    return Long.hashCode(value) * 31 + length;
   }
 
   @Override
