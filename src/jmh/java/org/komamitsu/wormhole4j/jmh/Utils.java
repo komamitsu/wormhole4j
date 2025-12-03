@@ -16,7 +16,12 @@
 
 package org.komamitsu.wormhole4j.jmh;
 
+import static org.komamitsu.wormhole4j.jmh.Constants.*;
+
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 final class Utils {
   private Utils() {}
@@ -34,14 +39,29 @@ final class Utils {
   }
 
   static String randomString() {
-    int keyLength =
-        ThreadLocalRandom.current()
-            .nextInt(Constants.MIN_STRING_KEY_LEN, Constants.MAX_STRING_KEY_LEN);
+    int keyLength = ThreadLocalRandom.current().nextInt(MIN_STRING_KEY_LEN, MAX_STRING_KEY_LEN);
     StringBuilder sb = new StringBuilder(keyLength);
     for (int j = 0; j < keyLength; j++) {
       char c = (char) ThreadLocalRandom.current().nextInt('a', 'z' + 1);
       sb.append(c);
     }
     return sb.toString();
+  }
+
+  static void iterateRecordCountTimes(Consumer<Integer> task) {
+    for (int i = 0; i < RECORD_COUNT; i++) {
+      task.accept(i);
+    }
+  }
+
+  static <T extends Comparable<T>> void iterateRecordCountTimesWithIndexRange(
+      KeysState<T> keysState, BiConsumer<T, T> task) {
+    List<T> keys = keysState.keys;
+    iterateRecordCountTimes(
+        i -> {
+          T k1 = keys.get(keysState.startIndexes.get(i));
+          T k2 = keys.get(keysState.endIndexes.get(i));
+          task.accept(k1, k2);
+        });
   }
 }

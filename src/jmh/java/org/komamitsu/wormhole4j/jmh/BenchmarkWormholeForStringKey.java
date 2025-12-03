@@ -22,38 +22,38 @@ import static org.komamitsu.wormhole4j.jmh.Utils.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.komamitsu.wormhole4j.KeyValue;
-import org.komamitsu.wormhole4j.WormholeForIntKey;
+import org.komamitsu.wormhole4j.WormholeForStringKey;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
-public class BenchmarkWormholeForIntKey {
+public class BenchmarkWormholeForStringKey {
 
   @State(Scope.Thread)
   public static class EmptyState {
-    WormholeForIntKey<Integer> wormhole;
+    WormholeForStringKey<Integer> wormhole;
 
     @Setup(Level.Iteration)
-    public void setup(IntKeysState data) {
-      wormhole = new WormholeForIntKey<>();
+    public void setup(StringKeysState data) {
+      wormhole = new WormholeForStringKey<>();
     }
   }
 
   @Benchmark
   @OperationsPerInvocation(INSERT_OPS_COUNT)
-  public void benchmarkInsert(IntKeysState keysState, EmptyState emptyState) {
+  public void benchmarkInsert(StringKeysState keysState, EmptyState emptyState) {
     iterateRecordCountTimes(i -> emptyState.wormhole.put(keysState.keys.get(i), i));
   }
 
   @State(Scope.Thread)
   public static class FullState {
-    WormholeForIntKey<Integer> wormhole;
+    WormholeForStringKey<Integer> wormhole;
 
     @Setup(Level.Iteration)
-    public void setup(IntKeysState data) {
-      wormhole = new WormholeForIntKey<>();
-      for (int key : data.keys) {
+    public void setup(StringKeysState data) {
+      wormhole = new WormholeForStringKey<>();
+      for (String key : data.keys) {
         wormhole.put(key, randomInt());
       }
     }
@@ -61,14 +61,14 @@ public class BenchmarkWormholeForIntKey {
 
   @Benchmark
   @OperationsPerInvocation(GET_OPS_COUNT)
-  public void benchmarkGet(IntKeysState keysState, FullState fullState, Blackhole blackhole) {
+  public void benchmarkGet(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
     iterateRecordCountTimes(i -> blackhole.consume(fullState.wormhole.get(keysState.keys.get(i))));
   }
 
   @Benchmark
   @OperationsPerInvocation(SCAN_OPS_COUNT)
-  public void benchmarkScan(IntKeysState keysState, FullState fullState) {
-    Function<KeyValue<Integer, Integer>, Boolean> function = (kv) -> true;
+  public void benchmarkScan(StringKeysState keysState, FullState fullState) {
+    Function<KeyValue<String, Integer>, Boolean> function = (kv) -> true;
     iterateRecordCountTimesWithIndexRange(
         keysState, (k1, k2) -> fullState.wormhole.scan(k1, k2, true, function));
   }

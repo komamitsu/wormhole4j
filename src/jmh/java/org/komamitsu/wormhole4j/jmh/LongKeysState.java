@@ -16,14 +16,23 @@
 
 package org.komamitsu.wormhole4j.jmh;
 
-final class Constants {
-  static final int RECORD_COUNT = 100000;
-  static final int INSERT_OPS_COUNT = RECORD_COUNT;
-  static final int GET_OPS_COUNT = RECORD_COUNT;
-  static final int SCAN_OPS_COUNT = RECORD_COUNT;
-  static final int MIN_STRING_KEY_LEN = 8;
-  static final int MAX_STRING_KEY_LEN = 128;
-  static final int MAX_SCAN_SIZE = 512;
+import static org.komamitsu.wormhole4j.jmh.Utils.*;
 
-  private Constants() {}
+import org.openjdk.jmh.annotations.Level;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+
+@State(Scope.Benchmark)
+public class LongKeysState extends KeysState<Long> {
+
+  @Setup(Level.Trial)
+  public void setup() {
+    super.setup();
+  }
+
+  @Override
+  protected Long getRandomValue() {
+    return randomLong();
+  }
 }
