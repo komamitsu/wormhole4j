@@ -27,6 +27,9 @@ final class EncodedKeyUtils {
       case INTEGER:
         assert obj instanceof IntWrapper;
         return ((IntWrapper) obj).length();
+      case LONG:
+        assert obj instanceof LongWrapper;
+        return ((LongWrapper) obj).length();
       case BYTE_ARRAY:
         assert obj instanceof ByteArray;
         return ((ByteArray) obj).length();
@@ -49,6 +52,10 @@ final class EncodedKeyUtils {
         assert obj1 instanceof IntWrapper;
         assert obj2 instanceof IntWrapper;
         return ((IntWrapper) obj1).compareTo((IntWrapper) obj2);
+      case LONG:
+        assert obj1 instanceof LongWrapper;
+        assert obj2 instanceof LongWrapper;
+        return ((LongWrapper) obj1).compareTo((LongWrapper) obj2);
       case BYTE_ARRAY:
         assert obj1 instanceof ByteArray;
         assert obj2 instanceof ByteArray;
@@ -92,6 +99,15 @@ final class EncodedKeyUtils {
           int lcpLength = i1.longestCommonPrefixLength(i2);
           return i2.slice(lcpLength + 1);
         }
+      case LONG:
+        {
+          assert obj1 instanceof LongWrapper;
+          assert obj2 instanceof LongWrapper;
+          LongWrapper i1 = (LongWrapper) obj1;
+          LongWrapper i2 = (LongWrapper) obj2;
+          int lcpLength = i1.longestCommonPrefixLength(i2);
+          return i2.slice(lcpLength + 1);
+        }
       case BYTE_ARRAY:
         {
           assert obj1 instanceof ByteArray;
@@ -114,6 +130,9 @@ final class EncodedKeyUtils {
       case INTEGER:
         assert obj instanceof IntWrapper;
         return ((IntWrapper) obj).append(x);
+      case LONG:
+        assert obj instanceof LongWrapper;
+        return ((LongWrapper) obj).append(x);
       case BYTE_ARRAY:
         assert obj instanceof ByteArray;
         return ((ByteArray) obj).append(x);
@@ -132,6 +151,10 @@ final class EncodedKeyUtils {
         assert obj instanceof IntWrapper;
         assert prefix instanceof IntWrapper;
         return ((IntWrapper) obj).startsWith((IntWrapper) prefix);
+      case LONG:
+        assert obj instanceof LongWrapper;
+        assert prefix instanceof LongWrapper;
+        return ((LongWrapper) obj).startsWith((LongWrapper) prefix);
       case BYTE_ARRAY:
         assert obj instanceof ByteArray;
         assert prefix instanceof ByteArray;
@@ -149,6 +172,9 @@ final class EncodedKeyUtils {
       case INTEGER:
         assert obj instanceof IntWrapper;
         return ((IntWrapper) obj).slice(length);
+      case LONG:
+        assert obj instanceof LongWrapper;
+        return ((LongWrapper) obj).slice(length);
       case BYTE_ARRAY:
         assert obj instanceof ByteArray;
         return ((ByteArray) obj).slice(length);
@@ -165,6 +191,9 @@ final class EncodedKeyUtils {
       case INTEGER:
         assert obj instanceof IntWrapper;
         return ((IntWrapper) obj).get(pos);
+      case LONG:
+        assert obj instanceof LongWrapper;
+        return ((LongWrapper) obj).get(pos);
       case BYTE_ARRAY:
         assert obj instanceof ByteArray;
         return ((ByteArray) obj).get(pos);
@@ -182,6 +211,9 @@ final class EncodedKeyUtils {
       case INTEGER:
         assert encodedKey instanceof IntWrapper;
         return new KeyValue<>((IntWrapper) encodedKey, key, value);
+      case LONG:
+        assert encodedKey instanceof LongWrapper;
+        return new KeyValue<>((LongWrapper) encodedKey, key, value);
       case BYTE_ARRAY:
         assert encodedKey instanceof ByteArray;
         return new KeyValue<>((ByteArray) encodedKey, key, value);

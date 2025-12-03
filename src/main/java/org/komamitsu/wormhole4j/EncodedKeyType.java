@@ -19,5 +19,6 @@ package org.komamitsu.wormhole4j;
 enum EncodedKeyType {
   STRING,
   INTEGER,
+  LONG,
   BYTE_ARRAY
 }
