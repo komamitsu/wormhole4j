@@ -20,6 +20,7 @@ plugins {
     `maven-publish`
     id("org.jreleaser") version "1.19.0"
     id("com.diffplug.spotless") version "6.13.0"
+    id("me.champeau.jmh") version "0.7.3"
 }
 
 group = "org.komamitsu"
@@ -85,6 +86,13 @@ val benchmark = task<Test>("benchmark") {
     outputs.upToDateWhen { false }
     // jvmArgs = listOf("-XX:StartFlightRecording=disk=false,dumponexit=true,filename=profile.jfr", "-XX:FlightRecorderOptions=stackdepth=128")
     // jvmArgs = listOf("-agentpath:/path/to/libasyncProfiler.so=start,event=cpu,interval=100us,file=profile.html")
+}
+
+jmh {
+    warmupIterations = 6
+    iterations = 6
+    fork = 2
+    failOnError = true
 }
 
 publishing {
