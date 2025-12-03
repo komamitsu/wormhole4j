@@ -17,7 +17,7 @@
 package org.komamitsu.wormhole4j;
 
 /**
- * A Wormhole implementation for integer keys.
+ * A Wormhole implementation for long keys.
  *
  * @param <V> the type of values stored in this Wormhole
  */
