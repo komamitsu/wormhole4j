@@ -56,6 +56,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.assertj:assertj-core:3.27.2")
     benchmarkImplementation("it.unimi.dsi:fastutil:8.5.16")
+    jmhImplementation("it.unimi.dsi:fastutil:8.5.16")
 }
 
 java {
@@ -89,10 +90,12 @@ val benchmark = task<Test>("benchmark") {
 }
 
 jmh {
-    warmupIterations = 6
-    iterations = 6
-    fork = 2
+    warmupIterations = 4
+    iterations = 4
+    fork = 1
     failOnError = true
+    // includes = listOf("Benchmark.*ForIntKey.benchmarkScan")
+    // includes = listOf("Benchmark.*ForStringKey.benchmarkGet")
 }
 
 publishing {
