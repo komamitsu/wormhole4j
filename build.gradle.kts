@@ -20,6 +20,7 @@ plugins {
     `maven-publish`
     id("org.jreleaser") version "1.19.0"
     id("com.diffplug.spotless") version "6.13.0"
+    id("me.champeau.jmh") version "0.7.3"
 }
 
 group = "org.komamitsu"
@@ -55,6 +56,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.assertj:assertj-core:3.27.2")
     benchmarkImplementation("it.unimi.dsi:fastutil:8.5.16")
+    jmhImplementation("it.unimi.dsi:fastutil:8.5.16")
 }
 
 java {
@@ -85,6 +87,15 @@ val benchmark = task<Test>("benchmark") {
     outputs.upToDateWhen { false }
     // jvmArgs = listOf("-XX:StartFlightRecording=disk=false,dumponexit=true,filename=profile.jfr", "-XX:FlightRecorderOptions=stackdepth=128")
     // jvmArgs = listOf("-agentpath:/path/to/libasyncProfiler.so=start,event=cpu,interval=100us,file=profile.html")
+}
+
+jmh {
+    warmupIterations = 4
+    iterations = 4
+    fork = 1
+    failOnError = true
+    // includes = listOf("Benchmark.*ForIntKey.benchmarkScan")
+    // includes = listOf("Benchmark.*ForStringKey.benchmarkGet")
 }
 
 publishing {
