@@ -31,7 +31,7 @@ abstract class KeysState<T extends Comparable<T>> {
 
   protected void setupInternal() {
     for (int i = 0; i < RECORD_COUNT; i++) {
-      keys.add(i, getRandomValue());
+      keys.add(getRandomValue());
     }
     for (int i = 0; i < SCAN_OPS_COUNT; i++) {
       int i1 = ThreadLocalRandom.current().nextInt(keys.size());

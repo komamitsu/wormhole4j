@@ -41,7 +41,7 @@ public class BenchmarkRedBlackTreeForIntKey {
   @Benchmark
   @OperationsPerInvocation(INSERT_OPS_COUNT)
   public void benchmarkInsert(IntKeysState keysState, EmptyState emptyState) {
-    iterateWithKey(RECORD_COUNT, keysState, key -> emptyState.map.put(key, 42));
+    iterateWithKey(INSERT_OPS_COUNT, keysState, key -> emptyState.map.put(key, 42));
   }
 
   @State(Scope.Thread)
