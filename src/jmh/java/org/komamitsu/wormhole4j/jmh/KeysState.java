@@ -19,13 +19,14 @@ package org.komamitsu.wormhole4j.jmh;
 import static org.komamitsu.wormhole4j.jmh.Constants.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 abstract class KeysState<T extends Comparable<T>> {
   List<T> keys = new ArrayList<>(RECORD_COUNT);
-  List<Integer> startIndexes = new ArrayList<>(SCAN_OPS_COUNT);
-  List<Integer> endIndexes = new ArrayList<>(SCAN_OPS_COUNT);
+  List<T> startKeys = new ArrayList<>(SCAN_OPS_COUNT);
+  List<T> endKeys = new ArrayList<>(SCAN_OPS_COUNT);
 
   protected abstract T getRandomValue();
 
@@ -33,16 +34,14 @@ abstract class KeysState<T extends Comparable<T>> {
     for (int i = 0; i < RECORD_COUNT; i++) {
       keys.add(getRandomValue());
     }
+    List<T> sortedKeys = new ArrayList<>(RECORD_COUNT);
+    sortedKeys.addAll(keys);
+    Collections.sort(sortedKeys);
     for (int i = 0; i < SCAN_OPS_COUNT; i++) {
-      int i1 = ThreadLocalRandom.current().nextInt(keys.size());
-      int i2 = Math.min(keys.size() - 1, i1 + ThreadLocalRandom.current().nextInt(MAX_SCAN_SIZE));
-      if (keys.get(i1).compareTo(keys.get(i2)) <= 0) {
-        startIndexes.add(i1);
-        endIndexes.add(i2);
-      } else {
-        startIndexes.add(i2);
-        endIndexes.add(i1);
-      }
+      int startIndex = ThreadLocalRandom.current().nextInt(keys.size());
+      int endIndex = Math.min(keys.size() - 1, startIndex + ThreadLocalRandom.current().nextInt(MAX_SCAN_SIZE));
+      startKeys.add(sortedKeys.get(startIndex));
+      endKeys.add(sortedKeys.get(endIndex));
     }
   }
 }
