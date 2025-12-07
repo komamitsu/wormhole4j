@@ -23,7 +23,7 @@ final class Constants {
   static final int SCAN_OPS_COUNT = RECORD_COUNT / 10;
   static final int MIN_STRING_KEY_LEN = 32;
   static final int MAX_STRING_KEY_LEN = 256;
-  static final int MAX_SCAN_SIZE = 256;
+  static final int SCAN_RANGE_SIZE = 512;
 
   private Constants() {}
 }

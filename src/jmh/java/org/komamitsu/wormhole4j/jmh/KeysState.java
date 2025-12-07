@@ -39,7 +39,7 @@ abstract class KeysState<T extends Comparable<T>> {
     Collections.sort(sortedKeys);
     for (int i = 0; i < SCAN_OPS_COUNT; i++) {
       int startIndex = ThreadLocalRandom.current().nextInt(keys.size());
-      int endIndex = Math.min(keys.size() - 1, startIndex + ThreadLocalRandom.current().nextInt(MAX_SCAN_SIZE));
+      int endIndex = Math.min(keys.size() - 1, startIndex + SCAN_RANGE_SIZE);
       startKeys.add(sortedKeys.get(startIndex));
       endKeys.add(sortedKeys.get(endIndex));
     }
