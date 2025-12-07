@@ -20,10 +20,10 @@ final class Constants {
   static final int RECORD_COUNT = 100000;
   static final int INSERT_OPS_COUNT = RECORD_COUNT;
   static final int GET_OPS_COUNT = RECORD_COUNT;
-  static final int SCAN_OPS_COUNT = RECORD_COUNT;
+  static final int SCAN_OPS_COUNT = RECORD_COUNT / 10;
   static final int MIN_STRING_KEY_LEN = 32;
   static final int MAX_STRING_KEY_LEN = 256;
-  static final int MAX_SCAN_SIZE = 512;
+  static final int MAX_SCAN_SIZE = 256;
 
   private Constants() {}
 }

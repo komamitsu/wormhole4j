@@ -41,7 +41,7 @@ public class BenchmarkRedBlackTreeForStringKey {
   @Benchmark
   @OperationsPerInvocation(INSERT_OPS_COUNT)
   public void benchmarkInsert(StringKeysState keysState, EmptyState emptyState) {
-    iterateRecordCountTimes(i -> emptyState.map.put(keysState.keys.get(i), i));
+    iterateWithKey(RECORD_COUNT, keysState, key -> emptyState.map.put(key, 42));
   }
 
   @State(Scope.Thread)
@@ -60,13 +60,15 @@ public class BenchmarkRedBlackTreeForStringKey {
   @Benchmark
   @OperationsPerInvocation(GET_OPS_COUNT)
   public void benchmarkGet(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
-    iterateRecordCountTimes(i -> blackhole.consume(fullState.map.get(keysState.keys.get(i))));
+    iterateWithKey(GET_OPS_COUNT, keysState, key -> blackhole.consume(fullState.map.get(key)));
   }
 
   @Benchmark
   @OperationsPerInvocation(SCAN_OPS_COUNT)
   public void benchmarkScan(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
-    iterateRecordCountTimesWithIndexRange(
-        keysState, (k1, k2) -> blackhole.consume(fullState.map.subMap(k1, k2).entrySet()));
+    iterateWithKeysRange(
+        SCAN_OPS_COUNT,
+        keysState,
+        (k1, k2) -> fullState.map.subMap(k1, k2).entrySet().forEach(blackhole::consume));
   }
 }

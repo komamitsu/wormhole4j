@@ -32,29 +32,29 @@ public class BenchmarkWormholeForStringKey {
 
   @State(Scope.Thread)
   public static class EmptyState {
-    WormholeForStringKey<Integer> wormhole;
+    WormholeForStringKey<Integer> map;
 
     @Setup(Level.Iteration)
     public void setup(StringKeysState data) {
-      wormhole = new WormholeForStringKey<>();
+      map = new WormholeForStringKey<>();
     }
   }
 
   @Benchmark
   @OperationsPerInvocation(INSERT_OPS_COUNT)
   public void benchmarkInsert(StringKeysState keysState, EmptyState emptyState) {
-    iterateRecordCountTimes(i -> emptyState.wormhole.put(keysState.keys.get(i), i));
+    iterateWithKey(RECORD_COUNT, keysState, key -> emptyState.map.put(key, 42));
   }
 
   @State(Scope.Thread)
   public static class FullState {
-    WormholeForStringKey<Integer> wormhole;
+    WormholeForStringKey<Integer> map;
 
     @Setup(Level.Iteration)
     public void setup(StringKeysState data) {
-      wormhole = new WormholeForStringKey<>();
+      map = new WormholeForStringKey<>();
       for (String key : data.keys) {
-        wormhole.put(key, randomInt());
+        map.put(key, randomInt());
       }
     }
   }
@@ -62,14 +62,14 @@ public class BenchmarkWormholeForStringKey {
   @Benchmark
   @OperationsPerInvocation(GET_OPS_COUNT)
   public void benchmarkGet(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
-    iterateRecordCountTimes(i -> blackhole.consume(fullState.wormhole.get(keysState.keys.get(i))));
+    iterateWithKey(GET_OPS_COUNT, keysState, key -> blackhole.consume(fullState.map.get(key)));
   }
 
   @Benchmark
   @OperationsPerInvocation(SCAN_OPS_COUNT)
   public void benchmarkScan(StringKeysState keysState, FullState fullState) {
     Function<KeyValue<String, Integer>, Boolean> function = (kv) -> true;
-    iterateRecordCountTimesWithIndexRange(
-        keysState, (k1, k2) -> fullState.wormhole.scan(k1, k2, true, function));
+    iterateWithKeysRange(
+        SCAN_OPS_COUNT, keysState, (k1, k2) -> fullState.map.scan(k1, k2, true, function));
   }
 }

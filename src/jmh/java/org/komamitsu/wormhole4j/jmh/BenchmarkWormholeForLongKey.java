@@ -32,29 +32,29 @@ public class BenchmarkWormholeForLongKey {
 
   @State(Scope.Thread)
   public static class EmptyState {
-    WormholeForLongKey<Integer> wormhole;
+    WormholeForLongKey<Integer> map;
 
     @Setup(Level.Iteration)
     public void setup(LongKeysState data) {
-      wormhole = new WormholeForLongKey<>();
+      map = new WormholeForLongKey<>();
     }
   }
 
   @Benchmark
   @OperationsPerInvocation(INSERT_OPS_COUNT)
   public void benchmarkInsert(LongKeysState keysState, EmptyState emptyState) {
-    iterateRecordCountTimes(i -> emptyState.wormhole.put(keysState.keys.get(i), i));
+    iterateWithKey(RECORD_COUNT, keysState, key -> emptyState.map.put(key, 42));
   }
 
   @State(Scope.Thread)
   public static class FullState {
-    WormholeForLongKey<Integer> wormhole;
+    WormholeForLongKey<Integer> map;
 
     @Setup(Level.Iteration)
     public void setup(LongKeysState data) {
-      wormhole = new WormholeForLongKey<>();
+      map = new WormholeForLongKey<>();
       for (long key : data.keys) {
-        wormhole.put(key, randomInt());
+        map.put(key, randomInt());
       }
     }
   }
@@ -62,14 +62,14 @@ public class BenchmarkWormholeForLongKey {
   @Benchmark
   @OperationsPerInvocation(GET_OPS_COUNT)
   public void benchmarkGet(LongKeysState keysState, FullState fullState, Blackhole blackhole) {
-    iterateRecordCountTimes(i -> blackhole.consume(fullState.wormhole.get(keysState.keys.get(i))));
+    iterateWithKey(GET_OPS_COUNT, keysState, key -> blackhole.consume(fullState.map.get(key)));
   }
 
   @Benchmark
   @OperationsPerInvocation(SCAN_OPS_COUNT)
   public void benchmarkScan(LongKeysState keysState, FullState fullState) {
     Function<KeyValue<Long, Integer>, Boolean> function = (kv) -> true;
-    iterateRecordCountTimesWithIndexRange(
-        keysState, (k1, k2) -> fullState.wormhole.scan(k1, k2, true, function));
+    iterateWithKeysRange(
+        SCAN_OPS_COUNT, keysState, (k1, k2) -> fullState.map.scan(k1, k2, true, function));
   }
 }

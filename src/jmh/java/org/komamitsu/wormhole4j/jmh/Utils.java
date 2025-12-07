@@ -48,20 +48,22 @@ final class Utils {
     return sb.toString();
   }
 
-  static void iterateRecordCountTimes(Consumer<Integer> task) {
-    for (int i = 0; i < RECORD_COUNT; i++) {
-      task.accept(i);
+  static <T extends Comparable<T>> void iterateWithKey(
+      int count, KeysState<T> keysState, Consumer<T> task) {
+    List<T> keys = keysState.keys;
+    for (int i = 0; i < count; i++) {
+      task.accept(keys.get(i % keys.size()));
     }
   }
 
-  static <T extends Comparable<T>> void iterateRecordCountTimesWithIndexRange(
-      KeysState<T> keysState, BiConsumer<T, T> task) {
+  static <T extends Comparable<T>> void iterateWithKeysRange(
+      int count, KeysState<T> keysState, BiConsumer<T, T> task) {
     List<T> keys = keysState.keys;
-    iterateRecordCountTimes(
-        i -> {
-          T k1 = keys.get(keysState.startIndexes.get(i));
-          T k2 = keys.get(keysState.endIndexes.get(i));
-          task.accept(k1, k2);
-        });
+    for (int i = 0; i < count; i++) {
+      int index = i % keys.size();
+      T k1 = keys.get(keysState.startIndexes.get(index));
+      T k2 = keys.get(keysState.endIndexes.get(index));
+      task.accept(k1, k2);
+    }
   }
 }
