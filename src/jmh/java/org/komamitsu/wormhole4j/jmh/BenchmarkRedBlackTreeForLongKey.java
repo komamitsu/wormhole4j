@@ -33,7 +33,7 @@ public class BenchmarkRedBlackTreeForLongKey {
     TreeMap<Long, Integer> map;
 
     @Setup(Level.Iteration)
-    public void setup(LongKeysState data) {
+    public void setup() {
       map = new TreeMap<>();
     }
   }

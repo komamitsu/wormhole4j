@@ -28,7 +28,7 @@ public class IntKeysState extends KeysState<Integer> {
 
   @Setup(Level.Trial)
   public void setup() {
-    super.setup();
+    super.setupInternal();
   }
 
   @Override

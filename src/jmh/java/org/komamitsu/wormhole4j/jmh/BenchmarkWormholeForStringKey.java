@@ -35,7 +35,7 @@ public class BenchmarkWormholeForStringKey {
     WormholeForStringKey<Integer> map;
 
     @Setup(Level.Iteration)
-    public void setup(StringKeysState data) {
+    public void setup() {
       map = new WormholeForStringKey<>();
     }
   }
@@ -67,8 +67,12 @@ public class BenchmarkWormholeForStringKey {
 
   @Benchmark
   @OperationsPerInvocation(SCAN_OPS_COUNT)
-  public void benchmarkScan(StringKeysState keysState, FullState fullState) {
-    Function<KeyValue<String, Integer>, Boolean> function = (kv) -> true;
+  public void benchmarkScan(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
+    Function<KeyValue<String, Integer>, Boolean> function =
+        (kv) -> {
+          blackhole.consume(kv);
+          return true;
+        };
     iterateWithKeysRange(
         SCAN_OPS_COUNT, keysState, (k1, k2) -> fullState.map.scan(k1, k2, true, function));
   }

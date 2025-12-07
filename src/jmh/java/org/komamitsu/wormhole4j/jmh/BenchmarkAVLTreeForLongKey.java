@@ -31,10 +31,10 @@ public class BenchmarkAVLTreeForLongKey {
 
   @State(Scope.Thread)
   public static class EmptyState {
-    Object2ObjectSortedMap<Long, Integer> map = new Object2ObjectAVLTreeMap<>();
+    Object2ObjectSortedMap<Long, Integer> map;
 
     @Setup(Level.Iteration)
-    public void setup(LongKeysState data) {
+    public void setup() {
       map = new Object2ObjectAVLTreeMap<>();
     }
   }
@@ -47,7 +47,7 @@ public class BenchmarkAVLTreeForLongKey {
 
   @State(Scope.Thread)
   public static class FullState {
-    Object2ObjectSortedMap<Long, Integer> map = new Object2ObjectAVLTreeMap<>();
+    Object2ObjectSortedMap<Long, Integer> map;
 
     @Setup(Level.Iteration)
     public void setup(LongKeysState data) {

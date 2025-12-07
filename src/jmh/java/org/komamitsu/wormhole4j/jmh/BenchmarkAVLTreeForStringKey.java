@@ -31,10 +31,10 @@ public class BenchmarkAVLTreeForStringKey {
 
   @State(Scope.Thread)
   public static class EmptyState {
-    Object2ObjectSortedMap<String, Integer> map = new Object2ObjectAVLTreeMap<>();
+    Object2ObjectSortedMap<String, Integer> map;
 
     @Setup(Level.Iteration)
-    public void setup(StringKeysState data) {
+    public void setup() {
       map = new Object2ObjectAVLTreeMap<>();
     }
   }
@@ -47,7 +47,7 @@ public class BenchmarkAVLTreeForStringKey {
 
   @State(Scope.Thread)
   public static class FullState {
-    Object2ObjectSortedMap<String, Integer> map = new Object2ObjectAVLTreeMap<>();
+    Object2ObjectSortedMap<String, Integer> map;
 
     @Setup(Level.Iteration)
     public void setup(StringKeysState data) {

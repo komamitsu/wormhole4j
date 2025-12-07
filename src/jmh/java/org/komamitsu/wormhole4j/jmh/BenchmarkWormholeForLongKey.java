@@ -35,7 +35,7 @@ public class BenchmarkWormholeForLongKey {
     WormholeForLongKey<Integer> map;
 
     @Setup(Level.Iteration)
-    public void setup(LongKeysState data) {
+    public void setup() {
       map = new WormholeForLongKey<>();
     }
   }
@@ -67,8 +67,12 @@ public class BenchmarkWormholeForLongKey {
 
   @Benchmark
   @OperationsPerInvocation(SCAN_OPS_COUNT)
-  public void benchmarkScan(LongKeysState keysState, FullState fullState) {
-    Function<KeyValue<Long, Integer>, Boolean> function = (kv) -> true;
+  public void benchmarkScan(LongKeysState keysState, FullState fullState, Blackhole blackhole) {
+    Function<KeyValue<Long, Integer>, Boolean> function =
+        (kv) -> {
+          blackhole.consume(kv);
+          return true;
+        };
     iterateWithKeysRange(
         SCAN_OPS_COUNT, keysState, (k1, k2) -> fullState.map.scan(k1, k2, true, function));
   }

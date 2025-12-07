@@ -24,16 +24,16 @@ import java.util.concurrent.ThreadLocalRandom;
 
 abstract class KeysState<T extends Comparable<T>> {
   List<T> keys = new ArrayList<>(RECORD_COUNT);
-  List<Integer> startIndexes = new ArrayList<>(GET_OPS_COUNT);
-  List<Integer> endIndexes = new ArrayList<>(GET_OPS_COUNT);
+  List<Integer> startIndexes = new ArrayList<>(SCAN_OPS_COUNT);
+  List<Integer> endIndexes = new ArrayList<>(SCAN_OPS_COUNT);
 
   protected abstract T getRandomValue();
 
-  protected void setup() {
+  protected void setupInternal() {
     for (int i = 0; i < RECORD_COUNT; i++) {
       keys.add(i, getRandomValue());
     }
-    for (int i = 0; i < RECORD_COUNT; i++) {
+    for (int i = 0; i < SCAN_OPS_COUNT; i++) {
       int i1 = ThreadLocalRandom.current().nextInt(keys.size());
       int i2 = Math.min(keys.size() - 1, i1 + ThreadLocalRandom.current().nextInt(MAX_SCAN_SIZE));
       if (keys.get(i1).compareTo(keys.get(i2)) <= 0) {

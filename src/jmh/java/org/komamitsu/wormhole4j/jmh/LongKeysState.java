@@ -28,7 +28,7 @@ public class LongKeysState extends KeysState<Long> {
 
   @Setup(Level.Trial)
   public void setup() {
-    super.setup();
+    super.setupInternal();
   }
 
   @Override

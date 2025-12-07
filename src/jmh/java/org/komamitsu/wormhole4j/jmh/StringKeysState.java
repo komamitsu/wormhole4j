@@ -27,7 +27,7 @@ import org.openjdk.jmh.annotations.State;
 public class StringKeysState extends KeysState<String> {
   @Setup(Level.Trial)
   public void setup() {
-    super.setup();
+    super.setupInternal();
   }
 
   @Override

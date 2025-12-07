@@ -33,7 +33,7 @@ public class BenchmarkRedBlackTreeForIntKey {
     TreeMap<Integer, Integer> map;
 
     @Setup(Level.Iteration)
-    public void setup(IntKeysState data) {
+    public void setup() {
       map = new TreeMap<>();
     }
   }

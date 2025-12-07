@@ -31,10 +31,10 @@ public class BenchmarkAVLTreeForIntKey {
 
   @State(Scope.Thread)
   public static class EmptyState {
-    Object2ObjectSortedMap<Integer, Integer> map = new Object2ObjectAVLTreeMap<>();
+    Object2ObjectSortedMap<Integer, Integer> map;
 
     @Setup(Level.Iteration)
-    public void setup(IntKeysState data) {
+    public void setup() {
       map = new Object2ObjectAVLTreeMap<>();
     }
   }
@@ -47,7 +47,7 @@ public class BenchmarkAVLTreeForIntKey {
 
   @State(Scope.Thread)
   public static class FullState {
-    Object2ObjectSortedMap<Integer, Integer> map = new Object2ObjectAVLTreeMap<>();
+    Object2ObjectSortedMap<Integer, Integer> map;
 
     @Setup(Level.Iteration)
     public void setup(IntKeysState data) {
