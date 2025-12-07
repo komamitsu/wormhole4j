@@ -59,8 +59,9 @@ final class Utils {
   static <T extends Comparable<T>> void iterateWithKeysRange(
       int count, KeysState<T> keysState, BiConsumer<T, T> task) {
     List<T> keys = keysState.keys;
+    int scanSize = keysState.startIndexes.size();
     for (int i = 0; i < count; i++) {
-      int index = i % keys.size();
+      int index = i % scanSize;
       T k1 = keys.get(keysState.startIndexes.get(index));
       T k2 = keys.get(keysState.endIndexes.get(index));
       task.accept(k1, k2);
