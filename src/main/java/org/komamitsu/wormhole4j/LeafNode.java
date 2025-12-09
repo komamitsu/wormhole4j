@@ -339,9 +339,6 @@ final class LeafNode<K, V> {
    *     if the key is found.
    */
   private int searchKeyRefs(Object key) {
-    if (keyRefsCount == 0) {
-      return 0;
-    }
     int l = 0;
     int r = keyRefsCount;
     int m;
