@@ -357,7 +357,7 @@ final class LeafNode<K, V> {
     return -l - 1;
   }
 
-  public String keyRefsToString() {
+  private String keyRefsToString() {
     return "KeyRefs{"
         + "keyValues="
         + Arrays.stream(keyRefs)
@@ -694,14 +694,14 @@ final class LeafNode<K, V> {
                   .limit(keyValuesCount)
                   .map(kv -> kv.getKey().toString())
                   .collect(Collectors.toList()),
-              Arrays.toString(tags)));
+              tagsToString()));
     }
     Set<Integer> keyValueIndexes = new HashSet<>(size());
     for (int i = 0; i < size(); i++) {
       if (i < size() - 1) {
         if (getHashTag(i) > getHashTag(i + 1)) {
           throw new AssertionError(
-              String.format("The tags are not sorted. Tags: %s", Arrays.toString(tags)));
+              String.format("The tags are not sorted. Tags: %s", tagsToString()));
         }
       }
       int keyValueIndex = getKeyValueIndexFromTag(i);
@@ -709,13 +709,13 @@ final class LeafNode<K, V> {
         throw new AssertionError(
             String.format(
                 "The key-value index is out-of-range. Tags: %s, Index: %d, Key-value index: %d",
-                Arrays.toString(tags), i, keyValueIndex));
+                tagsToString(), i, keyValueIndex));
       }
       if (!keyValueIndexes.add(keyValueIndex)) {
         throw new AssertionError(
             String.format(
                 "The tags contains duplicated key-value index. Tags: %s, Index: %d, Key-value index: %d",
-                Arrays.toString(tags), i, keyValueIndex));
+                tagsToString(), i, keyValueIndex));
       }
     }
 
@@ -727,14 +727,14 @@ final class LeafNode<K, V> {
                   .limit(keyValuesCount)
                   .map(kv -> kv.getKey().toString())
                   .collect(Collectors.toList()),
-              Arrays.toString(keyRefs)));
+              keyRefsToString()));
     }
 
     if (numOfSortedKeyRefs > size()) {
       throw new AssertionError(
           String.format(
               "The number of sorted key references is larger than the number of key references. Key references: %s",
-              Arrays.toString(keyRefs)));
+              keyRefsToString()));
     }
 
     for (int i = 0; i < size(); i++) {
@@ -744,8 +744,7 @@ final class LeafNode<K, V> {
             > 0) {
           throw new AssertionError(
               String.format(
-                  "The key references are not ordered. Key references: %s",
-                  Arrays.toString(keyRefs)));
+                  "The key references are not ordered. Key references: %s", keyRefsToString()));
         }
       }
     }
