@@ -70,7 +70,7 @@ final class LeafNode<K, V> {
     keyValuesCount--;
   }
 
-  public String keyValuesToString() {
+  private String keyValuesToString() {
     StringBuilder sb = new StringBuilder();
     sb.append("KeyValues=[");
     boolean isFirst = true;
@@ -160,7 +160,7 @@ final class LeafNode<K, V> {
     return tagsCount;
   }
 
-  public String tagsToString() {
+  private String tagsToString() {
     StringBuilder sb = new StringBuilder();
     sb.append("Tags{values=[");
     boolean isFirst = true;
