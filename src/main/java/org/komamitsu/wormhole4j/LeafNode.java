@@ -444,14 +444,14 @@ final class LeafNode<K, V> {
   }
 
   void incSort() {
-    if (isKeyRefsSorted()) {
+    if (!isKeyRefsSorted()) {
       sortKeyRefs();
     }
   }
 
   private Tuple<LeafNode<K, V>, List<Integer>> copyToNewLeafNode(
       Object newAnchor, int startKeyRefIndex) {
-    if (isKeyRefsSorted()) {
+    if (!isKeyRefsSorted()) {
       throw new AssertionError(
           String.format(
               "The leaf node doesn't seem to be sorted. Key references: %s",
