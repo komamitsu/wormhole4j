@@ -74,7 +74,7 @@ final class LeafNode<K, V> {
     StringBuilder sb = new StringBuilder();
     sb.append("KeyValues=[");
     boolean isFirst = true;
-    for (int i = 0; i < tagsCount; i++) {
+    for (int i = 0; i < keyValuesCount; i++) {
       if (isFirst) {
         isFirst = false;
       } else {
