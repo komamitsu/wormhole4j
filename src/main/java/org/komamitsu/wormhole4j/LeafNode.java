@@ -369,6 +369,7 @@ final class LeafNode<K, V> {
         + '}';
   }
 
+  @SuppressWarnings("unchecked")
   LeafNode(
       EncodedKeyType encodedKeyType,
       Function<Object, Object> validAnchorKeyProvider,
@@ -485,6 +486,7 @@ final class LeafNode<K, V> {
     return new Tuple<>(newLeafNode, keyValueIndexListOfNewLeafNode);
   }
 
+  @SuppressWarnings("unchecked")
   private void removeMovedEntries(List<Integer> keyValueIndexListOfNewLeafNode) {
     boolean[] toRemove = new boolean[keyValuesCount()];
     for (int index : keyValueIndexListOfNewLeafNode) {
