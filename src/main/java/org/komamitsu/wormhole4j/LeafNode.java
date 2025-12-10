@@ -35,8 +35,8 @@ final class LeafNode<K, V> {
   private int keyValuesCount;
   private final KeyValue<K, V>[] keyValues;
 
-  private KeyValue<K, V> getKeyValue(int index) {
-    return keyValues[index];
+  private KeyValue<K, V> getKeyValue(int keyValueIndex) {
+    return keyValues[keyValueIndex];
   }
 
   private int keyValuesCount() {
@@ -62,9 +62,14 @@ final class LeafNode<K, V> {
     keyValuesCount++;
   }
 
-  private void removeKeyValue(int index) {
-    if (index < keyValuesCount - 1) {
-      System.arraycopy(keyValues, index + 1, keyValues, index, keyValuesCount - 1 - index);
+  private void removeKeyValue(int keyValueIndex) {
+    if (keyValueIndex < keyValuesCount - 1) {
+      System.arraycopy(
+          keyValues,
+          keyValueIndex + 1,
+          keyValues,
+          keyValueIndex,
+          keyValuesCount - 1 - keyValueIndex);
     }
     keyValues[keyValuesCount - 1] = null;
     keyValuesCount--;
@@ -122,11 +127,11 @@ final class LeafNode<K, V> {
     Arrays.sort(tags, 0, tagsCount);
   }
 
-  private void removeTag(int index) {
-    int keyValueIndex = getKeyValueIndexFromTag(index);
+  private void removeTag(int tagIndex) {
+    int keyValueIndex = getKeyValueIndexFromTag(tagIndex);
 
-    if (index < tagsCount - 1) {
-      System.arraycopy(tags, index + 1, tags, index, (tagsCount - 1) - index);
+    if (tagIndex < tagsCount - 1) {
+      System.arraycopy(tags, tagIndex + 1, tags, tagIndex, (tagsCount - 1) - tagIndex);
     }
     tagsCount--;
 
@@ -140,16 +145,16 @@ final class LeafNode<K, V> {
     }
   }
 
-  private int getHashTag(int index) {
-    return tags[index] >> 16;
+  private int getHashTag(int tagIndex) {
+    return tags[tagIndex] >> 16;
   }
 
-  private int getKeyValueIndexFromTag(int index) {
-    return tags[index] & 0xFFFF;
+  private int getKeyValueIndexFromTag(int tagIndex) {
+    return tags[tagIndex] & 0xFFFF;
   }
 
-  private KeyValue<K, V> getKeyValueFromTag(int index) {
-    return getKeyValue(getKeyValueIndexFromTag(index));
+  private KeyValue<K, V> getKeyValueFromTag(int tagIndex) {
+    return getKeyValue(getKeyValueIndexFromTag(tagIndex));
   }
 
   private void clearTags() {
@@ -191,25 +196,25 @@ final class LeafNode<K, V> {
     keyRefsCount++;
   }
 
-  private int getKeyValueIndexFromKeyReference(int index) {
-    return keyRefs[index];
+  private int getKeyValueIndexFromKeyReference(int keyRefIndex) {
+    return keyRefs[keyRefIndex];
   }
 
-  private Object getEncodedKeyFromKeyRef(int index) {
-    return getKeyValue(getKeyValueIndexFromKeyReference(index)).getEncodedKey();
+  private Object getEncodedKeyFromKeyRef(int keyRefIndex) {
+    return getKeyValue(getKeyValueIndexFromKeyReference(keyRefIndex)).getEncodedKey();
   }
 
-  private KeyValue<K, V> getKeyValueFromKeyRef(int index) {
-    return getKeyValue(getKeyValueIndexFromKeyReference(index));
+  private KeyValue<K, V> getKeyValueFromKeyRef(int keyRefIndex) {
+    return getKeyValue(getKeyValueIndexFromKeyReference(keyRefIndex));
   }
 
-  private void partiallySortKeyRefs(int low, int high) {
-    if (low >= high) {
+  private void partiallySortKeyRefs(int lowKeyRefIndex, int highKeyRefIndex) {
+    if (lowKeyRefIndex >= highKeyRefIndex) {
       return;
     }
-    Object pivot = getEncodedKeyFromKeyRef((low + high) >>> 1);
-    int l = low;
-    int h = high;
+    Object pivot = getEncodedKeyFromKeyRef((lowKeyRefIndex + highKeyRefIndex) >>> 1);
+    int l = lowKeyRefIndex;
+    int h = highKeyRefIndex;
     while (l <= h) {
       while (EncodedKeyUtils.compare(encodedKeyType, getEncodedKeyFromKeyRef(l), pivot) < 0) {
         l++;
@@ -225,8 +230,8 @@ final class LeafNode<K, V> {
         h--;
       }
     }
-    partiallySortKeyRefs(low, h);
-    partiallySortKeyRefs(l, high);
+    partiallySortKeyRefs(lowKeyRefIndex, h);
+    partiallySortKeyRefs(l, highKeyRefIndex);
   }
 
   private void sortKeyRefs() {
@@ -286,18 +291,19 @@ final class LeafNode<K, V> {
     return numOfSortedKeyRefs;
   }
 
-  private void removeKeyRef(int index) {
-    int tagIndex = keyRefs[index];
-    if (index < keyRefsCount - 1) {
-      System.arraycopy(keyRefs, index + 1, keyRefs, index, (keyRefsCount - 1) - index);
+  private void removeKeyRef(int keyRefIndex) {
+    int keyValueIndex = keyRefs[keyRefIndex];
+    if (keyRefIndex < keyRefsCount - 1) {
+      System.arraycopy(
+          keyRefs, keyRefIndex + 1, keyRefs, keyRefIndex, (keyRefsCount - 1) - keyRefIndex);
     }
     keyRefsCount--;
-    if (index < numOfSortedKeyRefs) {
+    if (keyRefIndex < numOfSortedKeyRefs) {
       numOfSortedKeyRefs--;
     }
-    // Decrement tag indexes if needed.
+    // Decrement key value indexes if needed.
     for (int i = 0; i < keyRefsCount; i++) {
-      if (keyRefs[i] > tagIndex) {
+      if (keyRefs[i] > keyValueIndex) {
         keyRefs[i]--;
       }
     }
@@ -316,8 +322,10 @@ final class LeafNode<K, V> {
   }
 
   private boolean iterateKeyValues(
-      int startIndexInclusive, int endIndexInclusive, Function<KeyValue<K, V>, Boolean> function) {
-    for (int i = startIndexInclusive; i <= endIndexInclusive; i++) {
+      int startKeyRefIndexInclusive,
+      int endKeyRefIndexInclusive,
+      Function<KeyValue<K, V>, Boolean> function) {
+    for (int i = startKeyRefIndexInclusive; i <= endKeyRefIndexInclusive; i++) {
       KeyValue<K, V> keyValue = getKeyValueFromKeyRef(i);
       if (!function.apply(keyValue)) {
         return false;
@@ -486,23 +494,21 @@ final class LeafNode<K, V> {
     return new Tuple<>(newLeafNode, keyValueIndexListOfNewLeafNode);
   }
 
-  @SuppressWarnings("unchecked")
   private void removeMovedEntries(List<Integer> keyValueIndexListOfNewLeafNode) {
     boolean[] toRemove = new boolean[keyValuesCount()];
     for (int index : keyValueIndexListOfNewLeafNode) {
       toRemove[index] = true;
     }
 
-    KeyValue<K, V>[] remainingKeyValues =
-        new KeyValue[keyValuesCount() - keyValueIndexListOfNewLeafNode.size()];
-    int remainingKeyValuesIndex = 0;
-    for (int i = 0; i < keyValuesCount(); i++) {
-      if (!toRemove[i]) {
-        remainingKeyValues[remainingKeyValuesIndex++] = getKeyValue(i);
+    int writeIdx = 0;
+    for (int readIdx = 0; readIdx < keyValuesCount(); readIdx++) {
+      if (!toRemove[readIdx]) {
+        keyValues[writeIdx++] = getKeyValue(readIdx);
       }
     }
-    clearKeyValues();
-    addAllKeyValues(remainingKeyValues.length, remainingKeyValues);
+    // Null out the rest of the array for GC
+    Arrays.fill(keyValues, writeIdx, keyValuesCount(), null);
+    keyValuesCount = writeIdx;
 
     clearTags();
     clearKeyRefs();
