@@ -35,11 +35,6 @@ public class WormholeForStringKey<V> extends Wormhole<String, V> {
   }
 
   @Override
-  protected KeyValue<String, V> createKeyValue(String key, V value) {
-    return EncodedKeyUtils.createKeyValue(EncodedKeyType.STRING, key, key, value);
-  }
-
-  @Override
   protected Object createEncodedKey(String key) {
     return key;
   }
