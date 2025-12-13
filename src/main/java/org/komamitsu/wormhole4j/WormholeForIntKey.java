@@ -35,12 +35,6 @@ public class WormholeForIntKey<V> extends Wormhole<Integer, V> {
   }
 
   @Override
-  protected KeyValue<Integer, V> createKeyValue(Integer key, V value) {
-    return EncodedKeyUtils.createKeyValue(
-        EncodedKeyType.INTEGER, createEncodedKey(key), key, value);
-  }
-
-  @Override
   protected Object createEncodedKey(Integer key) {
     assert key != null;
     return new IntWrapper(key ^ 0x80000000);

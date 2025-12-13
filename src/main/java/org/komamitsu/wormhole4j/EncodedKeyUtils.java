@@ -201,24 +201,4 @@ final class EncodedKeyUtils {
         throw new AssertionError();
     }
   }
-
-  static <K, V> KeyValue<K, V> createKeyValue(
-      EncodedKeyType encodedKeyType, Object encodedKey, K key, V value) {
-    switch (encodedKeyType) {
-      case STRING:
-        assert encodedKey instanceof String;
-        return new KeyValue<>((String) encodedKey, key, value);
-      case INTEGER:
-        assert encodedKey instanceof IntWrapper;
-        return new KeyValue<>((IntWrapper) encodedKey, key, value);
-      case LONG:
-        assert encodedKey instanceof LongWrapper;
-        return new KeyValue<>((LongWrapper) encodedKey, key, value);
-      case BYTE_ARRAY:
-        assert encodedKey instanceof ByteArray;
-        return new KeyValue<>((ByteArray) encodedKey, key, value);
-      default:
-        throw new AssertionError();
-    }
-  }
 }

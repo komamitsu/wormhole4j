@@ -25,44 +25,17 @@ import java.util.Objects;
  * @param <V> the type of the value
  */
 public final class KeyValue<K, V> {
-  final K key;
-  V value;
-  private final EncodedKeyType encodedKeyType;
-  private final Object encodedKey;
+  private final K key;
+  private final V value;
 
-  KeyValue(String encodedKey, K key, V value) {
-    this.encodedKeyType = EncodedKeyType.STRING;
-    this.encodedKey = encodedKey;
-    this.key = key;
-    this.value = value;
-  }
-
-  KeyValue(IntWrapper encodedKey, K key, V value) {
-    this.encodedKeyType = EncodedKeyType.INTEGER;
-    this.encodedKey = encodedKey;
-    this.key = key;
-    this.value = value;
-  }
-
-  KeyValue(LongWrapper encodedKey, K key, V value) {
-    this.encodedKeyType = EncodedKeyType.LONG;
-    this.encodedKey = encodedKey;
-    this.key = key;
-    this.value = value;
-  }
-
-  KeyValue(ByteArray encodedKey, K key, V value) {
-    this.encodedKeyType = EncodedKeyType.BYTE_ARRAY;
-    this.encodedKey = encodedKey;
+  KeyValue(K key, V value) {
     this.key = key;
     this.value = value;
   }
 
   @Override
   public String toString() {
-    return String.format(
-        "KeyValue{key=%s, value=%s, encodedKeyType=%s, encodedKey=%s}",
-        key, value, encodedKeyType, encodedKey);
+    return String.format("KeyValue{key=%s, value=%s}", key, value);
   }
 
   /**
@@ -75,25 +48,12 @@ public final class KeyValue<K, V> {
   }
 
   /**
-   * Returns the encoded key.
-   *
-   * @return the encoded key
-   */
-  Object getEncodedKey() {
-    return encodedKey;
-  }
-
-  /**
    * Returns the value.
    *
    * @return the value
    */
   public V getValue() {
     return value;
-  }
-
-  void setValue(V value) {
-    this.value = value;
   }
 
   @Override
@@ -103,14 +63,11 @@ public final class KeyValue<K, V> {
     }
     if (o == null || getClass() != o.getClass()) return false;
     KeyValue<?, ?> keyValue = (KeyValue<?, ?>) o;
-    return Objects.equals(key, keyValue.key)
-        && Objects.equals(value, keyValue.value)
-        && encodedKeyType == keyValue.encodedKeyType
-        && Objects.equals(encodedKey, keyValue.encodedKey);
+    return Objects.equals(key, keyValue.key) && Objects.equals(value, keyValue.value);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(key, value, encodedKeyType, encodedKey);
+    return Objects.hash(key, value);
   }
 }

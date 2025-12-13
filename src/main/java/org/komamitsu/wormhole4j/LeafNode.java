@@ -23,6 +23,10 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 final class LeafNode<K, V> {
+  private static final int TUPLE_SIZE = 3;
+  private static final int ENCODED_KEY_OFFSET = 0;
+  private static final int KEY_OFFSET = 1;
+  private static final int VALUE_OFFSET = 2;
   private final EncodedKeyType encodedKeyType;
   final Object anchorKey;
   private final int maxSize;
@@ -33,32 +37,51 @@ final class LeafNode<K, V> {
 
   // For KeyValues
   private int keyValuesCount;
-  private final KeyValue<K, V>[] keyValues;
+  private final Object[] keyValues;
 
-  private KeyValue<K, V> getKeyValue(int keyValueIndex) {
-    return keyValues[keyValueIndex];
+  private Object getEncodedKey(int keyValueIndex) {
+    return keyValues[keyValueIndex * TUPLE_SIZE + ENCODED_KEY_OFFSET];
   }
 
-  private int keyValuesCount() {
-    return keyValuesCount;
+  private K getKey(int keyValueIndex) {
+    return (K) keyValues[keyValueIndex * TUPLE_SIZE + KEY_OFFSET];
+  }
+
+  private V getValue(int keyValueIndex) {
+    return (V) keyValues[keyValueIndex * TUPLE_SIZE + VALUE_OFFSET];
+  }
+
+  private void setValue(int keyValueIndex, V newValue) {
+    keyValues[keyValueIndex * TUPLE_SIZE + VALUE_OFFSET] = newValue;
+  }
+
+  private void copyKeyValue(int srcKeyValueIndex, int dstKeyValueIndex) {
+    keyValues[dstKeyValueIndex * TUPLE_SIZE + ENCODED_KEY_OFFSET] =
+        keyValues[srcKeyValueIndex * TUPLE_SIZE + ENCODED_KEY_OFFSET];
+    keyValues[dstKeyValueIndex * TUPLE_SIZE + KEY_OFFSET] =
+        keyValues[srcKeyValueIndex * TUPLE_SIZE + KEY_OFFSET];
+    keyValues[dstKeyValueIndex * TUPLE_SIZE + VALUE_OFFSET] =
+        keyValues[srcKeyValueIndex * TUPLE_SIZE + VALUE_OFFSET];
   }
 
   private int getLastKeyValueIndex() {
     return keyValuesCount - 1;
   }
 
-  private void clearKeyValues() {
-    keyValuesCount = 0;
-    Arrays.fill(keyValues, null);
-  }
-
-  private void addAllKeyValues(int keyValuesCount, KeyValue<K, V>[] keyValues) {
-    System.arraycopy(keyValues, 0, this.keyValues, this.keyValuesCount, keyValuesCount);
+  private void addAllKeyValues(int keyValuesCount, Object[] keyValues) {
+    System.arraycopy(
+        keyValues,
+        0,
+        this.keyValues,
+        this.keyValuesCount * TUPLE_SIZE,
+        keyValuesCount * TUPLE_SIZE);
     this.keyValuesCount += keyValuesCount;
   }
 
-  private void addKeyValue(KeyValue<K, V> kv) {
-    keyValues[keyValuesCount] = kv;
+  private void addKeyValue(Object encodedKey, K key, V value) {
+    keyValues[keyValuesCount * TUPLE_SIZE + ENCODED_KEY_OFFSET] = encodedKey;
+    keyValues[keyValuesCount * TUPLE_SIZE + KEY_OFFSET] = key;
+    keyValues[keyValuesCount * TUPLE_SIZE + VALUE_OFFSET] = value;
     keyValuesCount++;
   }
 
@@ -66,13 +89,21 @@ final class LeafNode<K, V> {
     if (keyValueIndex < keyValuesCount - 1) {
       System.arraycopy(
           keyValues,
-          keyValueIndex + 1,
+          (keyValueIndex + 1) * TUPLE_SIZE,
           keyValues,
-          keyValueIndex,
-          keyValuesCount - 1 - keyValueIndex);
+          keyValueIndex * TUPLE_SIZE,
+          (keyValuesCount - 1 - keyValueIndex) * TUPLE_SIZE);
     }
-    keyValues[keyValuesCount - 1] = null;
+    keyValues[(keyValuesCount - 1) * TUPLE_SIZE + ENCODED_KEY_OFFSET] = null;
+    keyValues[(keyValuesCount - 1) * TUPLE_SIZE + KEY_OFFSET] = null;
+    keyValues[(keyValuesCount - 1) * TUPLE_SIZE + VALUE_OFFSET] = null;
     keyValuesCount--;
+  }
+
+  private String keyValueToString(int keyValueIndex) {
+    return String.format(
+        "KeyValue={encodedKey=%s, key=%s, value=%s}",
+        getEncodedKey(keyValueIndex), getKey(keyValueIndex), getValue(keyValueIndex));
   }
 
   private String keyValuesToString() {
@@ -85,7 +116,7 @@ final class LeafNode<K, V> {
       } else {
         sb.append(", ");
       }
-      sb.append(keyValues[i]);
+      sb.append(keyValueToString(i));
     }
     sb.append("]");
     return sb.toString();
@@ -95,20 +126,19 @@ final class LeafNode<K, V> {
   private int tagsCount;
   private final int[] tags;
 
-  private int calcTag(int keyValueIndex, KeyValue<K, V> keyValue) {
+  private int calcTag(int keyValueIndex, Object encodedKey) {
     assert keyValueIndex <= 0xFFFF;
-    Object key = keyValue.getEncodedKey();
-    return calculateKeyHash(key) << 16 | keyValueIndex;
+    return calculateKeyHash(encodedKey) << 16 | keyValueIndex;
   }
 
-  private void addTagWithoutSort(int keyValueIndex, KeyValue<K, V> keyValue) {
-    int tag = calcTag(keyValueIndex, keyValue);
+  private void addTagWithoutSort(int keyValueIndex, Object encodedKey) {
+    int tag = calcTag(keyValueIndex, encodedKey);
     tags[tagsCount] = tag;
     tagsCount++;
   }
 
-  private void addTagWithSort(int keyValueIndex, KeyValue<K, V> keyValue) {
-    int tag = calcTag(keyValueIndex, keyValue);
+  private void addTagWithSort(int keyValueIndex, Object encodedKey) {
+    int tag = calcTag(keyValueIndex, encodedKey);
     int index;
     if (tagsCount == 0) {
       index = 0;
@@ -153,8 +183,16 @@ final class LeafNode<K, V> {
     return tags[tagIndex] & 0xFFFF;
   }
 
-  private KeyValue<K, V> getKeyValueFromTag(int tagIndex) {
-    return getKeyValue(getKeyValueIndexFromTag(tagIndex));
+  private K getKeyFromTag(int tagIndex) {
+    return getKey(getKeyValueIndexFromTag(tagIndex));
+  }
+
+  private V getValueFromTag(int tagIndex) {
+    return getValue(getKeyValueIndexFromTag(tagIndex));
+  }
+
+  private Object getEncodedKeyFromTag(int tagIndex) {
+    return getEncodedKey(getKeyValueIndexFromTag(tagIndex));
   }
 
   private void clearTags() {
@@ -178,7 +216,7 @@ final class LeafNode<K, V> {
       sb.append("{hash=");
       sb.append(getHashTag(i));
       sb.append(", keyValue=");
-      sb.append(getKeyValueFromTag(i));
+      sb.append(keyValueToString(getKeyValueIndexFromTag(i)));
       sb.append("}");
     }
     sb.append("]");
@@ -196,16 +234,12 @@ final class LeafNode<K, V> {
     keyRefsCount++;
   }
 
-  private int getKeyValueIndexFromKeyReference(int keyRefIndex) {
+  private int getKeyValueIndexFromKeyRef(int keyRefIndex) {
     return keyRefs[keyRefIndex];
   }
 
   private Object getEncodedKeyFromKeyRef(int keyRefIndex) {
-    return getKeyValue(getKeyValueIndexFromKeyReference(keyRefIndex)).getEncodedKey();
-  }
-
-  private KeyValue<K, V> getKeyValueFromKeyRef(int keyRefIndex) {
-    return getKeyValue(getKeyValueIndexFromKeyReference(keyRefIndex));
+    return getEncodedKey(getKeyValueIndexFromKeyRef(keyRefIndex));
   }
 
   private void partiallySortKeyRefs(int lowKeyRefIndex, int highKeyRefIndex) {
@@ -324,10 +358,10 @@ final class LeafNode<K, V> {
   private boolean iterateKeyValues(
       int startKeyRefIndexInclusive,
       int endKeyRefIndexInclusive,
-      Function<KeyValue<K, V>, Boolean> function) {
+      BiFunction<K, V, Boolean> function) {
     for (int i = startKeyRefIndexInclusive; i <= endKeyRefIndexInclusive; i++) {
-      KeyValue<K, V> keyValue = getKeyValueFromKeyRef(i);
-      if (!function.apply(keyValue)) {
+      int keyValueIndex = getKeyValueIndexFromKeyRef(i);
+      if (!function.apply(getKey(keyValueIndex), getValue(keyValueIndex))) {
         return false;
       }
     }
@@ -370,7 +404,7 @@ final class LeafNode<K, V> {
         + "keyValues="
         + Arrays.stream(keyRefs)
             .limit(keyRefsCount)
-            .mapToObj(this::getKeyValue)
+            .mapToObj(keyRefIndex -> keyValueToString(getKeyValueIndexFromKeyRef(keyRefIndex)))
             .collect(Collectors.toList())
         + ", numOfSortedValues="
         + numOfSortedKeyRefs
@@ -389,7 +423,7 @@ final class LeafNode<K, V> {
     this.validAnchorKeyProvider = validAnchorKeyProvider;
     this.anchorKey = anchorKey;
     this.maxSize = maxSize;
-    keyValues = new KeyValue[maxSize];
+    keyValues = new Object[maxSize * TUPLE_SIZE];
     tags = new int[maxSize];
     keyRefs = new int[maxSize];
     this.left = left;
@@ -424,9 +458,9 @@ final class LeafNode<K, V> {
 
   @Nullable
   private <R> R pointSearchLeaf(
-      Object encodedKey, BiFunction<KeyValue<K, V>, Integer, R> kvAndTagIndexReceivingFunc) {
+      Object encodedKey, TriFunction<K, V, Integer, R> kvAndTagIndexReceivingFunc) {
     short keyHash = calculateKeyHash(encodedKey);
-    int leafSize = keyValuesCount();
+    int leafSize = keyValuesCount;
     int tagIndex = keyHash * leafSize / (Short.MAX_VALUE + 1);
     while (tagIndex > 0 && keyHash <= getHashTag(tagIndex - 1)) {
       tagIndex--;
@@ -435,9 +469,10 @@ final class LeafNode<K, V> {
       tagIndex++;
     }
     while (tagIndex < leafSize && getHashTag(tagIndex) == keyHash) {
-      KeyValue<K, V> kv = getKeyValueFromTag(tagIndex);
-      if (kv.getEncodedKey().equals(encodedKey)) {
-        return kvAndTagIndexReceivingFunc.apply(kv, tagIndex);
+      int keyValueIndex = getKeyValueIndexFromTag(tagIndex);
+      if (getEncodedKey(keyValueIndex).equals(encodedKey)) {
+        return kvAndTagIndexReceivingFunc.apply(
+            getKey(keyValueIndex), getValue(keyValueIndex), tagIndex);
       }
       tagIndex++;
     }
@@ -445,8 +480,22 @@ final class LeafNode<K, V> {
   }
 
   @Nullable
-  KeyValue<K, V> pointSearchLeaf(Object encodedKey) {
-    return pointSearchLeaf(encodedKey, (kv, tagIndex) -> kv);
+  V lookupAndSetValue(Object encodedKey, V newValue) {
+    return pointSearchLeaf(
+        encodedKey,
+        (k, v, tagIndex) -> {
+          setValue(getKeyValueIndexFromTag(tagIndex), newValue);
+          return v;
+        });
+  }
+
+  @Nullable
+  V lookupValue(Object encodedKey) {
+    return pointSearchLeaf(
+        encodedKey,
+        (k, v, tagIndex) -> {
+          return getValue(getKeyValueIndexFromTag(tagIndex));
+        });
   }
 
   void incSort() {
@@ -464,7 +513,7 @@ final class LeafNode<K, V> {
               Arrays.toString(keyRefs)));
     }
 
-    int currentSize = keyValuesCount();
+    int currentSize = keyValuesCount;
 
     // Copy entries to a new leaf node.
     LeafNode<K, V> newLeafNode =
@@ -472,12 +521,12 @@ final class LeafNode<K, V> {
             encodedKeyType, validAnchorKeyProvider, newAnchor, maxSize, this, this.right);
     List<Integer> keyValueIndexListOfNewLeafNode = new ArrayList<>(currentSize);
     for (int i = startKeyRefIndex; i < currentSize; i++) {
-      int keyValueIndex = getKeyValueIndexFromKeyReference(i);
-      KeyValue<K, V> kv = getKeyValue(keyValueIndex);
-      newLeafNode.addKeyValue(kv);
+      int keyValueIndex = getKeyValueIndexFromKeyRef(i);
+      Object encodedKey = getEncodedKey(keyValueIndex);
+      newLeafNode.addKeyValue(encodedKey, getKey(keyValueIndex), getValue(keyValueIndex));
       keyValueIndexListOfNewLeafNode.add(keyValueIndex);
       int newLeafNodeLastIndex = newLeafNode.getLastKeyValueIndex();
-      newLeafNode.addTagWithoutSort(newLeafNodeLastIndex, kv);
+      newLeafNode.addTagWithoutSort(newLeafNodeLastIndex, encodedKey);
       newLeafNode.addKeyReference(newLeafNodeLastIndex);
     }
     // TODO: Optimize building `tags`.
@@ -495,26 +544,25 @@ final class LeafNode<K, V> {
   }
 
   private void removeMovedEntries(List<Integer> keyValueIndexListOfNewLeafNode) {
-    boolean[] toRemove = new boolean[keyValuesCount()];
+    boolean[] toRemove = new boolean[keyValuesCount];
     for (int index : keyValueIndexListOfNewLeafNode) {
       toRemove[index] = true;
     }
 
-    int writeIdx = 0;
-    for (int readIdx = 0; readIdx < keyValuesCount(); readIdx++) {
-      if (!toRemove[readIdx]) {
-        keyValues[writeIdx++] = getKeyValue(readIdx);
+    int writeKeyValueIndex = 0;
+    for (int readKeyValueIndex = 0; readKeyValueIndex < keyValuesCount; readKeyValueIndex++) {
+      if (!toRemove[readKeyValueIndex]) {
+        copyKeyValue(readKeyValueIndex, writeKeyValueIndex++);
       }
     }
     // Null out the rest of the array for GC
-    Arrays.fill(keyValues, writeIdx, keyValuesCount(), null);
-    keyValuesCount = writeIdx;
+    Arrays.fill(keyValues, writeKeyValueIndex * TUPLE_SIZE, keyValuesCount * TUPLE_SIZE, null);
+    keyValuesCount = writeKeyValueIndex;
 
     clearTags();
     clearKeyRefs();
-    for (int i = 0; i < keyValuesCount(); i++) {
-      KeyValue<K, V> keyValue = getKeyValue(i);
-      addTagWithoutSort(i, keyValue);
+    for (int i = 0; i < keyValuesCount; i++) {
+      addTagWithoutSort(i, getEncodedKey(i));
       addKeyReference(i);
     }
     // TODO: Optimize building `tags`.
@@ -538,7 +586,7 @@ final class LeafNode<K, V> {
   }
 
   int size() {
-    return keyValuesCount();
+    return keyValuesCount;
   }
 
   @Override
@@ -565,7 +613,7 @@ final class LeafNode<K, V> {
       @Nullable Object startKey,
       @Nullable Object endKey,
       boolean isEndKeyExclusive,
-      Function<KeyValue<K, V>, Boolean> function) {
+      BiFunction<K, V, Boolean> function) {
     int startIndexInclusive;
     if (startKey == null) {
       startIndexInclusive = 0;
@@ -598,11 +646,9 @@ final class LeafNode<K, V> {
     return endIndexInclusive >= size() - 1;
   }
 
-  void add(Object encodedKey, K originalKey, V value) {
-    KeyValue<K, V> keyValue =
-        EncodedKeyUtils.createKeyValue(encodedKeyType, encodedKey, originalKey, value);
-    addKeyValue(keyValue);
-    addTagWithSort(keyValuesCount() - 1, keyValue);
+  void add(Object encodedKey, K key, V value) {
+    addKeyValue(encodedKey, key, value);
+    addTagWithSort(keyValuesCount - 1, encodedKey);
     // Sorting this will be delayed until range scan or split.
     addKeyReference(getLastKeyValueIndex());
   }
@@ -613,7 +659,7 @@ final class LeafNode<K, V> {
     if (keyReferenceIndex < 0) {
       return false;
     }
-    Integer tagIndex = pointSearchLeaf(key, (kv, tagIdx) -> tagIdx);
+    Integer tagIndex = pointSearchLeaf(key, (k, v, tagIdx) -> tagIdx);
     assert tagIndex != null;
     int keyValueIndex = getKeyValueIndexFromTag(tagIndex);
 
@@ -628,8 +674,8 @@ final class LeafNode<K, V> {
     addAllKeyValues(right.keyValuesCount, right.keyValues);
     clearTags();
     clearKeyRefs();
-    for (int i = 0; i < keyValuesCount(); i++) {
-      addTagWithoutSort(i, getKeyValue(i));
+    for (int i = 0; i < keyValuesCount; i++) {
+      addTagWithoutSort(i, getEncodedKey(i));
       addKeyReference(i);
     }
     // TODO: Optimize building `tags`.
@@ -675,32 +721,27 @@ final class LeafNode<K, V> {
     }
 
     for (int i = 0; i < size(); i++) {
-      KeyValue<K, V> kv = getKeyValue(i);
-      if (EncodedKeyUtils.compare(encodedKeyType, kv.getEncodedKey(), normalizedAnchorKey) < 0) {
+      if (EncodedKeyUtils.compare(encodedKeyType, getEncodedKey(i), normalizedAnchorKey) < 0) {
         throw new AssertionError(
             String.format(
                 "The key is smaller than the anchor key. Key: %s, Anchor key: %s",
-                kv.getKey(), EncodedKeyUtils.toString(normalizedAnchorKey)));
+                getKey(i), EncodedKeyUtils.toString(normalizedAnchorKey)));
       }
       if (normalizedRightAnchorKey != null
-          && EncodedKeyUtils.compare(encodedKeyType, normalizedRightAnchorKey, kv.getEncodedKey())
+          && EncodedKeyUtils.compare(encodedKeyType, normalizedRightAnchorKey, getEncodedKey(i))
               < 0) {
         throw new AssertionError(
             String.format(
                 "The anchor key of the right leaf node is smaller than the key. Key: %s, Right leaf node's anchor key: %s",
-                kv.getKey(), EncodedKeyUtils.toString(normalizedRightAnchorKey)));
+                getKey(i), EncodedKeyUtils.toString(normalizedRightAnchorKey)));
       }
     }
 
     if (tagsSize() != size()) {
       throw new AssertionError(
           String.format(
-              "The number of tags is different from the number of keys. Keys: %s, Tags: %s",
-              Arrays.stream(keyValues)
-                  .limit(keyValuesCount)
-                  .map(kv -> kv.getKey().toString())
-                  .collect(Collectors.toList()),
-              tagsToString()));
+              "The number of tags is different from the number of keys. Key count: %d, Tag count: %d",
+              keyValuesCount, tagsCount));
     }
     Set<Integer> keyValueIndexes = new HashSet<>(size());
     for (int i = 0; i < size(); i++) {
@@ -728,19 +769,15 @@ final class LeafNode<K, V> {
     if (keyRefsSize() != size()) {
       throw new AssertionError(
           String.format(
-              "The number of key references is different from the number of keys. Keys: %s, Key references: %s",
-              Arrays.stream(keyValues)
-                  .limit(keyValuesCount)
-                  .map(kv -> kv.getKey().toString())
-                  .collect(Collectors.toList()),
-              keyRefsToString()));
+              "The number of key references is different from the number of keys. Key count: %d, Key reference count: %d",
+              keyValuesCount, keyRefsCount));
     }
 
     if (numOfSortedKeyRefs > size()) {
       throw new AssertionError(
           String.format(
-              "The number of sorted key references is larger than the number of key references. Key references: %s",
-              keyRefsToString()));
+              "The number of sorted key references is larger than the number of key references. The number of sorted key references: %d, Key references: %s",
+              numOfSortedKeyRefs, keyRefsToString()));
     }
 
     for (int i = 0; i < size(); i++) {

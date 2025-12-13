@@ -18,6 +18,7 @@ package org.komamitsu.wormhole4j;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import javax.annotation.Nullable;
 import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaInternal;
@@ -82,22 +83,19 @@ abstract class Wormhole<K, V> {
 
   protected abstract Object createEmptyEncodedKey();
 
-  protected abstract KeyValue<K, V> createKeyValue(K key, V value);
-
   /**
    * Inserts or updates a key-value pair.
    *
    * @param key the key (must not be {@code null})
    * @param value the value to associate with the key
    */
-  public void put(K key, V value) {
+  public V put(K key, V value) {
     Object encodedKey = createEncodedKey(key);
     LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
-    KeyValue<K, V> existingKeyValue = leafNode.pointSearchLeaf(encodedKey);
-    if (existingKeyValue != null) {
-      existingKeyValue.setValue(value);
+    V existingValue = leafNode.lookupAndSetValue(encodedKey, value);
+    if (existingValue != null) {
       validateIfNeeded();
-      return;
+      return existingValue;
     }
 
     if (leafNode.size() == leafNodeSize) {
@@ -113,6 +111,7 @@ abstract class Wormhole<K, V> {
       leafNode.add(encodedKey, key, value);
     }
     validateIfNeeded();
+    return null;
   }
 
   /**
@@ -150,11 +149,7 @@ abstract class Wormhole<K, V> {
   public V get(K key) {
     Object encodedKey = createEncodedKey(key);
     LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
-    KeyValue<K, V> keyValue = leafNode.pointSearchLeaf(encodedKey);
-    if (keyValue == null) {
-      return null;
-    }
-    return keyValue.getValue();
+    return leafNode.lookupValue(encodedKey);
   }
 
   private void scanInternal(
@@ -162,19 +157,19 @@ abstract class Wormhole<K, V> {
       @Nullable K endKey,
       boolean isEndKeyExclusive,
       @Nullable Integer count,
-      Function<KeyValue<K, V>, Boolean> function) {
+      BiFunction<K, V, Boolean> function) {
     Object encodedStartKey =
         startKey == null ? createEmptyEncodedKey() : createEncodedKey(startKey);
     Object encodedEndKey = endKey == null ? null : createEncodedKey(endKey);
-    Function<KeyValue<K, V>, Boolean> actualFunction = function;
+    BiFunction<K, V, Boolean> actualFunction = function;
     if (count != null) {
       AtomicInteger counter = new AtomicInteger();
       actualFunction =
-          kv -> {
+          (k, v) -> {
             if (counter.getAndIncrement() >= count) {
               return false;
             }
-            return function.apply(kv);
+            return function.apply(k, v);
           };
     }
 
@@ -202,7 +197,7 @@ abstract class Wormhole<K, V> {
       @Nullable K startKey,
       @Nullable K endKey,
       boolean isEndKeyExclusive,
-      Function<KeyValue<K, V>, Boolean> function) {
+      BiFunction<K, V, Boolean> function) {
     scanInternal(startKey, endKey, isEndKeyExclusive, null, function);
   }
 
@@ -220,8 +215,8 @@ abstract class Wormhole<K, V> {
         null, /* Not used */
         false,
         count,
-        kv -> {
-          result.add(kv);
+        (k, v) -> {
+          result.add(new KeyValue<>(k, v));
           return true;
         });
     return result;

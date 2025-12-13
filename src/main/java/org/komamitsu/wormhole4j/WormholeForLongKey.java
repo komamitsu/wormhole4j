@@ -35,11 +35,6 @@ public class WormholeForLongKey<V> extends Wormhole<Long, V> {
   }
 
   @Override
-  protected KeyValue<Long, V> createKeyValue(Long key, V value) {
-    return EncodedKeyUtils.createKeyValue(EncodedKeyType.LONG, createEncodedKey(key), key, value);
-  }
-
-  @Override
   protected Object createEncodedKey(Long key) {
     assert key != null;
     return new LongWrapper(key ^ 0x8000000000000000L);
