@@ -458,7 +458,7 @@ final class LeafNode<K, V> {
 
   @Nullable
   private <R> R pointSearchLeaf(
-      Object encodedKey, TriFunction<K, V, Integer, R> kvAndTagIndexReceivingFunc) {
+      Object encodedKey, BiFunction<Integer, Integer, R> kvAndTagIndexReceivingFunc) {
     short keyHash = calculateKeyHash(encodedKey);
     int leafSize = keyValuesCount;
     int tagIndex = keyHash * leafSize / (Short.MAX_VALUE + 1);
@@ -471,8 +471,7 @@ final class LeafNode<K, V> {
     while (tagIndex < leafSize && getHashTag(tagIndex) == keyHash) {
       int keyValueIndex = getKeyValueIndexFromTag(tagIndex);
       if (getEncodedKey(keyValueIndex).equals(encodedKey)) {
-        return kvAndTagIndexReceivingFunc.apply(
-            getKey(keyValueIndex), getValue(keyValueIndex), tagIndex);
+        return kvAndTagIndexReceivingFunc.apply(keyValueIndex, tagIndex);
       }
       tagIndex++;
     }
@@ -483,19 +482,16 @@ final class LeafNode<K, V> {
   V lookupAndSetValue(Object encodedKey, V newValue) {
     return pointSearchLeaf(
         encodedKey,
-        (k, v, tagIndex) -> {
-          setValue(getKeyValueIndexFromTag(tagIndex), newValue);
-          return v;
+        (keyValueIndex, tagIndex) -> {
+          V oldValue = getValue(keyValueIndex);
+          setValue(keyValueIndex, newValue);
+          return oldValue;
         });
   }
 
   @Nullable
   V lookupValue(Object encodedKey) {
-    return pointSearchLeaf(
-        encodedKey,
-        (k, v, tagIndex) -> {
-          return getValue(getKeyValueIndexFromTag(tagIndex));
-        });
+    return pointSearchLeaf(encodedKey, (keyValueIndex, tagIndex) -> getValue(keyValueIndex));
   }
 
   void incSort() {
@@ -659,7 +655,7 @@ final class LeafNode<K, V> {
     if (keyReferenceIndex < 0) {
       return false;
     }
-    Integer tagIndex = pointSearchLeaf(key, (k, v, tagIdx) -> tagIdx);
+    Integer tagIndex = pointSearchLeaf(key, (keyValueIndex, tagIdx) -> tagIdx);
     assert tagIndex != null;
     int keyValueIndex = getKeyValueIndexFromTag(tagIndex);
 

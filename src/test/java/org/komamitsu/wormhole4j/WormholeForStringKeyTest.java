@@ -161,6 +161,28 @@ class WormholeForStringKeyTest {
   }
 
   @Nested
+  class Put extends Common {
+    @Test
+    void whenPutNewKeyValue_ShouldReturnNull() {
+      // Arrange
+      WormholeForStringKey<String> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+
+      // Act & Assert
+      assertThat(wormhole.put("James", "semaj")).isNull();
+    }
+
+    @Test
+    void whenPutExistingKeyValue_ShouldReturnIt() {
+      // Arrange
+      WormholeForStringKey<String> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+
+      // Act & Assert
+      assertThat(wormhole.put("James", "semaj")).isNull();
+      assertThat(wormhole.put("James", "zzzzz")).isEqualTo("semaj");
+    }
+  }
+
+  @Nested
   class Scan extends Common {
     @Test
     void withOneLeafNodeWithOneEmptyRecord_ShouldReturnIt() {

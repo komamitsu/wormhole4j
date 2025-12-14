@@ -150,6 +150,28 @@ class WormholeForIntKeyTest {
   }
 
   @Nested
+  class Put extends Common {
+    @Test
+    void whenPutNewKeyValue_ShouldReturnNull() {
+      // Arrange
+      WormholeForIntKey<Integer> wormhole = new WormholeForIntKey<>(leafNodeSize, true);
+
+      // Act & Assert
+      assertThat(wormhole.put(10, 100)).isNull();
+    }
+
+    @Test
+    void whenPutExistingKeyValue_ShouldReturnIt() {
+      // Arrange
+      WormholeForIntKey<Integer> wormhole = new WormholeForIntKey<>(leafNodeSize, true);
+
+      // Act & Assert
+      assertThat(wormhole.put(10, 100)).isNull();
+      assertThat(wormhole.put(10, 1000)).isEqualTo(100);
+    }
+  }
+
+  @Nested
   class Scan extends Common {
     @Test
     void withOneLeafNodeWithOneMinimumKeyRecord_ShouldReturnIt() {

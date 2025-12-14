@@ -88,6 +88,8 @@ abstract class Wormhole<K, V> {
    *
    * @param key the key (must not be {@code null})
    * @param value the value to associate with the key
+   * @return the previous value associated with the key, or {@code null} if there was no previous
+   *     mapping
    */
   public V put(K key, V value) {
     Object encodedKey = createEncodedKey(key);
