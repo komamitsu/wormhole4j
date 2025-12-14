@@ -20,8 +20,7 @@ import static org.komamitsu.wormhole4j.jmh.Constants.*;
 import static org.komamitsu.wormhole4j.jmh.Utils.*;
 
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import org.komamitsu.wormhole4j.KeyValue;
+import java.util.function.BiFunction;
 import org.komamitsu.wormhole4j.WormholeForStringKey;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
@@ -49,6 +48,7 @@ public class BenchmarkWormholeForStringKey {
   @State(Scope.Thread)
   public static class FullState {
     WormholeForStringKey<Integer> map;
+    int counter;
 
     @Setup(Level.Iteration)
     public void setup(StringKeysState data) {
@@ -68,12 +68,13 @@ public class BenchmarkWormholeForStringKey {
   @Benchmark
   @OperationsPerInvocation(SCAN_OPS_COUNT)
   public void benchmarkScan(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
-    Function<KeyValue<String, Integer>, Boolean> function =
-        (kv) -> {
-          blackhole.consume(kv);
+    BiFunction<String, Integer, Boolean> function =
+        (k, v) -> {
+          fullState.counter++;
           return true;
         };
     iterateWithKeysRange(
         SCAN_OPS_COUNT, keysState, (k1, k2) -> fullState.map.scan(k1, k2, true, function));
+    blackhole.consume(fullState.counter);
   }
 }

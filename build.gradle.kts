@@ -35,27 +35,12 @@ repositories {
     mavenCentral()
 }
 
-sourceSets {
-    create("benchmark") {
-        compileClasspath += sourceSets.main.get().output + sourceSets.test.get().output
-        runtimeClasspath += sourceSets.main.get().output + sourceSets.test.get().output
-    }
-}
-
-val benchmarkImplementation: Configuration by configurations.getting {
-    extendsFrom(configurations.testImplementation.get())
-}
-val benchmarkRuntimeOnly: Configuration by configurations.getting {
-    extendsFrom(configurations.testRuntimeOnly.get())
-}
-
 dependencies {
     implementation("com.google.code.findbugs:jsr305:3.0.2")
     testImplementation(platform("org.junit:junit-bom:5.13.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.assertj:assertj-core:3.27.2")
-    benchmarkImplementation("it.unimi.dsi:fastutil:8.5.16")
     jmhImplementation("it.unimi.dsi:fastutil:8.5.16")
 }
 
@@ -78,17 +63,6 @@ tasks.test {
     useJUnitPlatform()
 }
 
-val benchmark = task<Test>("benchmark") {
-    description = "Runs benchmark."
-    group = "verification"
-    testClassesDirs = sourceSets["benchmark"].output.classesDirs
-    classpath = sourceSets["benchmark"].runtimeClasspath
-    useJUnitPlatform()
-    outputs.upToDateWhen { false }
-    // jvmArgs = listOf("-XX:StartFlightRecording=disk=false,dumponexit=true,filename=profile.jfr", "-XX:FlightRecorderOptions=stackdepth=128")
-    // jvmArgs = listOf("-agentpath:/path/to/libasyncProfiler.so=start,event=cpu,interval=100us,file=profile.html")
-}
-
 jmh {
     warmupIterations = 4
     iterations = 4
@@ -96,6 +70,8 @@ jmh {
     failOnError = true
     // includes = listOf("Benchmark.*ForIntKey.benchmarkScan")
     // includes = listOf("Benchmark.*ForStringKey.benchmarkGet")
+    // jvmArgs = listOf("-XX:StartFlightRecording=disk=false,dumponexit=true,filename=profile.jfr", "-XX:FlightRecorderOptions=stackdepth=128")
+    // jvmArgs = listOf("-agentpath:/path/to/libasyncProfiler.so=start,event=cpu,interval=100us,file=profile.html")
 }
 
 publishing {

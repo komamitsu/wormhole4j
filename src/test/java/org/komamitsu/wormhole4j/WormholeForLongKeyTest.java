@@ -66,6 +66,19 @@ class WormholeForLongKeyTest {
     }
 
     @Test
+    void withOneLeafNodeWithOneEmptyRecordWithUpdatedValue_ShouldReturnIt() {
+      // Arrange
+      WormholeForLongKey<Integer> wormhole = new WormholeForLongKey<>(leafNodeSize, true);
+      wormhole.put(10L, 100);
+      wormhole.put(10L, 1000);
+
+      // Act & Assert
+      assertThat(wormhole.get(9L)).isNull();
+      assertThat(wormhole.get(10L)).isEqualTo(1000);
+      assertThat(wormhole.get(11L)).isNull();
+    }
+
+    @Test
     void withOneLeafNodeWithMaxRecords_ShouldReturnIt() {
       // Arrange
       WormholeForLongKey<Integer> wormhole = new WormholeForLongKey<>(leafNodeSize, true);
@@ -137,6 +150,28 @@ class WormholeForLongKeyTest {
   }
 
   @Nested
+  class Put extends Common {
+    @Test
+    void whenPutNewKeyValue_ShouldReturnNull() {
+      // Arrange
+      WormholeForLongKey<Integer> wormhole = new WormholeForLongKey<>(leafNodeSize, true);
+
+      // Act & Assert
+      assertThat(wormhole.put(10L, 100)).isNull();
+    }
+
+    @Test
+    void whenPutExistingKeyValue_ShouldReturnIt() {
+      // Arrange
+      WormholeForLongKey<Integer> wormhole = new WormholeForLongKey<>(leafNodeSize, true);
+
+      // Act & Assert
+      assertThat(wormhole.put(10L, 100)).isNull();
+      assertThat(wormhole.put(10L, 1000)).isEqualTo(100);
+    }
+  }
+
+  @Nested
   class Scan extends Common {
     @Test
     void withOneLeafNodeWithOneMinimumKeyRecord_ShouldReturnIt() {
@@ -145,69 +180,73 @@ class WormholeForLongKeyTest {
       wormhole.put(Long.MIN_VALUE, "foo");
 
       // Act & Assert
-      KeyValue<Long, String> firstItem = wormhole.createKeyValue(Long.MIN_VALUE, "foo");
+      KeyValue<Long, String> firstItem = new KeyValue<>(Long.MIN_VALUE, "foo");
       assertThat(wormhole.scanWithCount(Long.MIN_VALUE, 2)).containsExactly(firstItem);
 
       // With exclusive end keys.
       {
         List<KeyValue<Long, String>> result = new ArrayList<>();
-        wormhole.scan(Long.MIN_VALUE, Long.MIN_VALUE, true, result::add);
+        wormhole.scan(
+            Long.MIN_VALUE, Long.MIN_VALUE, true, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<Long, String>> result = new ArrayList<>();
-        wormhole.scan(Long.MIN_VALUE, null, true, result::add);
+        wormhole.scan(Long.MIN_VALUE, null, true, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<Long, String>> result = new ArrayList<>();
-        wormhole.scan(null, Long.MIN_VALUE, true, result::add);
+        wormhole.scan(null, Long.MIN_VALUE, true, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<Long, String>> result = new ArrayList<>();
-        wormhole.scan(null, null, true, result::add);
+        wormhole.scan(null, null, true, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<Long, String>> result = new ArrayList<>();
-        wormhole.scan(Long.MIN_VALUE + 1, Long.MAX_VALUE, true, result::add);
+        wormhole.scan(
+            Long.MIN_VALUE + 1, Long.MAX_VALUE, true, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<Long, String>> result = new ArrayList<>();
-        wormhole.scan(Long.MIN_VALUE + 1, null, true, result::add);
+        wormhole.scan(Long.MIN_VALUE + 1, null, true, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).isEmpty();
       }
       // With inclusive end keys.
       {
         List<KeyValue<Long, String>> result = new ArrayList<>();
-        wormhole.scan(Long.MIN_VALUE, Long.MIN_VALUE, false, result::add);
+        wormhole.scan(
+            Long.MIN_VALUE, Long.MIN_VALUE, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<Long, String>> result = new ArrayList<>();
-        wormhole.scan(Long.MIN_VALUE, null, false, result::add);
+        wormhole.scan(Long.MIN_VALUE, null, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<Long, String>> result = new ArrayList<>();
-        wormhole.scan(null, Long.MIN_VALUE, false, result::add);
+        wormhole.scan(null, Long.MIN_VALUE, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<Long, String>> result = new ArrayList<>();
-        wormhole.scan(null, null, false, result::add);
+        wormhole.scan(null, null, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<Long, String>> result = new ArrayList<>();
-        wormhole.scan(Long.MIN_VALUE + 1, Long.MAX_VALUE, false, result::add);
+        wormhole.scan(
+            Long.MIN_VALUE + 1, Long.MAX_VALUE, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<Long, String>> result = new ArrayList<>();
-        wormhole.scan(Long.MIN_VALUE + 1, null, false, result::add);
+        wormhole.scan(Long.MIN_VALUE + 1, null, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).isEmpty();
       }
     }
@@ -219,7 +258,7 @@ class WormholeForLongKeyTest {
       wormhole.put(10L, 100);
 
       // Act & Assert
-      KeyValue<Long, Integer> firstItem = wormhole.createKeyValue(10L, 100);
+      KeyValue<Long, Integer> firstItem = new KeyValue<>(10L, 100);
       assertThat(wormhole.scanWithCount(9L, 0)).isEmpty();
       assertThat(wormhole.scanWithCount(9L, 1)).containsExactly(firstItem);
       assertThat(wormhole.scanWithCount(9L, 2)).containsExactly(firstItem);
@@ -230,63 +269,63 @@ class WormholeForLongKeyTest {
       // With exclusive end keys.
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(10L, 10L, true, result::add);
+        wormhole.scan(10L, 10L, true, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(null, 10L, true, result::add);
+        wormhole.scan(null, 10L, true, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(10L, null, true, result::add);
+        wormhole.scan(10L, null, true, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(11L, 11L, true, result::add);
+        wormhole.scan(11L, 11L, true, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(null, 10L, true, result::add);
+        wormhole.scan(null, 10L, true, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(11L, null, true, result::add);
+        wormhole.scan(11L, null, true, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).isEmpty();
       }
       // With inclusive end keys.
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(10L, 10L, false, result::add);
+        wormhole.scan(10L, 10L, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(null, 10L, false, result::add);
+        wormhole.scan(null, 10L, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(10L, null, false, result::add);
+        wormhole.scan(10L, null, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem);
       }
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(11L, 11L, false, result::add);
+        wormhole.scan(11L, 11L, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(null, 9L, false, result::add);
+        wormhole.scan(null, 9L, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).isEmpty();
       }
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(11L, null, false, result::add);
+        wormhole.scan(11L, null, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).isEmpty();
       }
     }
@@ -300,9 +339,9 @@ class WormholeForLongKeyTest {
       wormhole.put(10L, 100);
 
       // Act & Assert
-      KeyValue<Long, Integer> firstItem = wormhole.createKeyValue(10L, 100);
-      KeyValue<Long, Integer> secondItem = wormhole.createKeyValue(20L, 200);
-      KeyValue<Long, Integer> thirdItem = wormhole.createKeyValue(30L, 300);
+      KeyValue<Long, Integer> firstItem = new KeyValue<>(10L, 100);
+      KeyValue<Long, Integer> secondItem = new KeyValue<>(20L, 200);
+      KeyValue<Long, Integer> thirdItem = new KeyValue<>(30L, 300);
       assertThat(wormhole.scanWithCount(9L, 1)).containsExactly(firstItem);
       assertThat(wormhole.scanWithCount(9L, 2)).containsExactly(firstItem, secondItem);
       assertThat(wormhole.scanWithCount(9L, 3)).containsExactly(firstItem, secondItem, thirdItem);
@@ -331,33 +370,33 @@ class WormholeForLongKeyTest {
       // With exclusive end keys.
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(10L, 30L, true, result::add);
+        wormhole.scan(10L, 30L, true, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem, secondItem);
       }
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(10L, 31L, true, result::add);
+        wormhole.scan(10L, 31L, true, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem);
       }
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(11L, 30L, true, result::add);
+        wormhole.scan(11L, 30L, true, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(secondItem);
       }
       // With inclusive end keys.
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(10L, 30L, false, result::add);
+        wormhole.scan(10L, 30L, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem);
       }
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(9L, 31L, false, result::add);
+        wormhole.scan(9L, 31L, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem);
       }
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(11L, 29L, false, result::add);
+        wormhole.scan(11L, 29L, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(secondItem);
       }
     }
@@ -373,11 +412,11 @@ class WormholeForLongKeyTest {
       wormhole.put(50L, 500);
 
       // Act & Assert
-      KeyValue<Long, Integer> firstItem = wormhole.createKeyValue(10L, 100);
-      KeyValue<Long, Integer> secondItem = wormhole.createKeyValue(20L, 200);
-      KeyValue<Long, Integer> thirdItem = wormhole.createKeyValue(30L, 300);
-      KeyValue<Long, Integer> fourthItem = wormhole.createKeyValue(40L, 400);
-      KeyValue<Long, Integer> fifthItem = wormhole.createKeyValue(50L, 500);
+      KeyValue<Long, Integer> firstItem = new KeyValue<>(10L, 100);
+      KeyValue<Long, Integer> secondItem = new KeyValue<>(20L, 200);
+      KeyValue<Long, Integer> thirdItem = new KeyValue<>(30L, 300);
+      KeyValue<Long, Integer> fourthItem = new KeyValue<>(40L, 400);
+      KeyValue<Long, Integer> fifthItem = new KeyValue<>(50L, 500);
       assertThat(wormhole.scanWithCount(9L, 1)).containsExactly(firstItem);
       assertThat(wormhole.scanWithCount(9L, 2)).containsExactly(firstItem, secondItem);
       assertThat(wormhole.scanWithCount(9L, 3)).containsExactly(firstItem, secondItem, thirdItem);
@@ -448,33 +487,33 @@ class WormholeForLongKeyTest {
       // With exclusive end keys.
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(10L, 50L, true, result::add);
+        wormhole.scan(10L, 50L, true, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem);
       }
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(9L, 51L, true, result::add);
+        wormhole.scan(9L, 51L, true, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
       }
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(11L, 50L, true, result::add);
+        wormhole.scan(11L, 50L, true, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(secondItem, thirdItem, fourthItem);
       }
       // With inclusive end keys.
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(10L, 50L, false, result::add);
+        wormhole.scan(10L, 50L, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
       }
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(9L, 51L, false, result::add);
+        wormhole.scan(9L, 51L, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
       }
       {
         List<KeyValue<Long, Integer>> result = new ArrayList<>();
-        wormhole.scan(11L, 49L, false, result::add);
+        wormhole.scan(11L, 49L, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(secondItem, thirdItem, fourthItem);
       }
     }
@@ -543,8 +582,8 @@ class WormholeForLongKeyTest {
                 startKey,
                 endKey,
                 true,
-                kv -> {
-                  actualKeyValues.add(new AbstractMap.SimpleEntry<>(kv.getKey(), kv.getValue()));
+                (k, v) -> {
+                  actualKeyValues.add(new AbstractMap.SimpleEntry<>(k, v));
                   return true;
                 });
 
@@ -560,8 +599,8 @@ class WormholeForLongKeyTest {
                 startKey,
                 endKey,
                 false,
-                kv -> {
-                  actualKeyValues.add(new AbstractMap.SimpleEntry<>(kv.getKey(), kv.getValue()));
+                (k, v) -> {
+                  actualKeyValues.add(new AbstractMap.SimpleEntry<>(k, v));
                   return true;
                 });
 
@@ -613,7 +652,7 @@ class WormholeForLongKeyTest {
       assertThat(wormhole.get(10L)).isEqualTo(100);
 
       assertThat(wormhole.scanWithCount(Long.MIN_VALUE, 100000))
-          .containsExactly(wormhole.createKeyValue(10L, 100));
+          .containsExactly(new KeyValue<>(10L, 100));
     }
 
     @Test

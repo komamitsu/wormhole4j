@@ -48,6 +48,7 @@ public class BenchmarkAVLTreeForLongKey {
   @State(Scope.Thread)
   public static class FullState {
     Object2ObjectSortedMap<Long, Integer> map;
+    int counter;
 
     @Setup(Level.Iteration)
     public void setup(LongKeysState data) {
@@ -70,6 +71,7 @@ public class BenchmarkAVLTreeForLongKey {
     iterateWithKeysRange(
         SCAN_OPS_COUNT,
         keysState,
-        (k1, k2) -> fullState.map.subMap(k1, k2).entrySet().forEach(blackhole::consume));
+        (k1, k2) -> fullState.map.subMap(k1, k2).forEach((key, value) -> fullState.counter++));
+    blackhole.consume(fullState.counter);
   }
 }
