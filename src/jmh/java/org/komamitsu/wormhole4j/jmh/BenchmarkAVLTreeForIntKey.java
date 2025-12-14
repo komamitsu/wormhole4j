@@ -48,6 +48,7 @@ public class BenchmarkAVLTreeForIntKey {
   @State(Scope.Thread)
   public static class FullState {
     Object2ObjectSortedMap<Integer, Integer> map;
+    int counter;
 
     @Setup(Level.Iteration)
     public void setup(IntKeysState data) {
@@ -70,6 +71,7 @@ public class BenchmarkAVLTreeForIntKey {
     iterateWithKeysRange(
         SCAN_OPS_COUNT,
         keysState,
-        (k1, k2) -> fullState.map.subMap(k1, k2).entrySet().forEach(blackhole::consume));
+        (k1, k2) -> fullState.map.subMap(k1, k2).forEach((key, value) -> fullState.counter++));
+    blackhole.consume(fullState.counter);
   }
 }

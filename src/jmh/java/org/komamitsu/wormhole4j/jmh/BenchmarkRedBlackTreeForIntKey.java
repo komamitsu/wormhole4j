@@ -47,6 +47,7 @@ public class BenchmarkRedBlackTreeForIntKey {
   @State(Scope.Thread)
   public static class FullState {
     TreeMap<Integer, Integer> map;
+    int counter;
 
     @Setup(Level.Iteration)
     public void setup(IntKeysState data) {
@@ -69,6 +70,7 @@ public class BenchmarkRedBlackTreeForIntKey {
     iterateWithKeysRange(
         SCAN_OPS_COUNT,
         keysState,
-        (k1, k2) -> fullState.map.subMap(k1, k2).entrySet().forEach(blackhole::consume));
+        (k1, k2) -> fullState.map.subMap(k1, k2).forEach((key, value) -> fullState.counter++));
+    blackhole.consume(fullState.counter);
   }
 }
