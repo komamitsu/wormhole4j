@@ -73,8 +73,8 @@ public class BenchmarkWormholeForStringKey {
           fullState.counter++;
           return true;
         };
-    blackhole.consume(fullState.counter);
     iterateWithKeysRange(
         SCAN_OPS_COUNT, keysState, (k1, k2) -> fullState.map.scan(k1, k2, true, function));
+    blackhole.consume(fullState.counter);
   }
 }
