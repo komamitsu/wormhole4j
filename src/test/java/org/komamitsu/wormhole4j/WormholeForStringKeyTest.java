@@ -496,19 +496,6 @@ class WormholeForStringKeyTest {
         wormhole.scan("Jamesa", "Johm", false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(secondItem);
       }
-      // With a function that stops the iteration when it retrieves key:Jason.
-      {
-        List<KeyValue<String, String>> result = new ArrayList<>();
-        wormhole.scan(
-            "",
-            "ZZZZZZZZZZZZZZZZZ",
-            false,
-            (k, v) -> {
-              result.add(new KeyValue<>(k, v));
-              return !k.equals("Jason");
-            });
-        assertThat(result).containsExactly(firstItem, secondItem);
-      }
     }
 
     @Test
@@ -693,6 +680,30 @@ class WormholeForStringKeyTest {
         wormhole.scan("", "aaaab", false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
       }
+    }
+
+    @Test
+    void whenFunctionReturnsFalse_shouldStopIterate() {
+      // Arrange
+      WormholeForStringKey<String> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
+      wormhole.put("James", "semaj");
+      wormhole.put("John", "nhoj");
+      wormhole.put("Jason", "nosaj");
+
+      // Act & Assert
+      KeyValue<String, String> firstItem = new KeyValue<>("James", "semaj");
+      KeyValue<String, String> secondItem = new KeyValue<>("Jason", "nosaj");
+
+      List<KeyValue<String, String>> result = new ArrayList<>();
+      wormhole.scan(
+          "",
+          null,
+          false,
+          (k, v) -> {
+            result.add(new KeyValue<>(k, v));
+            return !k.equals("Jason");
+          });
+      assertThat(result).containsExactly(firstItem, secondItem);
     }
 
     @EnabledIf("isLeafNodeLargeEnough")

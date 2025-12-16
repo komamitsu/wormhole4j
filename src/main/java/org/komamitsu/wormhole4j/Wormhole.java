@@ -193,7 +193,8 @@ abstract class Wormhole<K, V> {
    * @param startKey the start key (inclusive)
    * @param endKey the end key
    * @param isEndKeyExclusive whether the end key is exclusive
-   * @param function the function executed for key-value
+   * @param function a function applied to each key-value pair; if it returns {@code true}, the scan
+   *     continues, otherwise the scan stops
    */
   public void scan(
       @Nullable K startKey,
