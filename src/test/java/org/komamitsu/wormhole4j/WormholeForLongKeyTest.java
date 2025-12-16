@@ -519,7 +519,7 @@ class WormholeForLongKeyTest {
     }
 
     @Test
-    void whenFunctionReturnsFalse_shouldStopIterate() {
+    void whenFunctionReturnsFalse_ShouldStopIterate() {
       WormholeForLongKey<Integer> wormhole = new WormholeForLongKey<>(leafNodeSize, true);
       wormhole.put(30L, 300);
       wormhole.put(20L, 200);
