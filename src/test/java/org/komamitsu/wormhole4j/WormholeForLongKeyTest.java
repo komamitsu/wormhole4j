@@ -399,6 +399,19 @@ class WormholeForLongKeyTest {
         wormhole.scan(11L, 29L, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(secondItem);
       }
+      // With a function that stops the iteration when it retrieves key:20.
+      {
+        List<KeyValue<Long, Integer>> result = new ArrayList<>();
+        wormhole.scan(
+            5L,
+            35L,
+            false,
+            (k, v) -> {
+              result.add(new KeyValue<>(k, v));
+              return k != 20L;
+            });
+        assertThat(result).containsExactly(firstItem, secondItem);
+      }
     }
 
     @Test

@@ -496,6 +496,19 @@ class WormholeForStringKeyTest {
         wormhole.scan("Jamesa", "Johm", false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(secondItem);
       }
+      // With a function that stops the iteration when it retrieves key:Jason.
+      {
+        List<KeyValue<String, String>> result = new ArrayList<>();
+        wormhole.scan(
+            "",
+            "ZZZZZZZZZZZZZZZZZ",
+            false,
+            (k, v) -> {
+              result.add(new KeyValue<>(k, v));
+              return !k.equals("Jason");
+            });
+        assertThat(result).containsExactly(firstItem, secondItem);
+      }
     }
 
     @Test

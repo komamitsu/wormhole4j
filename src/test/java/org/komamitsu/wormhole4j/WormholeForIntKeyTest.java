@@ -410,6 +410,19 @@ class WormholeForIntKeyTest {
         wormhole.scan(11, 29, false, (k, v) -> result.add(new KeyValue<>(k, v)));
         assertThat(result).containsExactly(secondItem);
       }
+      // With a function that stops the iteration when it retrieves key:20.
+      {
+        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
+        wormhole.scan(
+            5,
+            35,
+            false,
+            (k, v) -> {
+              result.add(new KeyValue<>(k, v));
+              return k != 20;
+            });
+        assertThat(result).containsExactly(firstItem, secondItem);
+      }
     }
 
     @Test
