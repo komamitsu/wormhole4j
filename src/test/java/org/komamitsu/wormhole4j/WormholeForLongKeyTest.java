@@ -519,6 +519,29 @@ class WormholeForLongKeyTest {
     }
 
     @Test
+    void whenFunctionReturnsFalse_shouldStopIterate() {
+      WormholeForLongKey<Integer> wormhole = new WormholeForLongKey<>(leafNodeSize, true);
+      wormhole.put(30L, 300);
+      wormhole.put(20L, 200);
+      wormhole.put(10L, 100);
+
+      // Act & Assert
+      KeyValue<Long, Integer> firstItem = new KeyValue<>(10L, 100);
+      KeyValue<Long, Integer> secondItem = new KeyValue<>(20L, 200);
+
+      List<KeyValue<Long, Integer>> result = new ArrayList<>();
+      wormhole.scan(
+          Long.MIN_VALUE,
+          null,
+          false,
+          (k, v) -> {
+            result.add(new KeyValue<>(k, v));
+            return k != 20L;
+          });
+      assertThat(result).containsExactly(firstItem, secondItem);
+    }
+
+    @Test
     @EnabledIf("isLeafNodeLargeEnough")
     void withManyLeafNodes_ShouldReturnThem() {
       // Arrange
