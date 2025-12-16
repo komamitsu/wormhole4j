@@ -530,7 +530,7 @@ class WormholeForIntKeyTest {
     }
 
     @Test
-    void whenFunctionReturnsFalse_shouldStopIterate() {
+    void whenFunctionReturnsFalse_ShouldStopIterate() {
       // Arrange
       WormholeForIntKey<Integer> wormhole = new WormholeForIntKey<>(leafNodeSize, true);
       wormhole.put(30, 300);

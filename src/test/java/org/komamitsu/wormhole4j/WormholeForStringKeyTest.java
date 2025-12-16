@@ -683,7 +683,7 @@ class WormholeForStringKeyTest {
     }
 
     @Test
-    void whenFunctionReturnsFalse_shouldStopIterate() {
+    void whenFunctionReturnsFalse_ShouldStopIterate() {
       // Arrange
       WormholeForStringKey<String> wormhole = new WormholeForStringKey<>(leafNodeSize, true);
       wormhole.put("James", "semaj");
