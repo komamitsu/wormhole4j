@@ -5,13 +5,13 @@ It is designed for workloads that require extremely fast point lookups and effic
 
 ## Features
 
-* **[Extremely fast](#benchmark-result) `scan()` API** for full scans, prefix scans, and range scans (inclusive/exclusive)
-* **[Ultra-fast](#benchmark-result) `get()` API** for point lookups
-* Fast `put()` and `delete()` operations
+* Supports `put()`, `get()`, `scan()`, and `delete()` operations for Integer, Long, and String keys
+* **[Significantly faster](#benchmark-result) `scan()` API** for full scans, prefix scans, and range scans (inclusive/exclusive) - 2-10x faster than tree-based alternatives
+* **[Excellent performance](#benchmark-result) for String keys** - 25-63% faster get/put operations than tree-based structures
+* Competitive `get()` and `put()` performance with optimized tree structures for numeric keys
 
 ## Current limitations
 
-* Supports only `String` keys
 * Not thread-safe
 
 ## Installation
@@ -24,7 +24,7 @@ Add the following to your `pom.xml`:
 <dependency>
     <groupId>org.komamitsu</groupId>
     <artifactId>wormhole4j</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
@@ -33,7 +33,7 @@ Add the following to your `pom.xml`:
 Add the following to your `build.gradle`:
 
 ```groovy
-implementation 'org.komamitsu:wormhole4j:0.1.0'
+implementation 'org.komamitsu:wormhole4j:0.2.0'
 ```
 
 ### Gradle (Kotlin DSL)
@@ -41,57 +41,80 @@ implementation 'org.komamitsu:wormhole4j:0.1.0'
 Add the following to your `build.gradle.kts`:
 
 ```kotlin
-implementation("org.komamitsu:wormhole4j:0.1.0")
+implementation("org.komamitsu:wormhole4j:0.2.0")
 ```
 
 ## Quick Start
 
 ```java
-// Create an index with the default settings
-Wormhole<String> wormhole = new Wormhole<>();
-
-// Insert a record
-wormhole.put("James", "semaj");
-
-// Get a record
-String value = wormhole.get("James"); // returns "semaj"
+// Example with String keys
+WormholeForStringKey<String> wormholeStr = new WormholeForStringKey<>();
+wormholeStr.put("James", "semaj");
+wormholeStr.put("Joseph", "hpesoj");
+wormholeStr.put("John", "nhoj");
+wormholeStr.put("Jacob", "bocaj");
+wormholeStr.put("Jason", "nosaj");
+String value = wormholeStr.get("James"); // returns "semaj"
 
 // Prefix scan
-List<KeyValue<String>> prefixResults = wormhole.scanWithCount("Jam", 3);
+List<KeyValue<String, String>> prefixScanResult = wormholeStr.scanWithCount("Ja", 3);
 
 // Range scan (exclusive end)
-List<KeyValue<String>> rangeResults = new ArrayList<>();
-wormhole.scanWithExclusiveEndKey("James", "John", rangeResults::add);
-
-// Range scan (inclusive end)
-wormhole.scanWithInclusiveEndKey("James", "John", rangeResults::add);
+List<KeyValue<String, String>> rangeScanResult = new ArrayList<>();
+wormholeStr.scan("Ja", "Joseph", true, (k, v) -> {
+  rangeScanResult.add(new KeyValue<>(k, v));
+  if (k.equals("Jojo")) {
+    // Return false to stop the scan.
+    return false;
+  }
+  // Return true to continue the scan.
+  return true;
+});
 
 // Delete a record
-wormhole.delete("James");
+wormholeStr.delete("James");
+
+// Example with Integer keys
+WormholeForIntKey<String> wormholeInt = new WormholeForIntKey<>();
+wormholeInt.put(100, "hundred");
+
+// Example with Long keys
+WormholeForLongKey<String> wormholeLong = new WormholeForLongKey<>();
+wormholeLong.put(9000000000L, "nine billion");
 ```
 
-## Benchmark result
+## Benchmark Result
 
-The performance of our library was evaluated against several well-known sorted map implementations to provide a comprehensive comparison.
+The performance of Wormhole4j was evaluated against well-known sorted map implementations.
 
-![Benchmark result chart](./data/benchmark/2025/08/24/charts.png)
+![Java 8 - Get](./data/benchmark/2025/12/16/wormhole4j-bench-java8-get.png)
+![Java 8 - Insert](./data/benchmark/2025/12/16/wormhole4j-bench-java8-insert.png)
+![Java 8 - Scan](./data/benchmark/2025/12/16/wormhole4j-bench-java8-scan.png)
+![Java 21 - Get](./data/benchmark/2025/12/16/wormhole4j-bench-java21-get.png)
+![Java 21 - Insert](./data/benchmark/2025/12/16/wormhole4j-bench-java21-insert.png)
+![Java 21 - Scan](./data/benchmark/2025/12/16/wormhole4j-bench-java21-scan.png)
 
-The benchmark was conducted with the following condition:
-- The number of records was 100K.
-- The max key length was 128 and the average key length was 64.
-- The max scan record size was 512 and the average scan record size was 256.
+### Benchmark Configuration
 
-It used other sorted maps for comparison as follows:
-- `java.util.TreeMap` as a Red-Black tree map from the standard library.
-- `it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap` as an AVL tree map from `it.unimi.dsi:fastutil:8.5.16`
+- **Record count:** 100,000 records
+- **Operations measured:**
+  - INSERT: 100,000 operations (inserting all records into an empty map)
+  - GET: 100,000 operations (random lookups from a populated map)
+  - SCAN: 10,000 operations (range scans with scan size of 512 records)
+- **Key types tested:** Integer, Long, and String
+  - String keys: length range 32-256 characters
+- **JVM versions:** Java 8 and Java 21
+
+### Comparison Targets
+
+- `java.util.TreeMap` - Red-Black tree from Java standard library
+- `it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap` - AVL tree from `it.unimi.dsi:fastutil:8.5.16`
 
 ## Future Plans
 
-* **Further optimization**
-* **Persistence support** – Add an optional persistent variant of Wormhole.
 * **Thread safety** – Provide a thread-safe version for concurrent access.
-* **Support non-string type keys**
-  * An experimental implementation, `WormholeForIntKey`, is already available, although the performance isn't as good as the default version for string keys.
+* **Persistence support** – Add an optional persistent variant of Wormhole.
+* **Further optimization**
 
 ## License
 
