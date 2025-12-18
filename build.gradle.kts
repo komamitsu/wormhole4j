@@ -68,6 +68,7 @@ jmh {
     iterations = 4
     fork = 1
     failOnError = true
+    includes = listOf("Benchmark.*.benchmarkPut")
     // includes = listOf("Benchmark.*ForIntKey.benchmarkScan")
     // includes = listOf("Benchmark.*ForStringKey.benchmarkGet")
     // jvmArgs = listOf("-XX:StartFlightRecording=disk=false,dumponexit=true,filename=profile.jfr", "-XX:FlightRecorderOptions=stackdepth=128")
