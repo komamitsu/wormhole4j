@@ -32,17 +32,23 @@ public class BenchmarkWormholeForIntKey {
   @State(Scope.Thread)
   public static class EmptyState {
     WormholeForIntKey<Integer> map;
+    boolean done;
 
     @Setup(Level.Iteration)
     public void setup() {
       map = new WormholeForIntKey<>();
+      done = false;
     }
   }
 
   @Benchmark
   @OperationsPerInvocation(INSERT_OPS_COUNT)
   public void benchmarkInsert(IntKeysState keysState, EmptyState emptyState) {
+    if (emptyState.done) {
+      throw new IllegalStateException("Already done");
+    }
     iterateWithKey(INSERT_OPS_COUNT, keysState, key -> emptyState.map.put(key, 42));
+    emptyState.done = true;
   }
 
   @State(Scope.Thread)

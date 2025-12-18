@@ -31,17 +31,23 @@ public class BenchmarkRedBlackTreeForLongKey {
   @State(Scope.Thread)
   public static class EmptyState {
     TreeMap<Long, Integer> map;
+    boolean done;
 
     @Setup(Level.Iteration)
     public void setup() {
       map = new TreeMap<>();
+      done = false;
     }
   }
 
   @Benchmark
   @OperationsPerInvocation(INSERT_OPS_COUNT)
   public void benchmarkInsert(LongKeysState keysState, EmptyState emptyState) {
+    if (emptyState.done) {
+      throw new IllegalStateException("Already done");
+    }
     iterateWithKey(INSERT_OPS_COUNT, keysState, key -> emptyState.map.put(key, 42));
+    emptyState.done = true;
   }
 
   @State(Scope.Thread)
