@@ -18,7 +18,7 @@ package org.komamitsu.wormhole4j.jmh;
 
 final class Constants {
   static final int RECORD_COUNT = 100000;
-  static final int INSERT_OPS_COUNT = RECORD_COUNT;
+  static final int PUT_OPS_COUNT = RECORD_COUNT;
   static final int GET_OPS_COUNT = RECORD_COUNT;
   static final int SCAN_OPS_COUNT = RECORD_COUNT / 10;
   static final int MIN_STRING_KEY_LEN = 32;

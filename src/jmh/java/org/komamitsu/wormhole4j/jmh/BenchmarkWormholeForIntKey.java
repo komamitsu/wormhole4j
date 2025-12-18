@@ -30,22 +30,6 @@ import org.openjdk.jmh.infra.Blackhole;
 public class BenchmarkWormholeForIntKey {
 
   @State(Scope.Thread)
-  public static class EmptyState {
-    WormholeForIntKey<Integer> map;
-
-    @Setup(Level.Iteration)
-    public void setup() {
-      map = new WormholeForIntKey<>();
-    }
-  }
-
-  @Benchmark
-  @OperationsPerInvocation(INSERT_OPS_COUNT)
-  public void benchmarkInsert(IntKeysState keysState, EmptyState emptyState) {
-    iterateWithKey(INSERT_OPS_COUNT, keysState, key -> emptyState.map.put(key, 42));
-  }
-
-  @State(Scope.Thread)
   public static class FullState {
     WormholeForIntKey<Integer> map;
     int counter;
@@ -63,6 +47,12 @@ public class BenchmarkWormholeForIntKey {
   @OperationsPerInvocation(GET_OPS_COUNT)
   public void benchmarkGet(IntKeysState keysState, FullState fullState, Blackhole blackhole) {
     iterateWithKey(GET_OPS_COUNT, keysState, key -> blackhole.consume(fullState.map.get(key)));
+  }
+
+  @Benchmark
+  @OperationsPerInvocation(PUT_OPS_COUNT)
+  public void benchmarkPut(IntKeysState keysState, FullState fullState) {
+    iterateWithKey(PUT_OPS_COUNT, keysState, key -> fullState.map.put(key, 42));
   }
 
   @Benchmark

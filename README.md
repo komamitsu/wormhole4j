@@ -1,7 +1,7 @@
 # Wormhole4j
 
 **Wormhole4j** is a high-performance sorted map for Java, based on the research paper [*"Wormhole: A Fast Ordered Index for In-memory Data Management"*](https://dl.acm.org/doi/10.1145/3302424.3303955).
-It provides fast range scans and prefix searches, while maintaining competitive performance for point lookups, inserts, and deletes.
+It provides fast range scans and prefix searches, while maintaining competitive performance for point lookups, updates, and deletes.
 
 ## Features
 
@@ -89,18 +89,18 @@ wormholeLong.put(9000000000L, "nine billion");
 The performance of Wormhole4j was evaluated against well-known sorted map implementations.
 
 ![Java 8 - Get](./data/benchmark/2025/12/16/wormhole4j-bench-java8-get.png)
-![Java 8 - Insert](./data/benchmark/2025/12/16/wormhole4j-bench-java8-insert.png)
+![Java 8 - Put](./data/benchmark/2025/12/16/wormhole4j-bench-java8-put.png)
 ![Java 8 - Scan](./data/benchmark/2025/12/16/wormhole4j-bench-java8-scan.png)
 ![Java 21 - Get](./data/benchmark/2025/12/16/wormhole4j-bench-java21-get.png)
-![Java 21 - Insert](./data/benchmark/2025/12/16/wormhole4j-bench-java21-insert.png)
+![Java 21 - Put](./data/benchmark/2025/12/16/wormhole4j-bench-java21-put.png)
 ![Java 21 - Scan](./data/benchmark/2025/12/16/wormhole4j-bench-java21-scan.png)
 
 ### Benchmark Configuration
 
 - **Record count:** 100,000 records
 - **Operations measured:**
-  - INSERT: 100,000 operations (inserting all records into an empty map)
   - GET: 100,000 operations (random lookups from a populated map)
+  - PUT: 100,000 operations (random updates with a populated map)
   - SCAN: 10,000 operations (range scans with scan size of 512 records)
 - **Key types tested:** Integer, Long, and String
   - String keys: length range 32-256 characters

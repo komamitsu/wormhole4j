@@ -29,22 +29,6 @@ import org.openjdk.jmh.infra.Blackhole;
 public class BenchmarkRedBlackTreeForLongKey {
 
   @State(Scope.Thread)
-  public static class EmptyState {
-    TreeMap<Long, Integer> map;
-
-    @Setup(Level.Iteration)
-    public void setup() {
-      map = new TreeMap<>();
-    }
-  }
-
-  @Benchmark
-  @OperationsPerInvocation(INSERT_OPS_COUNT)
-  public void benchmarkInsert(LongKeysState keysState, EmptyState emptyState) {
-    iterateWithKey(INSERT_OPS_COUNT, keysState, key -> emptyState.map.put(key, 42));
-  }
-
-  @State(Scope.Thread)
   public static class FullState {
     TreeMap<Long, Integer> map;
     int counter;
@@ -62,6 +46,12 @@ public class BenchmarkRedBlackTreeForLongKey {
   @OperationsPerInvocation(GET_OPS_COUNT)
   public void benchmarkGet(LongKeysState keysState, FullState fullState, Blackhole blackhole) {
     iterateWithKey(GET_OPS_COUNT, keysState, key -> blackhole.consume(fullState.map.get(key)));
+  }
+
+  @Benchmark
+  @OperationsPerInvocation(PUT_OPS_COUNT)
+  public void benchmarkPut(LongKeysState keysState, FullState fullState) {
+    iterateWithKey(PUT_OPS_COUNT, keysState, key -> fullState.map.put(key, 42));
   }
 
   @Benchmark
