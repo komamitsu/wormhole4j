@@ -1,7 +1,7 @@
 # Wormhole4j
 
-**Wormhole4j** is a high-performance ordered in-memory index for Java, based on the research paper [*“Wormhole: A Fast Ordered Index for In-memory Data Management”*](https://dl.acm.org/doi/10.1145/3302424.3303955).
-It is designed for workloads that require extremely fast point lookups and efficient ordered scans, while also supporting fast inserts and deletes.
+**Wormhole4j** is a high-performance sorted map for Java, based on the research paper [*"Wormhole: A Fast Ordered Index for In-memory Data Management"*](https://dl.acm.org/doi/10.1145/3302424.3303955).
+It provides fast range scans and prefix searches, while maintaining competitive performance for point lookups, inserts, and deletes.
 
 ## Features
 
@@ -63,11 +63,12 @@ List<KeyValue<String, String>> prefixScanResult = wormholeStr.scanWithCount("Ja"
 List<KeyValue<String, String>> rangeScanResult = new ArrayList<>();
 wormholeStr.scan("Ja", "Joseph", true, (k, v) -> {
   rangeScanResult.add(new KeyValue<>(k, v));
-  if (k.equals("Jojo")) {
-    // Return false to stop the scan.
+  /*
+  if (k.equals("unexpected_key")) {
+    // If you want to stop the scan, return false.
     return false;
   }
-  // Return true to continue the scan.
+  */
   return true;
 });
 
