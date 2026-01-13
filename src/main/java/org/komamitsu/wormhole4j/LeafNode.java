@@ -28,12 +28,19 @@ final class LeafNode<K, V> {
   private static final int KEY_OFFSET = 1;
   private static final int VALUE_OFFSET = 2;
   private final EncodedKeyType encodedKeyType;
+  private final boolean isThreadSafe;
   final Object anchorKey;
   private final int maxSize;
   private final Function<Object, Object> validAnchorKeyProvider;
 
   @Nullable private LeafNode<K, V> left;
   @Nullable private LeafNode<K, V> right;
+
+  private long version = 0;
+
+  long getVersion() {
+    return version;
+  }
 
   // For KeyValues
   private int keyValuesCount;
@@ -414,12 +421,14 @@ final class LeafNode<K, V> {
   @SuppressWarnings("unchecked")
   LeafNode(
       EncodedKeyType encodedKeyType,
+      boolean isThreadSafe,
       Function<Object, Object> validAnchorKeyProvider,
       Object anchorKey,
       int maxSize,
       @Nullable LeafNode<K, V> left,
       @Nullable LeafNode<K, V> right) {
     this.encodedKeyType = encodedKeyType;
+    this.isThreadSafe = isThreadSafe;
     this.validAnchorKeyProvider = validAnchorKeyProvider;
     this.anchorKey = anchorKey;
     this.maxSize = maxSize;
@@ -514,7 +523,13 @@ final class LeafNode<K, V> {
     // Copy entries to a new leaf node.
     LeafNode<K, V> newLeafNode =
         new LeafNode<>(
-            encodedKeyType, validAnchorKeyProvider, newAnchor, maxSize, this, this.right);
+            encodedKeyType,
+            isThreadSafe,
+            validAnchorKeyProvider,
+            newAnchor,
+            maxSize,
+            this,
+            this.right);
     List<Integer> keyValueIndexListOfNewLeafNode = new ArrayList<>(currentSize);
     for (int i = startKeyRefIndex; i < currentSize; i++) {
       int keyValueIndex = getKeyValueIndexFromKeyRef(i);
