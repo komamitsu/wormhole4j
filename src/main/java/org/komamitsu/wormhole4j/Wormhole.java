@@ -36,37 +36,58 @@ import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
 abstract class Wormhole<K, V> {
   private static final int DEFAULT_LEAF_NODE_SIZE = 128;
   private final EncodedKeyType encodedKeyType;
+  private final boolean isThreadSafe;
   private final MetaTrieHashTable<K, V> table;
   private final int leafNodeSize;
   private final int leafNodeMergeSize;
   @Nullable private final Validator<K, V> validator;
   private final Function<Object, Object> validAnchorKeyProvider;
 
-  /** Creates a Wormhole with the default leaf node size. */
+  /**
+   * Creates a Wormhole.
+   *
+   * @param encodedKeyType the encoded key type
+   */
   protected Wormhole(EncodedKeyType encodedKeyType) {
-    this(encodedKeyType, DEFAULT_LEAF_NODE_SIZE);
+    this(encodedKeyType, false);
   }
 
   /**
-   * Creates a Wormhole with the specified leaf node size.
+   * Creates a Wormhole.
    *
+   * @param encodedKeyType the encoded key type
+   * @param isThreadSafe whether thread-safe is enabled
+   */
+  protected Wormhole(EncodedKeyType encodedKeyType, boolean isThreadSafe) {
+    this(encodedKeyType, isThreadSafe, DEFAULT_LEAF_NODE_SIZE);
+  }
+
+  /**
+   * Creates a Wormhole.
+   *
+   * @param encodedKeyType the encoded key type
+   * @param isThreadSafe whether thread-safe is enabled
    * @param leafNodeSize maximum number of entries in a leaf node
    */
-  protected Wormhole(EncodedKeyType encodedKeyType, int leafNodeSize) {
-    this(encodedKeyType, leafNodeSize, false);
+  protected Wormhole(EncodedKeyType encodedKeyType, boolean isThreadSafe, int leafNodeSize) {
+    this(encodedKeyType, isThreadSafe, leafNodeSize, false);
   }
 
   /**
-   * Creates a Wormhole with the specified leaf node size and optional debug mode.
+   * Creates a Wormhole.
    *
+   * @param encodedKeyType the encoded key type
+   * @param isThreadSafe whether thread-safe is enabled
    * @param leafNodeSize maximum number of entries in a leaf node
    * @param debugMode enables internal consistency checks if {@code true}
    */
-  protected Wormhole(EncodedKeyType encodedKeyType, int leafNodeSize, boolean debugMode) {
+  protected Wormhole(
+      EncodedKeyType encodedKeyType, boolean isThreadSafe, int leafNodeSize, boolean debugMode) {
     this.encodedKeyType = encodedKeyType;
+    this.isThreadSafe = isThreadSafe;
     this.leafNodeSize = leafNodeSize;
     this.leafNodeMergeSize = leafNodeSize * 3 / 4;
-    this.table = new MetaTrieHashTable<>(encodedKeyType);
+    this.table = new MetaTrieHashTable<>(encodedKeyType, isThreadSafe);
     validAnchorKeyProvider = this::provideValidAnchorKey;
     initialize();
     validator = debugMode ? new Validator<>(this) : null;
@@ -228,7 +249,8 @@ abstract class Wormhole<K, V> {
   private void initialize() {
     Object key = createEmptyEncodedKey();
     LeafNode<K, V> rootLeafNode =
-        new LeafNode<>(encodedKeyType, validAnchorKeyProvider, key, leafNodeSize, null, null);
+        new LeafNode<>(
+            encodedKeyType, isThreadSafe, validAnchorKeyProvider, key, leafNodeSize, null, null);
     // Add the root.
     table.put(key, new MetaTrieHashTable.NodeMetaLeaf<>(key, rootLeafNode));
   }
