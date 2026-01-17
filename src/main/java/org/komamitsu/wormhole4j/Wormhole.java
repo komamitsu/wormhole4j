@@ -77,6 +77,26 @@ abstract class Wormhole<K, V> {
    * Creates a Wormhole.
    *
    * @param encodedKeyType the encoded key type
+   * @param leafNodeSize maximum number of entries in a leaf node
+   */
+  protected Wormhole(EncodedKeyType encodedKeyType, int leafNodeSize) {
+    this(encodedKeyType, false, leafNodeSize, false);
+  }
+
+  /**
+   * Creates a Wormhole.
+   *
+   * @param encodedKeyType the encoded key type
+   * @param leafNodeSize maximum number of entries in a leaf node
+   * @param debugMode enables internal consistency checks if {@code true}
+   */
+  protected Wormhole(EncodedKeyType encodedKeyType, int leafNodeSize, boolean debugMode) {
+    this(encodedKeyType, false, leafNodeSize, debugMode);
+  }
+  /**
+   * Creates a Wormhole.
+   *
+   * @param encodedKeyType the encoded key type
    * @param isThreadSafe whether thread-safe is enabled
    * @param leafNodeSize maximum number of entries in a leaf node
    * @param debugMode enables internal consistency checks if {@code true}

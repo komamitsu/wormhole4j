@@ -18,9 +18,12 @@ package org.komamitsu.wormhole4j;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 class QsbrMap<K, V> {
+  private final AtomicLong version = new AtomicLong();
   private final List<QsbrSlot<K, V>> slots = new ArrayList<>();
   private volatile int activeSlotId = 0;
 
@@ -110,6 +113,12 @@ class QsbrMap<K, V> {
     }
   }
 
+  public QsbrMap() {
+    // Add active and inactive slots.
+    slots.add(new QsbrSlot<>());
+    slots.add(new QsbrSlot<>());
+  }
+
   synchronized void handleReadOperation(Consumer<Map<K, V>> task) {
     QsbrSlot<K, V> activeSlot = getActiveSlot();
     Map<K, V> table = activeSlot.table;
@@ -121,12 +130,14 @@ class QsbrMap<K, V> {
     }
   }
 
-  synchronized void handleWriteOperation(Consumer<Map<K, V>> task) {
+  synchronized void handleWriteOperation(BiConsumer<Long, Map<K, V>> task) {
     Map<K, V> activeTable = getActiveSlot().table;
     QsbrSlot<K, V> inactiveSlot = getInactiveSlot();
     CommandRecordingMap<K, V> inactiveTable = inactiveSlot.table;
     try {
-      task.accept(inactiveTable);
+      long nextVersion = version.get() + 1;
+      task.accept(nextVersion, inactiveTable);
+      version.set(nextVersion);
       // Switch the slots.
       activeSlotId = getInactiveSlotId(activeSlotId);
 
@@ -149,7 +160,8 @@ class QsbrMap<K, V> {
           currentInactiveSlot.table.clear();
         }
       }
-    } finally {
+    } catch (Exception e) {
+      // FIXME: The current implementation throws ConcurrentModificationException.
       Consumer<K> restorer =
           key -> {
             V origValue = activeTable.get(key);
@@ -192,5 +204,9 @@ class QsbrMap<K, V> {
 
   private QsbrSlot<K, V> getInactiveSlot() {
     return slots.get(getInactiveSlotId(activeSlotId));
+  }
+
+  long getVersion() {
+    return version.get();
   }
 }
