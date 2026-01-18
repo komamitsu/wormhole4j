@@ -17,6 +17,7 @@
 package org.komamitsu.wormhole4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -241,6 +242,31 @@ class QsbrMapTest {
           assertThat(item.version.get()).isEqualTo(1);
           assertThat(item.value.get()).isEqualTo(value);
         });
+  }
+
+  @Test
+  void whenWriteFails_ShouldRevertOperation() {
+    QsbrMap<Integer, Item> map = new QsbrMap<>();
+
+    assertThat(map.getVersion()).isEqualTo(0);
+
+    int key = 42;
+    try {
+      map.handleWriteOperation(
+          (version, table) -> {
+            Item item = table.get(key);
+            assertThat(item).isNull();
+            table.put(key, new Item(version));
+            throw new RuntimeException("foo bar");
+          });
+      fail();
+    } catch (RuntimeException e) {
+      assertThat(e.getMessage()).isEqualTo("foo bar");
+    }
+
+    assertThat(map.getVersion()).isEqualTo(0);
+
+    map.handleReadOperation(table -> assertThat(table.get(key)).isNull());
   }
 
   private void sleep(int seconds) {

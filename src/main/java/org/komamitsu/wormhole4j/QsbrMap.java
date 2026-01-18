@@ -75,7 +75,24 @@ class QsbrMap<K, V> {
 
     @Override
     public void clear() {
+      super.clear();
       commands.add(new ClearCommand());
+    }
+
+    private V putWithoutRecordingCommand(K key, V value) {
+      return super.put(key, value);
+    }
+
+    private V removeWithoutRecordingCommand(Object key) {
+      return super.remove(key);
+    }
+
+    private void putAllWithoutRecordingCommand(Map<? extends K, ? extends V> m) {
+      super.putAll(m);
+    }
+
+    private void clearWithoutRecordingCommand() {
+      super.clear();
     }
 
     private void resetCommands() {
@@ -165,18 +182,18 @@ class QsbrMap<K, V> {
         }
       }
     } catch (Exception e) {
-      // FIXME: The current implementation throws ConcurrentModificationException.
       Consumer<K> restorer =
           key -> {
             V origValue = activeTable.get(key);
             if (origValue == null) {
-              inactiveTable.remove(key);
+              inactiveTable.removeWithoutRecordingCommand(key);
             } else {
-              inactiveTable.put(key, origValue);
+              inactiveTable.putWithoutRecordingCommand(key, origValue);
             }
           };
       // Revert commands applied to the slot.
-      for (CommandRecordingMap.Command command : inactiveTable.commands) {
+      for (int i = 0; i < inactiveTable.commands.size(); i++) {
+        CommandRecordingMap.Command command = inactiveTable.commands.get(i);
         if (command instanceof CommandRecordingMap.PutCommand) {
           CommandRecordingMap.PutCommand<K, V> putCommand =
               (CommandRecordingMap.PutCommand<K, V>) command;
@@ -187,8 +204,8 @@ class QsbrMap<K, V> {
           restorer.accept(removeCommand.key);
         } else {
           assert command instanceof CommandRecordingMap.ClearCommand;
-          inactiveTable.clear();
-          inactiveTable.putAll(activeTable);
+          inactiveTable.clearWithoutRecordingCommand();
+          inactiveTable.putAllWithoutRecordingCommand(activeTable);
         }
       }
       throw e;
