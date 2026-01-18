@@ -18,6 +18,10 @@ package org.komamitsu.wormhole4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
@@ -84,5 +88,68 @@ class QsbrMapTest {
           assertThat(item.version.get()).isEqualTo(1);
           assertThat(item.value.get()).isEqualTo(value);
         });
+  }
+
+  @Test
+  void readModifyWriteInTransactionWithConcurrentRead() throws InterruptedException {
+    QsbrMap<Integer, Item> map = new QsbrMap<>();
+
+    assertThat(map.getVersion()).isEqualTo(0);
+
+    int key = 42;
+    int value = 7;
+
+    CountDownLatch readBeforeModifyLatch = new CountDownLatch(1);
+    ExecutorService executorService = Executors.newCachedThreadPool();
+    executorService.execute(() -> map.handleReadOperation(
+        readTable -> {
+          assertThat(readTable.get(key)).isNull();
+          readBeforeModifyLatch.countDown();
+          sleep(1);
+          assertThat(readTable.get(key)).isNull();
+        }));
+
+    map.handleReadOperation(
+        readTable -> {
+          Item readItem = readTable.get(key);
+          assertThat(readItem).isNull();
+          await(readBeforeModifyLatch);
+          map.handleWriteOperation(
+              (version, writeTable) -> {
+                Item item = new Item(version);
+                item.value.set(value);
+                writeTable.put(key, item);
+              });
+        });
+
+    assertThat(map.getVersion()).isEqualTo(1);
+
+    executorService.shutdown();
+    assertThat(executorService.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
+
+    map.handleReadOperation(
+        table -> {
+          Item item = table.get(key);
+          assertThat(item.version.get()).isEqualTo(1);
+          assertThat(item.value.get()).isEqualTo(value);
+        });
+  }
+
+  private void sleep(int seconds) {
+    try {
+      TimeUnit.SECONDS.sleep(seconds);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    }
+  }
+
+  private void await(CountDownLatch countDownLatch) {
+    try {
+      countDownLatch.await();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    }
   }
 }
