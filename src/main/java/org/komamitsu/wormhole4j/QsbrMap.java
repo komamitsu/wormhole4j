@@ -24,8 +24,9 @@ import java.util.function.Consumer;
 
 class QsbrMap<K, V> {
   private final AtomicLong version = new AtomicLong();
-  private final List<QsbrSlot<K, V>> slots = new ArrayList<>();
+  private final List<QsbrSlot> slots = new ArrayList<>();
   private volatile int activeSlotId = 0;
+  private final ThreadLocal<Boolean> isInReadPhase = ThreadLocal.withInitial(() -> false);
 
   private static class CommandRecordingMap<K, V> extends HashMap<K, V> {
     private final List<Command> commands = new ArrayList<>();
@@ -82,13 +83,14 @@ class QsbrMap<K, V> {
     }
   }
 
-  private static class QsbrSlot<K, V> {
+  private class QsbrSlot {
     private final CommandRecordingMap<K, V> table = new CommandRecordingMap<>();
     private final AtomicInteger readerCount = new AtomicInteger();
     private final Object lock = new Object();
 
     void enterReadPhase() {
       readerCount.incrementAndGet();
+      isInReadPhase.set(true);
     }
 
     void exitReadPhase() {
@@ -97,11 +99,13 @@ class QsbrMap<K, V> {
           lock.notify();
         }
       }
+      isInReadPhase.set(false);
     }
 
     void waitUntilNoReader() {
       synchronized (lock) {
-        while (readerCount.get() != 0) {
+        int expectedReaderCountToExit = isInReadPhase.get() ? 1 : 0;
+        while (readerCount.get() != expectedReaderCountToExit) {
           try {
             lock.wait();
           } catch (InterruptedException e) {
@@ -115,12 +119,12 @@ class QsbrMap<K, V> {
 
   public QsbrMap() {
     // Add active and inactive slots.
-    slots.add(new QsbrSlot<>());
-    slots.add(new QsbrSlot<>());
+    slots.add(new QsbrSlot());
+    slots.add(new QsbrSlot());
   }
 
   synchronized void handleReadOperation(Consumer<Map<K, V>> task) {
-    QsbrSlot<K, V> activeSlot = getActiveSlot();
+    QsbrSlot activeSlot = getActiveSlot();
     Map<K, V> table = activeSlot.table;
     try {
       activeSlot.enterReadPhase();
@@ -132,7 +136,7 @@ class QsbrMap<K, V> {
 
   synchronized void handleWriteOperation(BiConsumer<Long, Map<K, V>> task) {
     Map<K, V> activeTable = getActiveSlot().table;
-    QsbrSlot<K, V> inactiveSlot = getInactiveSlot();
+    QsbrSlot inactiveSlot = getInactiveSlot();
     CommandRecordingMap<K, V> inactiveTable = inactiveSlot.table;
     try {
       long nextVersion = version.get() + 1;
@@ -142,7 +146,7 @@ class QsbrMap<K, V> {
       activeSlotId = getInactiveSlotId(activeSlotId);
 
       // Wait for all readers to finish with the current inactive slot.
-      QsbrSlot<K, V> currentInactiveSlot = getInactiveSlot();
+      QsbrSlot currentInactiveSlot = getInactiveSlot();
       currentInactiveSlot.waitUntilNoReader();
 
       // Apply the recent commands to the current inactive slot table.
@@ -187,6 +191,7 @@ class QsbrMap<K, V> {
           inactiveTable.putAll(activeTable);
         }
       }
+      throw e;
     }
   }
 
@@ -198,11 +203,11 @@ class QsbrMap<K, V> {
     return getActiveSlot().table;
   }
 
-  private QsbrSlot<K, V> getActiveSlot() {
+  private QsbrSlot getActiveSlot() {
     return slots.get(activeSlotId);
   }
 
-  private QsbrSlot<K, V> getInactiveSlot() {
+  private QsbrSlot getInactiveSlot() {
     return slots.get(getInactiveSlotId(activeSlotId));
   }
 

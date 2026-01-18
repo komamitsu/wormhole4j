@@ -33,7 +33,7 @@ class QsbrMapTest {
   }
 
   @Test
-  void test() {
+  void sequentialWriteAndReadInSeparateTransactions() {
     QsbrMap<Integer, Item> map = new QsbrMap<>();
 
     assertThat(map.getVersion()).isEqualTo(0);
@@ -46,13 +46,43 @@ class QsbrMapTest {
           table.put(key, new Item(version));
         });
 
+    assertThat(map.getVersion()).isEqualTo(1);
+
     map.handleReadOperation(
         table -> {
           Item item = table.get(key);
           assertThat(item.version.get()).isEqualTo(1);
           assertThat(item.value.get()).isEqualTo(0);
         });
+  }
+
+  @Test
+  void readModifyWriteInTransaction() {
+    QsbrMap<Integer, Item> map = new QsbrMap<>();
+
+    assertThat(map.getVersion()).isEqualTo(0);
+
+    int key = 42;
+    int value = 7;
+    map.handleReadOperation(
+        readTable -> {
+          Item readItem = readTable.get(key);
+          assertThat(readItem).isNull();
+          map.handleWriteOperation(
+              (version, writeTable) -> {
+                Item item = new Item(version);
+                item.value.set(value);
+                writeTable.put(key, item);
+              });
+        });
 
     assertThat(map.getVersion()).isEqualTo(1);
+
+    map.handleReadOperation(
+        table -> {
+          Item item = table.get(key);
+          assertThat(item.version.get()).isEqualTo(1);
+          assertThat(item.value.get()).isEqualTo(value);
+        });
   }
 }
