@@ -37,7 +37,7 @@ class QsbrMapTest {
   }
 
   @Test
-  void sequentialWriteAndReadInSeparateTransactions() {
+  void separateSequentialWriteAndRead_ShouldReturnProperValue() {
     QsbrMap<Integer, Item> map = new QsbrMap<>();
 
     assertThat(map.getVersion()).isEqualTo(0);
@@ -61,7 +61,7 @@ class QsbrMapTest {
   }
 
   @Test
-  void readModifyWriteInTransaction() {
+  void singleReadModifyWriteInTransaction_ShouldReturnProperValue() {
     QsbrMap<Integer, Item> map = new QsbrMap<>();
 
     assertThat(map.getVersion()).isEqualTo(0);
@@ -91,7 +91,68 @@ class QsbrMapTest {
   }
 
   @Test
-  void readModifyWriteInTransactionWithConcurrentRead() throws InterruptedException {
+  void multipleReadModifyWrite_ShouldReturnProperValue() {
+    QsbrMap<Integer, Item> map = new QsbrMap<>();
+
+    assertThat(map.getVersion()).isEqualTo(0);
+
+    int key = 42;
+    map.handleReadOperation(
+        readTable -> {
+          Item readItem = readTable.get(key);
+          assertThat(readItem).isNull();
+          map.handleWriteOperation(
+              (version, writeTable) -> {
+                Item item = new Item(version);
+                item.value.set(10);
+                writeTable.put(key, item);
+              });
+        });
+
+    assertThat(map.getVersion()).isEqualTo(1);
+
+    map.handleReadOperation(
+        readTable -> {
+          Item readItem = readTable.get(key);
+          assertThat(readItem).isNotNull();
+          assertThat(readItem.version.get()).isEqualTo(1);
+          assertThat(readItem.value.get()).isEqualTo(10);
+          map.handleWriteOperation(
+              (version, writeTable) -> {
+                Item item = new Item(version);
+                item.value.set(20);
+                writeTable.put(key, item);
+              });
+        });
+
+    assertThat(map.getVersion()).isEqualTo(2);
+
+    map.handleReadOperation(
+        readTable -> {
+          Item readItem = readTable.get(key);
+          assertThat(readItem).isNotNull();
+          assertThat(readItem.version.get()).isEqualTo(2);
+          assertThat(readItem.value.get()).isEqualTo(20);
+          map.handleWriteOperation(
+              (version, writeTable) -> {
+                Item item = new Item(version);
+                item.value.set(30);
+                writeTable.put(key, item);
+              });
+        });
+
+    assertThat(map.getVersion()).isEqualTo(3);
+
+    map.handleReadOperation(
+        table -> {
+          Item item = table.get(key);
+          assertThat(item.version.get()).isEqualTo(3);
+          assertThat(item.value.get()).isEqualTo(30);
+        });
+  }
+
+  @Test
+  void readModifyWriteWithConcurrentRead_ShouldReturnProperValue() throws InterruptedException {
     QsbrMap<Integer, Item> map = new QsbrMap<>();
 
     assertThat(map.getVersion()).isEqualTo(0);
@@ -101,13 +162,15 @@ class QsbrMapTest {
 
     CountDownLatch readBeforeModifyLatch = new CountDownLatch(1);
     ExecutorService executorService = Executors.newCachedThreadPool();
-    executorService.execute(() -> map.handleReadOperation(
-        readTable -> {
-          assertThat(readTable.get(key)).isNull();
-          readBeforeModifyLatch.countDown();
-          sleep(1);
-          assertThat(readTable.get(key)).isNull();
-        }));
+    executorService.execute(
+        () ->
+            map.handleReadOperation(
+                readTable -> {
+                  assertThat(readTable.get(key)).isNull();
+                  readBeforeModifyLatch.countDown();
+                  sleep(1);
+                  assertThat(readTable.get(key)).isNull();
+                }));
 
     map.handleReadOperation(
         readTable -> {
@@ -126,6 +189,51 @@ class QsbrMapTest {
 
     executorService.shutdown();
     assertThat(executorService.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
+
+    map.handleReadOperation(
+        table -> {
+          Item item = table.get(key);
+          assertThat(item.version.get()).isEqualTo(1);
+          assertThat(item.value.get()).isEqualTo(value);
+        });
+  }
+
+  @Test
+  void writeWithConcurrentRead_ShouldNotBlockRead() throws InterruptedException {
+    QsbrMap<Integer, Item> map = new QsbrMap<>();
+
+    assertThat(map.getVersion()).isEqualTo(0);
+
+    int key = 42;
+    int value = 7;
+
+    CountDownLatch readBeforeModifyLatch = new CountDownLatch(1);
+    ExecutorService executorService = Executors.newCachedThreadPool();
+    executorService.execute(
+        () ->
+            map.handleReadOperation(
+                readTable -> {
+                  Item readItem = readTable.get(key);
+                  assertThat(readItem).isNull();
+                  await(readBeforeModifyLatch);
+                  map.handleWriteOperation(
+                      (version, writeTable) -> {
+                        Item item = new Item(version);
+                        item.value.set(value);
+                        writeTable.put(key, item);
+                      });
+                }));
+
+    map.handleReadOperation(readTable -> assertThat(readTable.get(key)).isNull());
+
+    assertThat(map.getVersion()).isEqualTo(0);
+
+    readBeforeModifyLatch.countDown();
+
+    executorService.shutdown();
+    assertThat(executorService.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
+
+    assertThat(map.getVersion()).isEqualTo(1);
 
     map.handleReadOperation(
         table -> {
