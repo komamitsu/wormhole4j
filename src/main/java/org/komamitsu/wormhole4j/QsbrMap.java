@@ -140,7 +140,7 @@ class QsbrMap<K, V> {
     slots.add(new QsbrSlot());
   }
 
-  synchronized void handleReadOperation(Consumer<Map<K, V>> task) {
+  void handleReadOperation(Consumer<Map<K, V>> task) {
     QsbrSlot activeSlot = getActiveSlot();
     Map<K, V> table = activeSlot.table;
     try {
@@ -181,6 +181,7 @@ class QsbrMap<K, V> {
           currentInactiveSlot.table.clear();
         }
       }
+      inactiveTable.resetCommands();
     } catch (Exception e) {
       Consumer<K> restorer =
           key -> {
@@ -207,6 +208,7 @@ class QsbrMap<K, V> {
           inactiveTable.clearWithoutRecordingCommand();
           inactiveTable.putAllWithoutRecordingCommand(activeTable);
         }
+        inactiveTable.resetCommands();
       }
       throw e;
     }
