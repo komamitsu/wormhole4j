@@ -25,8 +25,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 class QsbrMapTest {
@@ -154,7 +152,6 @@ class QsbrMapTest {
         });
   }
 
-  @Disabled("This has a bug to get stuck")
   @Test
   void readModifyWriteWithConcurrentRead_ShouldReturnProperValue() throws InterruptedException {
     QsbrMap<Integer, Item> map = new QsbrMap<>();
@@ -408,7 +405,6 @@ class QsbrMapTest {
         });
   }
 
-  @Disabled("This has a bug to get stuck")
   @Test
   void readAndRemoveWithConcurrentRead_ShouldReturnProperValue() throws InterruptedException {
     QsbrMap<Integer, Item> map = new QsbrMap<>();

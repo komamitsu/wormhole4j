@@ -111,7 +111,10 @@ class QsbrMap<K, V> {
     }
 
     void exitReadPhase() {
-      if (readerCount.decrementAndGet() == 0) {
+      int currentReaderCount = readerCount.decrementAndGet();
+      // TODO: The current approach should be re-considered in terms of performance.
+      // The last reader might be the writer, so notify even if the counter is 1.
+      if (currentReaderCount <= 1) {
         synchronized (lock) {
           lock.notify();
         }
