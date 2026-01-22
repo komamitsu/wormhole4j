@@ -111,10 +111,15 @@ class QsbrMap<K, V> {
     }
 
     void exitReadPhase() {
+      // If the reader is also the writer, the flag should be already unset and the reader count is
+      // decremented.
+      // Nothing to do.
+      if (!isInReadPhase.get()) {
+        return;
+      }
       int currentReaderCount = readerCount.decrementAndGet();
-      // TODO: The current approach should be re-considered in terms of performance.
-      // The last reader might be the writer, so notify even if the counter is 1.
-      if (currentReaderCount <= 1) {
+      assert currentReaderCount >= 0;
+      if (currentReaderCount == 0) {
         synchronized (lock) {
           lock.notify();
         }
@@ -124,8 +129,12 @@ class QsbrMap<K, V> {
 
     void waitUntilNoReader() {
       synchronized (lock) {
-        int expectedReaderCountToExit = isInReadPhase.get() ? 1 : 0;
-        while (readerCount.get() != expectedReaderCountToExit) {
+        while (true) {
+          int currentReaderCount = readerCount.get();
+          assert currentReaderCount >= 0;
+          if (currentReaderCount == 0) {
+            break;
+          }
           try {
             lock.wait();
           } catch (InterruptedException e) {
@@ -155,6 +164,11 @@ class QsbrMap<K, V> {
   }
 
   synchronized void handleWriteOperation(BiConsumer<Long, Map<K, V>> task) {
+    // If the writer is also in the read phase, exit it to decrement the reader count.
+    if (isInReadPhase.get()) {
+      getActiveSlot().exitReadPhase();
+    }
+
     Map<K, V> activeTable = getActiveSlot().table;
     QsbrSlot inactiveSlot = getInactiveSlot();
     CommandRecordingMap<K, V> inactiveTable = inactiveSlot.table;
