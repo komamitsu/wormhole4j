@@ -73,7 +73,7 @@ class QsbrMapTest {
   }
 
   @Test
-  void separateSequentialWriteAndRead_ShouldReturnProperValue() {
+  void separateSequentialPutAndGet_ShouldReturnProperValue() {
     QsbrMap<Integer, Item> map = new QsbrMap<>();
 
     assertThat(map.getVersion()).isEqualTo(0);
@@ -93,7 +93,7 @@ class QsbrMapTest {
   }
 
   @Test
-  void singleReadModifyWriteInTransaction_ShouldReturnProperValue() {
+  void singleGetModifyPutInTransaction_ShouldReturnProperValue() {
     QsbrMap<Integer, Item> map = new QsbrMap<>();
 
     assertThat(map.getVersion()).isEqualTo(0);
@@ -114,7 +114,7 @@ class QsbrMapTest {
   }
 
   @Test
-  void multipleReadModifyWrite_ShouldReturnProperValue() {
+  void multipleGetModifyPut_ShouldReturnProperValue() {
     QsbrMap<Integer, Item> map = new QsbrMap<>();
 
     assertThat(map.getVersion()).isEqualTo(0);
@@ -155,7 +155,7 @@ class QsbrMapTest {
   }
 
   @Test
-  void readModifyWriteWithConcurrentRead_ShouldReturnProperValue() throws InterruptedException {
+  void getModifyPutWithConcurrentGet_ShouldReturnProperValue() throws InterruptedException {
     QsbrMap<Integer, Item> map = new QsbrMap<>();
 
     assertThat(map.getVersion()).isEqualTo(0);
@@ -192,7 +192,7 @@ class QsbrMapTest {
   }
 
   @Test
-  void writeWithConcurrentRead_ShouldNotBlockRead() throws InterruptedException {
+  void putWithConcurrentGet_ShouldNotBlockGet() throws InterruptedException {
     QsbrMap<Integer, Item> map = new QsbrMap<>();
 
     assertThat(map.getVersion()).isEqualTo(0);
@@ -227,7 +227,7 @@ class QsbrMapTest {
   }
 
   @Test
-  void separateSequentialWriteAndRemove_ShouldRemoveIt() {
+  void separateSequentialPutAndRemove_ShouldRemoveIt() {
     QsbrMap<Integer, Item> map = new QsbrMap<>();
 
     assertThat(map.getVersion()).isEqualTo(0);
@@ -252,7 +252,7 @@ class QsbrMapTest {
   }
 
   @Test
-  void singleReadAndRemoveInTransaction_ShouldRemoveIt() {
+  void singleGetAndRemoveInTransaction_ShouldRemoveIt() {
     QsbrMap<Integer, Item> map = new QsbrMap<>();
 
     assertThat(map.getVersion()).isEqualTo(0);
@@ -279,7 +279,7 @@ class QsbrMapTest {
   }
 
   @Test
-  void multipleReadModifyWriteAndRemove_ShouldReturnProperValue() {
+  void multipleGetModifyPutAndRemove_ShouldReturnProperValue() {
     QsbrMap<Integer, Item> map = new QsbrMap<>();
 
     assertThat(map.getVersion()).isEqualTo(0);
@@ -334,7 +334,7 @@ class QsbrMapTest {
   }
 
   @Test
-  void readAndRemoveWithConcurrentRead_ShouldReturnProperValue() throws InterruptedException {
+  void getAndRemoveWithConcurrentGet_ShouldReturnProperValue() throws InterruptedException {
     QsbrMap<Integer, Item> map = new QsbrMap<>();
 
     assertThat(map.getVersion()).isEqualTo(0);
