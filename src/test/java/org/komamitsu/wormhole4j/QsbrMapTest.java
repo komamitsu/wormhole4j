@@ -600,6 +600,156 @@ class QsbrMapTest {
   }
 
   @Test
+  void separateSequentialPutAndClear_ShouldRemoveIt() {
+    QsbrMap<Integer, Item> map = new QsbrMap<>();
+
+    assertThat(map.getVersion()).isEqualTo(0);
+
+    int key = getRandomInt();
+    int value1 = getRandomInt();
+
+    map.handleWriteOperation(
+        (version, table) -> {
+          assertThat(table.get(key)).isNull();
+          table.put(key, new Item(version, value1));
+        });
+
+    assertThat(map.getVersion()).isEqualTo(1);
+
+    map.handleWriteOperation((version, table) -> table.clear());
+
+    assertThat(map.getVersion()).isEqualTo(2);
+
+    map.handleReadOperation(table -> assertThat(table.get(key)).isNull());
+  }
+
+  @Test
+  void singleGetAndClearInTransaction_ShouldRemoveIt() {
+    QsbrMap<Integer, Item> map = new QsbrMap<>();
+
+    assertThat(map.getVersion()).isEqualTo(0);
+
+    int key = getRandomInt();
+    int value = getRandomInt();
+    map.handleWriteOperation(
+        (version, table) -> {
+          assertThat(table.get(key)).isNull();
+          table.put(key, new Item(version, value));
+        });
+
+    assertThat(map.getVersion()).isEqualTo(1);
+
+    map.handleReadOperation(
+        readTable -> {
+          assertThat(readTable.get(key)).isEqualTo(new Item(1, value));
+          map.handleWriteOperation((version, writeTable) -> writeTable.clear());
+        });
+
+    assertThat(map.getVersion()).isEqualTo(2);
+
+    map.handleReadOperation(table -> assertThat(table.get(key)).isNull());
+  }
+
+  @Test
+  void multipleGetModifyPutAndClear_ShouldReturnProperValue() {
+    QsbrMap<Integer, Item> map = new QsbrMap<>();
+
+    assertThat(map.getVersion()).isEqualTo(0);
+
+    int key1 = getRandomInt();
+    int value1 = getRandomInt();
+    int key2 = getRandomInt();
+    int value2 = getRandomInt();
+    int key3 = getRandomInt();
+    int value3 = getRandomInt();
+
+    map.handleReadOperation(
+        readTable -> {
+          assertThat(readTable.get(key1)).isNull();
+          map.handleWriteOperation(
+              (version, writeTable) -> writeTable.put(key1, new Item(version, value1)));
+        });
+
+    assertThat(map.getVersion()).isEqualTo(1);
+
+    map.handleReadOperation(
+        readTable -> {
+          assertThat(readTable.get(key1)).isEqualTo(new Item(1, value1));
+          map.handleWriteOperation(
+              (version, writeTable) -> {
+                writeTable.clear();
+                writeTable.put(key2, new Item(version, value2));
+              });
+        });
+
+    assertThat(map.getVersion()).isEqualTo(2);
+
+    map.handleReadOperation(
+        readTable -> {
+          assertThat(readTable.get(key1)).isNull();
+          assertThat(readTable.get(key2)).isEqualTo(new Item(2, value2));
+          map.handleWriteOperation(
+              (version, writeTable) -> {
+                writeTable.clear();
+                writeTable.put(key3, new Item(version, value3));
+              });
+        });
+
+    assertThat(map.getVersion()).isEqualTo(3);
+
+    map.handleReadOperation(
+        table -> {
+          assertThat(table.get(key1)).isNull();
+          assertThat(table.get(key2)).isNull();
+          assertThat(table.get(key3)).isEqualTo(new Item(3, value3));
+        });
+  }
+
+  @Test
+  void getAndClearWithConcurrentGet_ShouldReturnProperValue() throws InterruptedException {
+    QsbrMap<Integer, Item> map = new QsbrMap<>();
+
+    assertThat(map.getVersion()).isEqualTo(0);
+
+    int key = getRandomInt();
+    int value = getRandomInt();
+
+    map.handleWriteOperation(
+        (version, table) -> {
+          assertThat(table.get(key)).isNull();
+          table.put(key, new Item(version, value));
+        });
+    assertThat(map.getVersion()).isEqualTo(1);
+
+    CountDownLatch readBeforeRemoveLatch = new CountDownLatch(1);
+    ExecutorService executorService = Executors.newCachedThreadPool();
+    executorService.execute(
+        () ->
+            map.handleReadOperation(
+                readTable -> {
+                  assertThat(readTable.get(key)).isNotNull();
+                  readBeforeRemoveLatch.countDown();
+                  sleep(1);
+                  assertThat(readTable.get(key)).isNotNull();
+                }));
+
+    map.handleReadOperation(
+        readTable -> {
+          Item readItem = readTable.get(key);
+          assertThat(readItem).isNotNull();
+          await(readBeforeRemoveLatch);
+          map.handleWriteOperation((version, writeTable) -> writeTable.clear());
+        });
+
+    assertThat(map.getVersion()).isEqualTo(2);
+
+    executorService.shutdown();
+    assertThat(executorService.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
+
+    map.handleReadOperation(table -> assertThat(table.get(key)).isNull());
+  }
+
+  @Test
   void whenWriteFails_ShouldRevertOperation() {
     QsbrMap<Integer, Item> map = new QsbrMap<>();
 
