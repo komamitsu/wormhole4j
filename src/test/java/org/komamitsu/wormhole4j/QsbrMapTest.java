@@ -54,6 +54,14 @@ class QsbrMapTest {
     public int hashCode() {
       return Objects.hash(version.get(), value.get());
     }
+
+    @Override
+    public String toString() {
+      return "Item{" +
+          "version=" + version +
+          ", value=" + value +
+          '}';
+    }
   }
 
   @BeforeEach
@@ -750,30 +758,51 @@ class QsbrMapTest {
   }
 
   @Test
-  void whenWriteFails_ShouldRevertOperation() {
+  void whenMultipleOperationWriteFails_ShouldRevertAllOperations() {
     QsbrMap<Integer, Item> map = new QsbrMap<>();
 
     assertThat(map.getVersion()).isEqualTo(0);
 
     int key1 = getRandomInt();
-    int value1 = getRandomInt();
+    int value1_init = getRandomInt();
+    int value1_putAll = getRandomInt();
     int key2 = getRandomInt();
-    int value2 = getRandomInt();
+    int value2_putAll = getRandomInt();
+    int key3 = getRandomInt();
+    int value3_putAll = getRandomInt();
+    int value3_put = getRandomInt();
 
-    map.handleWriteOperation((version, table) -> table.put(key1, new Item(version, value1)));
+    map.handleWriteOperation((version, table) -> table.put(key1, new Item(version, value1_init)));
 
     assertThat(map.getVersion()).isEqualTo(1);
 
     try {
       map.handleWriteOperation(
           (version, table) -> {
-            Item actual = table.get(key1);
-            Item expected = new Item(1, value1);
-            assertThat(actual).isEqualTo(expected);
-            assertThat(table.remove(key1)).isEqualTo(actual);
+            table.clear();
+            assertThat(table.get(key1)).isNull();
 
+            Map<Integer, Item> src = new HashMap<>();
+            src.put(key1, new Item(version, value1_putAll));
+            src.put(key2, new Item(version, value2_putAll));
+            src.put(key3, new Item(version, value3_putAll));
+            table.putAll(src);
+
+            assertThat(table.get(key1)).isEqualTo(new Item(version, value1_putAll));
+            assertThat(table.get(key2)).isEqualTo(new Item(version, value2_putAll));
+            assertThat(table.get(key3)).isEqualTo(new Item(version, value3_putAll));
+
+            assertThat(table.remove(key2)).isEqualTo(new Item(version, value2_putAll));
+
+            assertThat(table.get(key1)).isEqualTo(new Item(version, value1_putAll));
             assertThat(table.get(key2)).isNull();
-            table.put(key2, new Item(version, value2));
+            assertThat(table.get(key3)).isEqualTo(new Item(version, value3_putAll));
+
+            assertThat(table.put(key3, new Item(version, value3_put))).isEqualTo(new Item(version, value3_putAll));
+
+            assertThat(table.get(key1)).isEqualTo(new Item(version, value1_putAll));
+            assertThat(table.get(key2)).isNull();
+            assertThat(table.get(key3)).isEqualTo(new Item(version, value3_put));
 
             throw new RuntimeException("foo bar");
           });
@@ -784,8 +813,9 @@ class QsbrMapTest {
 
     assertThat(map.getVersion()).isEqualTo(1);
 
-    map.handleReadOperation(table -> assertThat(table.get(key1)).isEqualTo(new Item(1, value1)));
+    map.handleReadOperation(table -> assertThat(table.get(key1)).isEqualTo(new Item(1, value1_init)));
     map.handleReadOperation(table -> assertThat(table.get(key2)).isNull());
+    map.handleReadOperation(table -> assertThat(table.get(key3)).isNull());
   }
 
   private void sleep(int seconds) {
