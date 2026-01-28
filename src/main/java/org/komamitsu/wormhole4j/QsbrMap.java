@@ -31,8 +31,12 @@ class QsbrMap<K, V> {
   private final AtomicLong version = new AtomicLong();
   private final List<QsbrSlot> slots = new ArrayList<>();
   private volatile int activeSlotId = 0;
-  private final ThreadLocal<Boolean> isInReadPhase = ThreadLocal.withInitial(() -> false);
   private final Lock writerLock = new ReentrantLock(true);
+  private final AtomicInteger threadIdCounter = new AtomicInteger();
+  private final ThreadLocal<Integer> threadId =
+      ThreadLocal.withInitial(threadIdCounter::getAndIncrement);
+  private final ThreadLocal<Integer> readSlotId = new ThreadLocal<>();
+  // TODO: Should manage read-set?
 
   private static class CommandRecordingMap<K, V> extends HashMap<K, V> {
     private final List<Command> commands = new ArrayList<>();
@@ -61,7 +65,7 @@ class QsbrMap<K, V> {
 
     @Override
     public V put(K key, V value) {
-      debugPrint(String.format("COMMAND-PUT: %s -> %s", key, value));
+      //      debugPrint(String.format("COMMAND-PUT: %s -> %s", key, value));
       V oldValue = super.put(key, value);
       commands.add(new PutCommand<>(key, value));
       return oldValue;
@@ -69,7 +73,7 @@ class QsbrMap<K, V> {
 
     @Override
     public V remove(Object key) {
-      debugPrint(String.format("COMMAND-RMV: %s", key));
+      //      debugPrint(String.format("COMMAND-RMV: %s", key));
       V oldValue = super.remove(key);
       commands.add(new RemoveCommand<>(key));
       return oldValue;
@@ -77,14 +81,14 @@ class QsbrMap<K, V> {
 
     @Override
     public void putAll(Map<? extends K, ? extends V> m) {
-      debugPrint(String.format("COMMAND-PAL"));
+      //      debugPrint(String.format("COMMAND-PAL"));
       super.putAll(m);
       m.forEach((key, value) -> commands.add(new PutCommand<>(key, value)));
     }
 
     @Override
     public void clear() {
-      debugPrint(String.format("COMMAND-CLR"));
+      //      debugPrint(String.format("COMMAND-CLR"));
       super.clear();
       commands.add(new ClearCommand());
     }
@@ -110,7 +114,8 @@ class QsbrMap<K, V> {
     }
 
     @Override
-    public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+    public V computeIfPresent(
+        K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
       throw new UnsupportedOperationException();
     }
 
@@ -120,7 +125,8 @@ class QsbrMap<K, V> {
     }
 
     @Override
-    public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
+    public V merge(
+        K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
       throw new UnsupportedOperationException();
     }
 
@@ -158,47 +164,64 @@ class QsbrMap<K, V> {
 
   private class QsbrSlot {
     private final CommandRecordingMap<K, V> table = new CommandRecordingMap<>();
-    private final AtomicInteger readerCount = new AtomicInteger();
+    private final BitSet readers = new BitSet();
     private final Object qsbrWaitLock = new Object();
 
     void enterReadPhase() {
-      debugPrint(String.format("enterReadPhase: Start. ReaderCount:%d, InReadPhase:%s", readerCount.get(), isInReadPhase.get()));
-      readerCount.incrementAndGet();
-      isInReadPhase.set(true);
-      debugPrint(String.format("enterReadPhase: End. ReaderCount:%d, InReadPhase:%s", readerCount.get(), isInReadPhase.get()));
+      debugPrint(
+          threadId.get(),
+          String.format("enterReadPhase: Start. ThreadId:%d, Readers:%s", threadId.get(), readers));
+      readers.set(threadId.get());
+      debugPrint(
+          threadId.get(),
+          String.format("enterReadPhase: End. ThreadId:%d, Readers:%s", threadId.get(), readers));
     }
 
     void exitReadPhase() {
-      debugPrint(String.format("exitReadPhase: Start. ReaderCount:%d, InReadPhase:%s", readerCount.get(), isInReadPhase.get()));
+      debugPrint(
+          threadId.get(),
+          String.format("exitReadPhase: Start. ThreadId:%d, Readers:%s", threadId.get(), readers));
       // If the reader is also the writer, the flag should be already unset and the reader count is
       // decremented.
       // Nothing to do.
-      if (!isInReadPhase.get()) {
-        debugPrint(String.format("exitReadPhase: Already done. ReaderCount:%d, InReadPhase:%s", readerCount.get(), isInReadPhase.get()));
+      if (!readers.get(threadId.get())) {
+        debugPrint(
+            threadId.get(),
+            String.format(
+                "exitReadPhase: Already done. ThreadId:%d, Readers:%s", threadId.get(), readers));
         return;
       }
-      int currentReaderCount = readerCount.decrementAndGet();
-      assert currentReaderCount >= 0;
-      if (currentReaderCount == 0) {
+      readers.clear(threadId.get());
+      if (readers.isEmpty()) {
         synchronized (qsbrWaitLock) {
           qsbrWaitLock.notify();
         }
       }
-      isInReadPhase.set(false);
-      debugPrint(String.format("exitReadPhase: End. ReaderCount:%d, InReadPhase:%s", readerCount.get(), isInReadPhase.get()));
+      debugPrint(
+          threadId.get(),
+          String.format("exitReadPhase: End. ThreadId:%d, Readers:%s", threadId.get(), readers));
     }
 
     void waitUntilNoReader() {
-      debugPrint("waitUntilNoReader: Start");
+      debugPrint(
+          threadId.get(),
+          String.format(
+              "waitUntilNoReader: Start. ThreadId:%d, Readers:%s", threadId.get(), readers));
       synchronized (qsbrWaitLock) {
         while (true) {
-          int currentReaderCount = readerCount.get();
-          debugPrint(String.format("waitUntilNoReader: ReadCounter:%d", currentReaderCount));
-          assert currentReaderCount >= 0;
-          if (currentReaderCount == 0) {
+          if (readers.isEmpty()) {
+            debugPrint(
+                threadId.get(),
+                String.format(
+                    "waitUntilNoReader: Empty. ThreadId:%d, Readers:%s", threadId.get(), readers));
             break;
           }
           try {
+            debugPrint(
+                threadId.get(),
+                String.format(
+                    "waitUntilNoReader: Waiting. ThreadId:%d, Readers:%s",
+                    threadId.get(), readers));
             qsbrWaitLock.wait();
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -216,78 +239,129 @@ class QsbrMap<K, V> {
   }
 
   void handleReadOperation(Consumer<Map<K, V>> task) {
-    debugPrint("handleReadOperation: Start");
-    QsbrSlot activeSlot = getActiveSlot();
-    Map<K, V> table = activeSlot.table;
+    readSlotId.set(activeSlotId);
+    debugPrint(
+        threadId.get(),
+        String.format("handleReadOperation: Start. ReadSlotId:%d", readSlotId.get()));
+    QsbrSlot readSlot = getSlot(readSlotId.get());
+    Map<K, V> table = readSlot.table;
     try {
-      activeSlot.enterReadPhase();
-      debugPrint("handleReadOperation: Executing Task");
+      readSlot.enterReadPhase();
+      debugPrint(
+          threadId.get(),
+          String.format("handleReadOperation: Executing Task. ReadSlotId:%d", readSlotId.get()));
       task.accept(table);
-      debugPrint("handleReadOperation: Executed Task");
+      debugPrint(
+          threadId.get(),
+          String.format("handleReadOperation: Executed Task. ReadSlotId:%d", readSlotId.get()));
     } finally {
-      activeSlot.exitReadPhase();
+      readSlot.exitReadPhase();
+      readSlotId.remove();
     }
   }
 
   void handleWriteOperation(BiConsumer<Long, Map<K, V>> task) {
-    debugPrint(String.format("handleWriteOperation: Start. ActiveSlotId:%d", activeSlotId));
+    debugPrint(
+        threadId.get(),
+        String.format("handleWriteOperation: Start. ActiveSlotId:%d", activeSlotId));
+
     // If the writer is also in the read phase, exit it to decrement the reader count.
-    if (isInReadPhase.get()) {
-      getActiveSlot().exitReadPhase();
+    debugPrint(
+        threadId.get(),
+        String.format(
+            "handleWriteOperation: Check if in read phase. ReadSlotId:%d", readSlotId.get()));
+    if (readSlotId.get() != null) {
+      QsbrSlot readSlot = slots.get(readSlotId.get());
+      debugPrint(
+          threadId.get(),
+          String.format(
+              "handleWriteOperation: Exiting read phase. ReadSlotId:%d, Readers:%s",
+              readSlotId.get(), readSlot.readers));
+      readSlot.exitReadPhase();
+      readSlotId.remove();
     }
 
-    writerLock.lock();
-
-    debugPrint(String.format("handleWriteOperation: Acquired Lock. ActiveSlotId:%d", activeSlotId));
-
-    Map<K, V> activeTable = getActiveSlot().table;
-    QsbrSlot inactiveSlot = getInactiveSlot();
-    CommandRecordingMap<K, V> inactiveTable = inactiveSlot.table;
+    Integer activeSlotIdBeforeSwitch = null;
     try {
+      debugPrint(
+          threadId.get(),
+          String.format("handleWriteOperation: Waiting lock. ActiveSlotId:%d", activeSlotId));
+      writerLock.lock();
+      activeSlotIdBeforeSwitch = activeSlotId;
+      QsbrSlot activeSlotBeforeSwitch = getSlot(activeSlotIdBeforeSwitch);
+      Map<K, V> activeTableBeforeSwitch = activeSlotBeforeSwitch.table;
+      CommandRecordingMap<K, V> inactiveTableBeforeSwitch =
+          getSlot(getInactiveSlotId(activeSlotIdBeforeSwitch)).table;
+
+      debugPrint(
+          threadId.get(),
+          String.format(
+              "handleWriteOperation: Acquired Lock. ActiveSlotId:%d", activeSlotIdBeforeSwitch));
+
       long nextVersion = version.get() + 1;
-      task.accept(nextVersion, inactiveTable);
+      task.accept(nextVersion, inactiveTableBeforeSwitch);
       version.set(nextVersion);
       // Switch the slots.
-      activeSlotId = getInactiveSlotId(activeSlotId);
+      debugPrint(
+          threadId.get(),
+          String.format(
+              "handleWriteOperation: Switching ActiveSlotId. %d -> %d. Actual ActiveSlotId:%d",
+              activeSlotIdBeforeSwitch, getInactiveSlotId(activeSlotIdBeforeSwitch), activeSlotId));
+      assert activeSlotId == activeSlotIdBeforeSwitch;
+      activeSlotId = getInactiveSlotId(activeSlotIdBeforeSwitch);
 
       // Wait for all readers to finish with the current inactive slot.
-      QsbrSlot currentInactiveSlot = getInactiveSlot();
-      currentInactiveSlot.waitUntilNoReader();
+      debugPrint(
+          threadId.get(),
+          String.format(
+              "handleWriteOperation: Wait until no readers. CurrentInactiveSlotId:%d",
+              activeSlotIdBeforeSwitch));
+      activeSlotBeforeSwitch.waitUntilNoReader();
 
-      debugPrint(String.format("  Commands:%s", inactiveTable.commands));
+      //      debugPrint(threadId.get(), String.format("  Commands:%s", inactiveTable.commands));
 
       // Apply the recent commands to the current inactive slot table.
-      for (CommandRecordingMap.Command command : inactiveTable.commands) {
+      for (CommandRecordingMap.Command command : inactiveTableBeforeSwitch.commands) {
         if (command instanceof CommandRecordingMap.PutCommand) {
           CommandRecordingMap.PutCommand<K, V> specificCommand =
               (CommandRecordingMap.PutCommand<K, V>) command;
-          currentInactiveSlot.table.put(specificCommand.key, specificCommand.value);
-          debugPrint(String.format("  PUT: %s -> %s", specificCommand.key, specificCommand.value));
+          activeTableBeforeSwitch.put(specificCommand.key, specificCommand.value);
+          //          debugPrint(threadId.get(), String.format("  PUT: %s -> %s",
+          // specificCommand.key, specificCommand.value));
         } else if (command instanceof CommandRecordingMap.RemoveCommand) {
           CommandRecordingMap.RemoveCommand<K> specificCommand =
               (CommandRecordingMap.RemoveCommand<K>) command;
-          currentInactiveSlot.table.remove(specificCommand.key);
-          debugPrint(String.format("  RM:  %s", specificCommand.key));
+          activeTableBeforeSwitch.remove(specificCommand.key);
+          //          debugPrint(threadId.get(), String.format("  RM:  %s", specificCommand.key));
         } else {
           assert command instanceof CommandRecordingMap.ClearCommand;
-          currentInactiveSlot.table.clear();
-          debugPrint(String.format("  CLR"));
+          activeTableBeforeSwitch.clear();
+          //          debugPrint(threadId.get(), String.format("  CLR"));
         }
       }
-      inactiveTable.resetCommands();
+      inactiveTableBeforeSwitch.resetCommands();
     } catch (Exception e) {
+      if (activeSlotIdBeforeSwitch == null) {
+        // Something happened when acquiring the write lock.
+        return;
+      }
+      QsbrSlot activeSlotBeforeSwitch = getSlot(activeSlotIdBeforeSwitch);
+      Map<K, V> activeTableBeforeSwitch = activeSlotBeforeSwitch.table;
+      CommandRecordingMap<K, V> inactiveTableBeforeSwitch =
+          getSlot(getInactiveSlotId(activeSlotIdBeforeSwitch)).table;
+
       Consumer<K> restorer =
           key -> {
-            V origValue = activeTable.get(key);
+            V origValue = activeTableBeforeSwitch.get(key);
             if (origValue == null) {
-              inactiveTable.removeWithoutRecordingCommand(key);
+              inactiveTableBeforeSwitch.removeWithoutRecordingCommand(key);
             } else {
-              inactiveTable.putWithoutRecordingCommand(key, origValue);
+              inactiveTableBeforeSwitch.putWithoutRecordingCommand(key, origValue);
             }
           };
       // Revert commands applied to the slot.
-      for (int i = 0; i < inactiveTable.commands.size(); i++) {
-        CommandRecordingMap.Command command = inactiveTable.commands.get(i);
+      for (int i = 0; i < inactiveTableBeforeSwitch.commands.size(); i++) {
+        CommandRecordingMap.Command command = inactiveTableBeforeSwitch.commands.get(i);
         if (command instanceof CommandRecordingMap.PutCommand) {
           CommandRecordingMap.PutCommand<K, V> putCommand =
               (CommandRecordingMap.PutCommand<K, V>) command;
@@ -298,14 +372,19 @@ class QsbrMap<K, V> {
           restorer.accept(removeCommand.key);
         } else {
           assert command instanceof CommandRecordingMap.ClearCommand;
-          inactiveTable.clearWithoutRecordingCommand();
-          inactiveTable.putAllWithoutRecordingCommand(activeTable);
+          inactiveTableBeforeSwitch.clearWithoutRecordingCommand();
+          inactiveTableBeforeSwitch.putAllWithoutRecordingCommand(activeTableBeforeSwitch);
         }
-        inactiveTable.resetCommands();
+        inactiveTableBeforeSwitch.resetCommands();
       }
       throw e;
     } finally {
       writerLock.unlock();
+      debugPrint(
+          threadId.get(),
+          String.format(
+              "handleWriteOperation: Released Lock. ActiveSlotId before switch:%d, Current ActiveSlotId:%d",
+              activeSlotIdBeforeSwitch, activeSlotId));
     }
   }
 
@@ -315,6 +394,10 @@ class QsbrMap<K, V> {
 
   Map<K, V> getTable() {
     return getActiveSlot().table;
+  }
+
+  private QsbrSlot getSlot(int slotId) {
+    return slots.get(slotId);
   }
 
   private QsbrSlot getActiveSlot() {
@@ -330,6 +413,11 @@ class QsbrMap<K, V> {
   }
 
   // TODO: Remove
+  private static void debugPrint(int threadId, String msg) {
+    System.out.printf(
+        "%s [%s] (%d) %s%n", Instant.now(), Thread.currentThread().getName(), threadId, msg);
+  }
+
   private static void debugPrint(String msg) {
     System.out.printf("%s [%s] %s%n", Instant.now(), Thread.currentThread().getName(), msg);
   }

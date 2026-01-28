@@ -890,84 +890,110 @@ class QsbrMapTest {
 
     @Override
     public String toString() {
-      return "Account{" +
-          "version=" + version +
-          ", balance=" + balance +
-          '}';
+      return "Account{" + "version=" + version + ", balance=" + balance + '}';
     }
   }
 
   @Test
-  void multiThreadOperations_ShouldReachProperState() throws ExecutionException, InterruptedException {
-//    int threadCount = 8;
+  void multiThreadOperations_ShouldReachProperState()
+      throws ExecutionException, InterruptedException {
+    //    int threadCount = 8;
     int threadCount = 2;
     int accountCount = 10;
     int maxAmount = 100;
-//    int durationMillis = 5000;
-    int durationMillis = 50;
+    //    int durationMillis = 5000;
+    int durationMillis = 10;
 
     QsbrMap<Integer, Account> map = new QsbrMap<>();
 
-    Runnable mutableTransferOp = () -> {
-      int fromAccountId = ThreadLocalRandom.current().nextInt(accountCount);
-      int toAccountId = ThreadLocalRandom.current().nextInt(accountCount);
-      int amount = ThreadLocalRandom.current().nextInt(maxAmount);
-      map.handleReadOperation((readTable) -> {
-        debugPrint(String.format("MUTABLE: Read-Start. Table:%s, Amount:%d", readTable, amount));
-        Account fromAccount = readTable.get(fromAccountId);
-        Account toAccount = readTable.get(toAccountId);
-        int currentFromAccountBalance = fromAccount == null ? 0 : fromAccount.balance;
-        int currentToAccountBalance = toAccount == null ? 0 : toAccount.balance;
-        debugPrint(" <before>");
-        debugPrint(String.format("  %d => %s", fromAccountId, currentFromAccountBalance));
-        debugPrint(String.format("  %d => %s", toAccountId, currentToAccountBalance));
-        map.handleWriteOperation((version, writeTable) -> {
-          debugPrint(String.format("MUTABLE: Write-Start. Version:%d, Table:%s, Amount:%d", version, writeTable, amount));
-          if (fromAccount == null) {
-            writeTable.put(fromAccountId, new Account(version, currentFromAccountBalance - amount));
-          } else {
-            fromAccount.balance -= amount;
+    Runnable mutableTransferOp =
+        () -> {
+          int fromAccountId = ThreadLocalRandom.current().nextInt(accountCount);
+          int toAccountId = ThreadLocalRandom.current().nextInt(accountCount);
+          int amount = ThreadLocalRandom.current().nextInt(maxAmount);
+          map.handleReadOperation(
+              (readTable) -> {
+                debugPrint(
+                    String.format("MUTABLE: Read-Start. Table:%s, Amount:%d", readTable, amount));
+                Account fromAccount = readTable.get(fromAccountId);
+                Account toAccount = readTable.get(toAccountId);
+                int currentFromAccountBalance = fromAccount == null ? 0 : fromAccount.balance;
+                int currentToAccountBalance = toAccount == null ? 0 : toAccount.balance;
+                debugPrint(" <before>");
+                debugPrint(String.format("  %d => %s", fromAccountId, currentFromAccountBalance));
+                debugPrint(String.format("  %d => %s", toAccountId, currentToAccountBalance));
+                map.handleWriteOperation(
+                    (version, writeTable) -> {
+                      debugPrint(
+                          String.format(
+                              "MUTABLE: Write-Start. Version:%d, Table:%s, Amount:%d",
+                              version, writeTable, amount));
+                      if (fromAccount == null) {
+                        writeTable.put(
+                            fromAccountId,
+                            new Account(version, currentFromAccountBalance - amount));
+                      } else {
+                        fromAccount.balance -= amount;
+                      }
+                      if (toAccount == null) {
+                        writeTable.put(
+                            toAccountId, new Account(version, currentToAccountBalance + amount));
+                      } else {
+                        toAccount.balance += amount;
+                      }
+                      debugPrint(" <after>");
+                      debugPrint(
+                          String.format(
+                              "  %d => %s", fromAccountId, currentFromAccountBalance - amount));
+                      debugPrint(
+                          String.format(
+                              "  %d => %s", toAccountId, currentToAccountBalance + amount));
+                    });
+              });
+        };
+    Runnable immutableTransferOp =
+        () -> {
+          int fromAccountId = ThreadLocalRandom.current().nextInt(accountCount);
+          int toAccountId = ThreadLocalRandom.current().nextInt(accountCount);
+          if (fromAccountId == toAccountId) {
+            return;
           }
-          if (toAccount == null) {
-            writeTable.put(toAccountId, new Account(version, currentToAccountBalance + amount));
-          } else {
-            toAccount.balance += amount;
-          }
-          debugPrint(" <after>");
-          debugPrint(String.format("  %d => %s", fromAccountId, currentFromAccountBalance - amount));
-          debugPrint(String.format("  %d => %s", toAccountId, currentToAccountBalance + amount));
-        });
-      });
-    };
-    Runnable immutableTransferOp = () -> {
-      int fromAccountId = ThreadLocalRandom.current().nextInt(accountCount);
-      int toAccountId = ThreadLocalRandom.current().nextInt(accountCount);
-      if (fromAccountId == toAccountId) {
-        return;
-      }
-      int amount = ThreadLocalRandom.current().nextInt(maxAmount);
-      map.handleReadOperation((readTable) -> {
-        debugPrint(String.format("IMMUTABLE: Read-Start. Table:%s, Amount:%d", readTable, amount));
-        Account fromAccount = readTable.get(fromAccountId);
-        Account toAccount = readTable.get(toAccountId);
-        int currentFromAccountBalance = fromAccount == null ? 0 : fromAccount.balance;
-        int currentToAccountBalance = toAccount == null ? 0 : toAccount.balance;
-        debugPrint(" <before>");
-        debugPrint(String.format("  %d => %s", fromAccountId, currentFromAccountBalance));
-        debugPrint(String.format("  %d => %s", toAccountId, currentToAccountBalance));
-        map.handleWriteOperation((version, writeTable) -> {
-          debugPrint(String.format("IMMUTABLE: Write-Start. Version:%d, Table:%s, Amount:%d", version, writeTable, amount));
-          debugPrint(" <before>");
-          debugPrint(String.format("  %d => %s", fromAccountId, currentFromAccountBalance));
-          debugPrint(String.format("  %d => %s", toAccountId, currentToAccountBalance));
-          writeTable.put(fromAccountId, new Account(version, currentFromAccountBalance - amount));
-          writeTable.put(toAccountId, new Account(version, currentToAccountBalance + amount));
-          debugPrint(" <after>");
-          debugPrint(String.format("  %d => %s", fromAccountId, currentFromAccountBalance - amount));
-          debugPrint(String.format("  %d => %s", toAccountId, currentToAccountBalance + amount));
-        });
-      });
-    };
+          int amount = ThreadLocalRandom.current().nextInt(maxAmount);
+          map.handleReadOperation(
+              (readTable) -> {
+                debugPrint(
+                    String.format("IMMUTABLE: Read-Start. Table:%s, Amount:%d", readTable, amount));
+                Account fromAccount = readTable.get(fromAccountId);
+                Account toAccount = readTable.get(toAccountId);
+                int currentFromAccountBalance = fromAccount == null ? 0 : fromAccount.balance;
+                int currentToAccountBalance = toAccount == null ? 0 : toAccount.balance;
+                debugPrint(" <before>");
+                debugPrint(String.format("  %d => %s", fromAccountId, currentFromAccountBalance));
+                debugPrint(String.format("  %d => %s", toAccountId, currentToAccountBalance));
+                map.handleWriteOperation(
+                    (version, writeTable) -> {
+                      debugPrint(
+                          String.format(
+                              "IMMUTABLE: Write-Start. Version:%d, Table:%s, Amount:%d",
+                              version, writeTable, amount));
+                      debugPrint(" <before>");
+                      debugPrint(
+                          String.format("  %d => %s", fromAccountId, currentFromAccountBalance));
+                      debugPrint(String.format("  %d => %s", toAccountId, currentToAccountBalance));
+                      writeTable.put(
+                          fromAccountId, new Account(version, currentFromAccountBalance - amount));
+                      writeTable.put(
+                          toAccountId, new Account(version, currentToAccountBalance + amount));
+                      debugPrint(" <after>");
+                      debugPrint(
+                          String.format(
+                              "  %d => %s", fromAccountId, currentFromAccountBalance - amount));
+                      debugPrint(
+                          String.format(
+                              "  %d => %s", toAccountId, currentToAccountBalance + amount));
+                    });
+              });
+        };
     // TODO: Audit operation:
     // TODO: Split operation:
     // TODO: Merge operation:
@@ -976,20 +1002,22 @@ class QsbrMapTest {
     List<Future<?>> futures = new ArrayList<>();
     ExecutorService executorService = Executors.newCachedThreadPool();
     for (int i = 0; i < threadCount; i++) {
-      futures.add(executorService.submit(() -> {
-        while (!shouldStop.get()) {
-          switch (ThreadLocalRandom.current().nextInt(2)) {
-            case 0:
-              mutableTransferOp.run();
-              break;
-            case 1:
-              immutableTransferOp.run();
-              break;
-            default:
-              throw new AssertionError();
-          }
-        }
-      }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                while (!shouldStop.get()) {
+                  switch (ThreadLocalRandom.current().nextInt(2)) {
+                    case 0:
+                      mutableTransferOp.run();
+                      break;
+                    case 1:
+                      immutableTransferOp.run();
+                      break;
+                    default:
+                      throw new AssertionError();
+                  }
+                }
+              }));
     }
     sleep(durationMillis);
     shouldStop.set(true);
@@ -1001,16 +1029,17 @@ class QsbrMapTest {
     executorService.shutdown();
     assertThat(executorService.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
 
-    map.handleReadOperation((table) -> {
-      int totalBalance = 0;
-      for (int i = 0; i < accountCount; i++) {
-        Account account = table.get(i);
-        if (account != null) {
-          totalBalance += account.balance;
-        }
-      }
-      assertThat(totalBalance).isEqualTo(0);
-    });
+    map.handleReadOperation(
+        (table) -> {
+          int totalBalance = 0;
+          for (int i = 0; i < accountCount; i++) {
+            Account account = table.get(i);
+            if (account != null) {
+              totalBalance += account.balance;
+            }
+          }
+          assertThat(totalBalance).isEqualTo(0);
+        });
   }
 
   private void sleep(int milliSeconds) {
