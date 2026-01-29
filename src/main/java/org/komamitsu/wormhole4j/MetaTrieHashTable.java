@@ -25,7 +25,7 @@ class MetaTrieHashTable<K, V> {
 
   private final boolean isThreadSafe;
   private volatile long globalVersion = 0;
-  private final QsbrMap<Object, NodeMeta<K, V>> qsbrMap = new QsbrMap<>();
+  private final Map<Object, NodeMeta<K, V>> table = new HashMap<>();
 
   public MetaTrieHashTable(EncodedKeyType encodedKeyType, boolean isThreadSafe) {
     this.encodedKeyType = encodedKeyType;
@@ -36,11 +36,22 @@ class MetaTrieHashTable<K, V> {
     this(encodedKeyType, false);
   }
 
-  abstract static class NodeMeta<K, V> {
+  abstract static class NodeMeta<K, V> implements QsbrMap.Versionable {
     final Object anchorPrefix;
+    long version;
 
     public NodeMeta(Object anchorPrefix) {
       this.anchorPrefix = anchorPrefix;
+    }
+
+    @Override
+    public long getVersion() {
+      return version;
+    }
+
+    @Override
+    public void setVersion(long version) {
+      this.version = version;
     }
   }
 
@@ -124,25 +135,21 @@ class MetaTrieHashTable<K, V> {
     return globalVersion;
   }
 
-  Map<Object, NodeMeta<K, V>> getTable() {
-    return qsbrMap.getTable();
-  }
-
   NodeMeta<K, V> get(Object key) {
-    return getTable().get(key);
+    return table.get(key);
   }
 
   void put(Object key, NodeMeta<K, V> nodeMeta) {
-    qsbrMap.getTable().put(key, nodeMeta);
+    table.put(key, nodeMeta);
     maxAnchorLength = Math.max(maxAnchorLength, EncodedKeyUtils.length(encodedKeyType, key));
   }
 
   Collection<NodeMeta<K, V>> values() {
-    return qsbrMap.getTable().values();
+    return table.values();
   }
 
   Set<Map.Entry<Object, NodeMeta<K, V>>> entrySet() {
-    return qsbrMap.getTable().entrySet();
+    return table.entrySet();
   }
 
   void handleSplitNodes(Object newAnchorKey, LeafNode<K, V> newLeafNode) {
@@ -161,7 +168,7 @@ class MetaTrieHashTable<K, V> {
         prefixLen < EncodedKeyUtils.length(encodedKeyType, newAnchorKey);
         prefixLen++) {
       Object prefix = EncodedKeyUtils.slice(encodedKeyType, newAnchorKey, prefixLen);
-      NodeMeta<K, V> node = qsbrMap.getTable().get(prefix);
+      NodeMeta<K, V> node = table.get(prefix);
       if (node == null) {
         put(
             prefix,
@@ -222,7 +229,7 @@ class MetaTrieHashTable<K, V> {
 
   NodeMeta<K, V> searchLongestPrefixMatch(EncodedKeyType encodedKeyType, Object searchKey) {
     Object lpm = searchLongestPrefixMatchKey(encodedKeyType, searchKey);
-    return qsbrMap.getTable().get(lpm);
+    return table.get(lpm);
   }
 
   private Object searchLongestPrefixMatchKey(EncodedKeyType encodedKeyType, Object searchKey) {
@@ -230,9 +237,7 @@ class MetaTrieHashTable<K, V> {
     int n = Math.min(EncodedKeyUtils.length(encodedKeyType, searchKey), maxAnchorLength) + 1;
     while (m + 1 < n) {
       int prefixLen = (m + n) / 2;
-      if (qsbrMap
-          .getTable()
-          .containsKey(EncodedKeyUtils.slice(encodedKeyType, searchKey, prefixLen))) {
+      if (table.containsKey(EncodedKeyUtils.slice(encodedKeyType, searchKey, prefixLen))) {
         m = prefixLen;
       } else {
         n = prefixLen;
@@ -242,7 +247,7 @@ class MetaTrieHashTable<K, V> {
   }
 
   void removeNodeMeta(Object anchorKey) {
-    NodeMeta<K, V> removed = qsbrMap.getTable().remove(anchorKey);
+    NodeMeta<K, V> removed = table.remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(
           String.format("Node meta leaf for anchor key '%s' not found for removal", anchorKey));
@@ -253,7 +258,7 @@ class MetaTrieHashTable<K, V> {
   }
 
   Object removeNodeMetaInternal(Object anchorKey) {
-    NodeMeta<K, V> removed = qsbrMap.getTable().remove(anchorKey);
+    NodeMeta<K, V> removed = table.remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(
           String.format("Node meta internal for anchor key '%s' not found for removal", anchorKey));
@@ -273,7 +278,7 @@ class MetaTrieHashTable<K, V> {
 
   private int calcMaxAnchorLength() {
     int max = 0;
-    for (Object key : qsbrMap.getTable().keySet()) {
+    for (Object key : table.keySet()) {
       int keyLen = EncodedKeyUtils.length(encodedKeyType, key);
       if (max < keyLen) {
         max = keyLen;
@@ -284,6 +289,6 @@ class MetaTrieHashTable<K, V> {
 
   @Override
   public String toString() {
-    return "MetaTrieHashTable{" + "table=" + qsbrMap.getTable() + '}';
+    return "MetaTrieHashTable{" + "table=" + table + '}';
   }
 }
