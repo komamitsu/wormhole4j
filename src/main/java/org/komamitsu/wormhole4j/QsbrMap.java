@@ -49,12 +49,19 @@ class QsbrMap<K, V extends QsbrMap.Versionable> {
     }
   }
 
-  interface Versionable {
+  // TODO: This can be removed with either of the following changes?
+  //       - QsbrSlot.Map has an additional Map<K, Version>
+  //       - QsbrSlot.Map manages Version in addition to V (i.e., Map<K, Pair<Version, V>>)
+  interface Versionable<T extends Versionable<T>> {
     long getVersion();
 
     void setVersion(long version);
 
-    // TODO: Add inPlaceMutate()?
+    @SuppressWarnings("unchecked")
+    default void mutableUpdate(long version, Consumer<T> task) {
+      setVersion(version);
+      task.accept((T) this);
+    }
   }
 
   private abstract static class Write<K> {

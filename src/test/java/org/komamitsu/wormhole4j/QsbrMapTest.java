@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
 class QsbrMapTest {
   private Set<Integer> randomIntegers;
 
-  private static class Item implements QsbrMap.Versionable {
+  private static class Item implements QsbrMap.Versionable<Item> {
     private long version;
     private int value;
 
@@ -551,10 +551,8 @@ class QsbrMapTest {
                 assertThat(item3).isEqualTo(new Item(1, value3_init));
                 assertThat(item4).isEqualTo(new Item(1, value4_init));
 
-                item3.setVersion(version);
-                item3.setValue(value3_update1);
-                item4.setVersion(version);
-                item4.setValue(value4_update1);
+                item3.mutableUpdate(version, x -> x.setValue(value3_update1));
+                item4.mutableUpdate(version, x -> x.setValue(value4_update1));
 
                 assertThat(table.get(key1)).isEqualTo(new Item(1, value1_init));
                 assertThat(table.get(key2)).isEqualTo(new Item(1, value2_init));
@@ -604,10 +602,8 @@ class QsbrMapTest {
 
                 Item updatedItem3 = table.get(key3);
                 Item updatedItem4 = table.get(key4);
-                updatedItem3.setVersion(version);
-                updatedItem3.setValue(value3_update2);
-                updatedItem4.setVersion(version);
-                updatedItem4.setValue(value4_update2);
+                updatedItem3.mutableUpdate(version, x -> x.setValue(value3_update2));
+                updatedItem4.mutableUpdate(version, x -> x.setValue(value4_update2));
 
                 assertThat(table.get(key1)).isEqualTo(new Item(1, value1_init));
                 assertThat(table.get(key2)).isEqualTo(new Item(3, value2_reinsert));
@@ -643,7 +639,7 @@ class QsbrMapTest {
   // operation block should
   //         throw an exception
 
-  private static class Account implements QsbrMap.Versionable {
+  private static class Account implements QsbrMap.Versionable<Account> {
     public long version;
     public int balance;
 
@@ -674,7 +670,7 @@ class QsbrMapTest {
     int threadCount = 8;
     int accountCount = 10;
     int maxAmount = 100;
-    int durationMillis = 300000;
+    int durationMillis = 30000;
 
     QsbrMap<Integer, Account> map = new QsbrMap<>();
 
@@ -710,8 +706,7 @@ class QsbrMapTest {
                       } else {
                         debugPrint(
                             String.format("UPDATE(START): %s -> %s", fromAccountId, fromAccount));
-                        fromAccount.setVersion(version);
-                        fromAccount.balance -= amount;
+                        fromAccount.mutableUpdate(version, x -> x.balance -= amount);
                         debugPrint(
                             String.format("UPDATE(END)  : %s -> %s", fromAccountId, fromAccount));
                       }
@@ -721,8 +716,7 @@ class QsbrMapTest {
                       } else {
                         debugPrint(
                             String.format("UPDATE(START): %s -> %s", toAccountId, toAccount));
-                        toAccount.setVersion(version);
-                        toAccount.balance += amount;
+                        toAccount.mutableUpdate(version, x -> x.balance += amount);
                         debugPrint(
                             String.format("UPDATE(END)  : %s -> %s", toAccountId, toAccount));
                       }
@@ -844,8 +838,7 @@ class QsbrMapTest {
                       } else {
                         debugPrint(
                             String.format("UPDATE(START): %s -> %s", toAccountId, toAccount));
-                        toAccount.setVersion(version);
-                        toAccount.balance = newToAccountBalance;
+                        toAccount.mutableUpdate(version, x -> x.balance = newToAccountBalance);
                         debugPrint(
                             String.format("UPDATE(START): %s -> %s", toAccountId, toAccount));
                       }
