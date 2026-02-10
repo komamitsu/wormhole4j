@@ -18,7 +18,6 @@ package org.komamitsu.wormhole4j;
 
 import static org.assertj.core.api.Assertions.*;
 
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -155,6 +154,7 @@ class QsbrMapTest {
         (readCtxt, readTable) -> {
           assertThat(readTable.get(readCtxt, key)).isNull();
           map.handleWriteOperation(
+              readCtxt,
               (writeCtxt, version, writeTable) ->
                   writeTable.put(writeCtxt, key, new Item(version, value1)));
         });
@@ -165,6 +165,7 @@ class QsbrMapTest {
         (readCtxt, readTable) -> {
           assertThat(readTable.get(readCtxt, key)).isEqualTo(new Item(1, value1));
           map.handleWriteOperation(
+              readCtxt,
               (writeCtxt, version, writeTable) ->
                   writeTable.put(writeCtxt, key, new Item(version, value2)));
         });
@@ -175,6 +176,7 @@ class QsbrMapTest {
         (readCtxt, readTable) -> {
           assertThat(readTable.get(readCtxt, key)).isEqualTo(new Item(2, value2));
           map.handleWriteOperation(
+              readCtxt,
               (writeCtxt, version, writeTable) ->
                   writeTable.put(writeCtxt, key, new Item(version, value3)));
         });
@@ -211,6 +213,7 @@ class QsbrMapTest {
           assertThat(readTable.get(readCtxt, key)).isNull();
           await(readBeforeModifyLatch);
           map.handleWriteOperation(
+              readCtxt,
               (writeCtxt, version, writeTable) ->
                   writeTable.put(writeCtxt, key, new Item(version, value)));
         });
@@ -308,7 +311,7 @@ class QsbrMapTest {
         (readCtxt, readTable) -> {
           assertThat(readTable.get(readCtxt, key)).isEqualTo(new Item(1, value));
           map.handleWriteOperation(
-              (writeCtxt, version, writeTable) -> writeTable.remove(writeCtxt, key));
+              readCtxt, (writeCtxt, version, writeTable) -> writeTable.remove(writeCtxt, key));
         });
 
     assertThat(map.getVersion()).isEqualTo(2);
@@ -333,6 +336,7 @@ class QsbrMapTest {
         (readCtxt, readTable) -> {
           assertThat(readTable.get(readCtxt, key1)).isNull();
           map.handleWriteOperation(
+              readCtxt,
               (writeCtxt, version, writeTable) ->
                   writeTable.put(writeCtxt, key1, new Item(version, value1)));
         });
@@ -343,6 +347,7 @@ class QsbrMapTest {
         (readCtxt, readTable) -> {
           assertThat(readTable.get(readCtxt, key1)).isEqualTo(new Item(1, value1));
           map.handleWriteOperation(
+              readCtxt,
               (writeCtxt, version, writeTable) -> {
                 writeTable.remove(writeCtxt, key1);
                 writeTable.put(writeCtxt, key2, new Item(version, value2));
@@ -356,6 +361,7 @@ class QsbrMapTest {
           assertThat(readTable.get(readCtxt, key1)).isNull();
           assertThat(readTable.get(readCtxt, key2)).isEqualTo(new Item(2, value2));
           map.handleWriteOperation(
+              readCtxt,
               (writeCtxt, version, writeTable) -> {
                 writeTable.remove(writeCtxt, key2);
                 writeTable.put(writeCtxt, key3, new Item(version, value3));
@@ -406,7 +412,7 @@ class QsbrMapTest {
           assertThat(readItem).isNotNull();
           await(readBeforeRemoveLatch);
           map.handleWriteOperation(
-              (writeCtxt, version, writeTable) -> writeTable.remove(writeCtxt, key));
+              readCtxt, (writeCtxt, version, writeTable) -> writeTable.remove(writeCtxt, key));
         });
 
     assertThat(map.getVersion()).isEqualTo(2);
@@ -563,6 +569,7 @@ class QsbrMapTest {
           Item item3 = readTable.get(readCtxt, key3);
           Item item4 = readTable.get(readCtxt, key4);
           map.handleWriteOperation(
+              readCtxt,
               (ctxt, version, table) -> {
                 assertThat(item1).isEqualTo(new Item(1, value1_init));
                 assertThat(item2).isEqualTo(new Item(1, value2_init));
@@ -604,6 +611,7 @@ class QsbrMapTest {
           Item item3 = readTable.get(readCtxt, key3);
           Item item4 = readTable.get(readCtxt, key4);
           map.handleWriteOperation(
+              readCtxt,
               (ctxt, version, table) -> {
                 assertThat(item1).isEqualTo(new Item(1, value1_init));
                 assertThat(item2).isNull();
@@ -685,14 +693,10 @@ class QsbrMapTest {
   @Test
   void multiThreadOperations_ShouldReachProperState()
       throws ExecutionException, InterruptedException {
-    // FIXME: Revert
-
-    //    int threadCount = 8;
-    int threadCount = 2;
+    int threadCount = 8;
     int accountCount = 10;
     int maxAmount = 100;
-    //    int durationMillis = 30000;
-    int durationMillis = 10;
+    int durationMillis = 30000;
 
     QsbrMap<Integer, Account> map = new QsbrMap<>();
 
@@ -716,6 +720,7 @@ class QsbrMapTest {
                 debugPrint(String.format("  %d => %d", fromAccountId, currentFromAccountBalance));
                 debugPrint(String.format("  %d => %d", toAccountId, currentToAccountBalance));
                 map.handleWriteOperation(
+                    readCtxt,
                     (writeCtxt, version, writeTable) -> {
                       debugPrint(
                           String.format(
@@ -776,6 +781,7 @@ class QsbrMapTest {
                 debugPrint(String.format("  %d => %d", fromAccountId, currentFromAccountBalance));
                 debugPrint(String.format("  %d => %d", toAccountId, currentToAccountBalance));
                 map.handleWriteOperation(
+                    readCtxt,
                     (writeCtxt, version, writeTable) -> {
                       debugPrint(
                           String.format(
@@ -852,6 +858,7 @@ class QsbrMapTest {
                 debugPrint(String.format("  %d => %d", fromAccountId, currentFromAccountBalance));
                 debugPrint(String.format("  %d => %d", toAccountId, currentToAccountBalance));
                 map.handleWriteOperation(
+                    readCtxt,
                     (writeCtxt, version, writeTable) -> {
                       debugPrint(
                           String.format(
@@ -928,9 +935,7 @@ class QsbrMapTest {
     }
 
     executorService.shutdown();
-    // FIXME
-    //    assertThat(executorService.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
-    assertThat(executorService.awaitTermination(10, TimeUnit.DAYS)).isTrue();
+    assertThat(executorService.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
 
     map.handleReadOperation(
         (ctxt, table) -> {
@@ -964,9 +969,9 @@ class QsbrMapTest {
   }
 
   private void debugPrint(String msg) {
-    String s = String.format("%s [%s] %s%n", Instant.now(), Thread.currentThread().getName(), msg);
-    System.out.print(s);
     /*
+    String s = String.format("%s [%s] %s%n", Instant.now(), Thread.currentThread().getName(), msg);
+    // System.out.print(s);
     try {
       LOG_FILE.append(s);
     } catch (IOException e) {

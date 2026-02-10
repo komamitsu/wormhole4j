@@ -16,7 +16,6 @@
 
 package org.komamitsu.wormhole4j;
 
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -327,6 +326,7 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
         }
       }
     }
+    // TODO: Revisit here to re-consider if this is needed.
     ctxt.readVersion = null;
   }
 
@@ -350,10 +350,8 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
           String.format("handleReadOperation: Executed Task. ReadSlotId:%d", ctxt.readSlotId));
       validateReadSet(ctxt, readSlot);
     } finally {
-      readSlot.exitReadPhase();
-      ctxt.readSlotId = null;
-      ctxt.readVersion = null;
       ctxt.readSet.clear();
+      readSlot.exitReadPhase();
     }
   }
 
@@ -479,6 +477,9 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
       }
       throw e;
     } finally {
+      // TODO: Revisit here
+      // - This is needed for read operations executed after the validation of read phase.
+      ctxt.readSet.clear();
       writerLock.unlock();
       debugPrint(
           threadId.get(),
@@ -513,11 +514,11 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
    */
 
   private static void debugPrint(int threadId, String msg) {
+    /*
     String s =
         String.format(
             "%s [%s] (%d) %s%n", Instant.now(), Thread.currentThread().getName(), threadId, msg);
-    System.out.print(s);
-    /*
+    // System.out.print(s);
     try {
       LOG_FILE.append(s);
     } catch (IOException e) {
@@ -527,9 +528,9 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
   }
 
   private static void debugPrint(String msg) {
-    String s = String.format("%s [%s] %s%n", Instant.now(), Thread.currentThread().getName(), msg);
-    System.out.print(s);
     /*
+    String s = String.format("%s [%s] %s%n", Instant.now(), Thread.currentThread().getName(), msg);
+    // System.out.print(s);
     try {
       LOG_FILE.append(s);
     } catch (IOException e) {
