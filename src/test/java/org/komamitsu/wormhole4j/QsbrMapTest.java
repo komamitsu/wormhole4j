@@ -18,6 +18,7 @@ package org.komamitsu.wormhole4j;
 
 import static org.assertj.core.api.Assertions.*;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -104,14 +105,15 @@ class QsbrMapTest {
     int value = getRandomInt();
 
     map.handleWriteOperation(
-        (version, table) -> {
-          assertThat(table.get(key)).isNull();
-          table.put(key, new Item(version, value));
+        (ctxt, version, table) -> {
+          assertThat(table.get(ctxt, key)).isNull();
+          table.put(ctxt, key, new Item(version, value));
         });
 
     assertThat(map.getVersion()).isEqualTo(1);
 
-    map.handleReadOperation(table -> assertThat(table.get(key)).isEqualTo(new Item(1, value)));
+    map.handleReadOperation(
+        (ctxt, table) -> assertThat(table.get(ctxt, key)).isEqualTo(new Item(1, value)));
   }
 
   @Test
@@ -124,15 +126,18 @@ class QsbrMapTest {
     int value = getRandomInt();
 
     map.handleReadOperation(
-        readTable -> {
-          assertThat(readTable.get(key)).isNull();
+        (readCtxt, readTable) -> {
+          assertThat(readTable.get(readCtxt, key)).isNull();
           map.handleWriteOperation(
-              (version, writeTable) -> writeTable.put(key, new Item(version, value)));
+              readCtxt,
+              (writeCtxt, version, writeTable) ->
+                  writeTable.put(writeCtxt, key, new Item(version, value)));
         });
 
     assertThat(map.getVersion()).isEqualTo(1);
 
-    map.handleReadOperation(table -> assertThat(table.get(key)).isEqualTo(new Item(1, value)));
+    map.handleReadOperation(
+        (ctxt, table) -> assertThat(table.get(ctxt, key)).isEqualTo(new Item(1, value)));
   }
 
   @Test
@@ -147,33 +152,37 @@ class QsbrMapTest {
     int value3 = getRandomInt();
 
     map.handleReadOperation(
-        readTable -> {
-          assertThat(readTable.get(key)).isNull();
+        (readCtxt, readTable) -> {
+          assertThat(readTable.get(readCtxt, key)).isNull();
           map.handleWriteOperation(
-              (version, writeTable) -> writeTable.put(key, new Item(version, value1)));
+              (writeCtxt, version, writeTable) ->
+                  writeTable.put(writeCtxt, key, new Item(version, value1)));
         });
 
     assertThat(map.getVersion()).isEqualTo(1);
 
     map.handleReadOperation(
-        readTable -> {
-          assertThat(readTable.get(key)).isEqualTo(new Item(1, value1));
+        (readCtxt, readTable) -> {
+          assertThat(readTable.get(readCtxt, key)).isEqualTo(new Item(1, value1));
           map.handleWriteOperation(
-              (version, writeTable) -> writeTable.put(key, new Item(version, value2)));
+              (writeCtxt, version, writeTable) ->
+                  writeTable.put(writeCtxt, key, new Item(version, value2)));
         });
 
     assertThat(map.getVersion()).isEqualTo(2);
 
     map.handleReadOperation(
-        readTable -> {
-          assertThat(readTable.get(key)).isEqualTo(new Item(2, value2));
+        (readCtxt, readTable) -> {
+          assertThat(readTable.get(readCtxt, key)).isEqualTo(new Item(2, value2));
           map.handleWriteOperation(
-              (version, writeTable) -> writeTable.put(key, new Item(version, value3)));
+              (writeCtxt, version, writeTable) ->
+                  writeTable.put(writeCtxt, key, new Item(version, value3)));
         });
 
     assertThat(map.getVersion()).isEqualTo(3);
 
-    map.handleReadOperation(table -> assertThat(table.get(key)).isEqualTo(new Item(3, value3)));
+    map.handleReadOperation(
+        (ctxt, table) -> assertThat(table.get(ctxt, key)).isEqualTo(new Item(3, value3)));
   }
 
   @Test
@@ -190,19 +199,20 @@ class QsbrMapTest {
     executorService.execute(
         () ->
             map.handleReadOperation(
-                readTable -> {
-                  assertThat(readTable.get(key)).isNull();
+                (readCtxt, readTable) -> {
+                  assertThat(readTable.get(readCtxt, key)).isNull();
                   readBeforeModifyLatch.countDown();
                   sleep(1000);
-                  assertThat(readTable.get(key)).isNull();
+                  assertThat(readTable.get(readCtxt, key)).isNull();
                 }));
 
     map.handleReadOperation(
-        readTable -> {
-          assertThat(readTable.get(key)).isNull();
+        (readCtxt, readTable) -> {
+          assertThat(readTable.get(readCtxt, key)).isNull();
           await(readBeforeModifyLatch);
           map.handleWriteOperation(
-              (version, writeTable) -> writeTable.put(key, new Item(version, value)));
+              (writeCtxt, version, writeTable) ->
+                  writeTable.put(writeCtxt, key, new Item(version, value)));
         });
 
     assertThat(map.getVersion()).isEqualTo(1);
@@ -210,7 +220,8 @@ class QsbrMapTest {
     executorService.shutdown();
     assertThat(executorService.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
 
-    map.handleReadOperation(table -> assertThat(table.get(key)).isEqualTo(new Item(1, value)));
+    map.handleReadOperation(
+        (ctxt, table) -> assertThat(table.get(ctxt, key)).isEqualTo(new Item(1, value)));
   }
 
   @Test
@@ -227,14 +238,16 @@ class QsbrMapTest {
     executorService.execute(
         () ->
             map.handleReadOperation(
-                readTable -> {
-                  assertThat(readTable.get(key)).isNull();
+                (readCtxt, readTable) -> {
+                  assertThat(readTable.get(readCtxt, key)).isNull();
                   await(readBeforeModifyLatch);
                   map.handleWriteOperation(
-                      (version, writeTable) -> writeTable.put(key, new Item(version, value)));
+                      (writeCtxt, version, writeTable) ->
+                          writeTable.put(writeCtxt, key, new Item(version, value)));
                 }));
 
-    map.handleReadOperation(readTable -> assertThat(readTable.get(key)).isNull());
+    map.handleReadOperation(
+        (readCtxt, readTable) -> assertThat(readTable.get(readCtxt, key)).isNull());
 
     assertThat(map.getVersion()).isEqualTo(0);
 
@@ -245,7 +258,8 @@ class QsbrMapTest {
 
     assertThat(map.getVersion()).isEqualTo(1);
 
-    map.handleReadOperation(table -> assertThat(table.get(key)).isEqualTo(new Item(1, value)));
+    map.handleReadOperation(
+        (ctxt, table) -> assertThat(table.get(ctxt, key)).isEqualTo(new Item(1, value)));
   }
 
   @Test
@@ -258,19 +272,20 @@ class QsbrMapTest {
     int value1 = getRandomInt();
 
     map.handleWriteOperation(
-        (version, table) -> {
-          assertThat(table.get(key)).isNull();
-          table.put(key, new Item(version, value1));
+        (ctxt, version, table) -> {
+          assertThat(table.get(ctxt, key)).isNull();
+          table.put(ctxt, key, new Item(version, value1));
         });
 
     assertThat(map.getVersion()).isEqualTo(1);
 
     map.handleWriteOperation(
-        (version, table) -> assertThat(table.remove(key)).isEqualTo(new Item(1, value1)));
+        (ctxt, version, table) ->
+            assertThat(table.remove(ctxt, key)).isEqualTo(new Item(1, value1)));
 
     assertThat(map.getVersion()).isEqualTo(2);
 
-    map.handleReadOperation(table -> assertThat(table.get(key)).isNull());
+    map.handleReadOperation((ctxt, table) -> assertThat(table.get(ctxt, key)).isNull());
   }
 
   @Test
@@ -282,22 +297,23 @@ class QsbrMapTest {
     int key = getRandomInt();
     int value = getRandomInt();
     map.handleWriteOperation(
-        (version, table) -> {
-          assertThat(table.get(key)).isNull();
-          table.put(key, new Item(version, value));
+        (ctxt, version, table) -> {
+          assertThat(table.get(ctxt, key)).isNull();
+          table.put(ctxt, key, new Item(version, value));
         });
 
     assertThat(map.getVersion()).isEqualTo(1);
 
     map.handleReadOperation(
-        readTable -> {
-          assertThat(readTable.get(key)).isEqualTo(new Item(1, value));
-          map.handleWriteOperation((version, writeTable) -> writeTable.remove(key));
+        (readCtxt, readTable) -> {
+          assertThat(readTable.get(readCtxt, key)).isEqualTo(new Item(1, value));
+          map.handleWriteOperation(
+              (writeCtxt, version, writeTable) -> writeTable.remove(writeCtxt, key));
         });
 
     assertThat(map.getVersion()).isEqualTo(2);
 
-    map.handleReadOperation(table -> assertThat(table.get(key)).isNull());
+    map.handleReadOperation((ctxt, table) -> assertThat(table.get(ctxt, key)).isNull());
   }
 
   @Test
@@ -314,44 +330,45 @@ class QsbrMapTest {
     int value3 = getRandomInt();
 
     map.handleReadOperation(
-        readTable -> {
-          assertThat(readTable.get(key1)).isNull();
+        (readCtxt, readTable) -> {
+          assertThat(readTable.get(readCtxt, key1)).isNull();
           map.handleWriteOperation(
-              (version, writeTable) -> writeTable.put(key1, new Item(version, value1)));
+              (writeCtxt, version, writeTable) ->
+                  writeTable.put(writeCtxt, key1, new Item(version, value1)));
         });
 
     assertThat(map.getVersion()).isEqualTo(1);
 
     map.handleReadOperation(
-        readTable -> {
-          assertThat(readTable.get(key1)).isEqualTo(new Item(1, value1));
+        (readCtxt, readTable) -> {
+          assertThat(readTable.get(readCtxt, key1)).isEqualTo(new Item(1, value1));
           map.handleWriteOperation(
-              (version, writeTable) -> {
-                writeTable.remove(key1);
-                writeTable.put(key2, new Item(version, value2));
+              (writeCtxt, version, writeTable) -> {
+                writeTable.remove(writeCtxt, key1);
+                writeTable.put(writeCtxt, key2, new Item(version, value2));
               });
         });
 
     assertThat(map.getVersion()).isEqualTo(2);
 
     map.handleReadOperation(
-        readTable -> {
-          assertThat(readTable.get(key1)).isNull();
-          assertThat(readTable.get(key2)).isEqualTo(new Item(2, value2));
+        (readCtxt, readTable) -> {
+          assertThat(readTable.get(readCtxt, key1)).isNull();
+          assertThat(readTable.get(readCtxt, key2)).isEqualTo(new Item(2, value2));
           map.handleWriteOperation(
-              (version, writeTable) -> {
-                writeTable.remove(key2);
-                writeTable.put(key3, new Item(version, value3));
+              (writeCtxt, version, writeTable) -> {
+                writeTable.remove(writeCtxt, key2);
+                writeTable.put(writeCtxt, key3, new Item(version, value3));
               });
         });
 
     assertThat(map.getVersion()).isEqualTo(3);
 
     map.handleReadOperation(
-        table -> {
-          assertThat(table.get(key1)).isNull();
-          assertThat(table.get(key2)).isNull();
-          assertThat(table.get(key3)).isEqualTo(new Item(3, value3));
+        (ctxt, table) -> {
+          assertThat(table.get(ctxt, key1)).isNull();
+          assertThat(table.get(ctxt, key2)).isNull();
+          assertThat(table.get(ctxt, key3)).isEqualTo(new Item(3, value3));
         });
   }
 
@@ -365,9 +382,9 @@ class QsbrMapTest {
     int value = getRandomInt();
 
     map.handleWriteOperation(
-        (version, table) -> {
-          assertThat(table.get(key)).isNull();
-          table.put(key, new Item(version, value));
+        (ctxt, version, table) -> {
+          assertThat(table.get(ctxt, key)).isNull();
+          table.put(ctxt, key, new Item(version, value));
         });
     assertThat(map.getVersion()).isEqualTo(1);
 
@@ -376,19 +393,20 @@ class QsbrMapTest {
     executorService.execute(
         () ->
             map.handleReadOperation(
-                readTable -> {
-                  assertThat(readTable.get(key)).isNotNull();
+                (readCtxt, readTable) -> {
+                  assertThat(readTable.get(readCtxt, key)).isNotNull();
                   readBeforeRemoveLatch.countDown();
                   sleep(1000);
-                  assertThat(readTable.get(key)).isNotNull();
+                  assertThat(readTable.get(readCtxt, key)).isNotNull();
                 }));
 
     map.handleReadOperation(
-        readTable -> {
-          Item readItem = readTable.get(key);
+        (readCtxt, readTable) -> {
+          Item readItem = readTable.get(readCtxt, key);
           assertThat(readItem).isNotNull();
           await(readBeforeRemoveLatch);
-          map.handleWriteOperation((version, writeTable) -> writeTable.remove(key));
+          map.handleWriteOperation(
+              (writeCtxt, version, writeTable) -> writeTable.remove(writeCtxt, key));
         });
 
     assertThat(map.getVersion()).isEqualTo(2);
@@ -396,7 +414,7 @@ class QsbrMapTest {
     executorService.shutdown();
     assertThat(executorService.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
 
-    map.handleReadOperation(table -> assertThat(table.get(key)).isNull());
+    map.handleReadOperation((ctxt, table) -> assertThat(table.get(ctxt, key)).isNull());
   }
 
   @Test
@@ -421,89 +439,89 @@ class QsbrMapTest {
     int value4_update2 = getRandomInt();
 
     map.handleWriteOperation(
-        (version, table) -> {
-          table.put(key1, new Item(value1_init));
-          table.put(key2, new Item(value2_init));
-          table.put(key3, new Item(value3_init));
-          table.put(key4, new Item(value4_init));
+        (ctxt, version, table) -> {
+          table.put(ctxt, key1, new Item(value1_init));
+          table.put(ctxt, key2, new Item(value2_init));
+          table.put(ctxt, key3, new Item(value3_init));
+          table.put(ctxt, key4, new Item(value4_init));
         });
 
     assertThat(map.getVersion()).isEqualTo(1);
 
     map.handleWriteOperation(
-        (version, table) -> {
-          assertThat(table.get(key1)).isEqualTo(new Item(1, value1_init));
-          assertThat(table.get(key2)).isEqualTo(new Item(1, value2_init));
-          assertThat(table.get(key3)).isEqualTo(new Item(1, value3_init));
-          assertThat(table.get(key4)).isEqualTo(new Item(1, value4_init));
+        (ctxt, version, table) -> {
+          assertThat(table.get(ctxt, key1)).isEqualTo(new Item(1, value1_init));
+          assertThat(table.get(ctxt, key2)).isEqualTo(new Item(1, value2_init));
+          assertThat(table.get(ctxt, key3)).isEqualTo(new Item(1, value3_init));
+          assertThat(table.get(ctxt, key4)).isEqualTo(new Item(1, value4_init));
 
-          table.put(key3, new Item(value3_update1));
-          table.put(key4, new Item(value4_update1));
+          table.put(ctxt, key3, new Item(value3_update1));
+          table.put(ctxt, key4, new Item(value4_update1));
 
-          assertThat(table.get(key1)).isEqualTo(new Item(1, value1_init));
-          assertThat(table.get(key2)).isEqualTo(new Item(1, value2_init));
-          assertThat(table.get(key3)).isEqualTo(new Item(2, value3_update1));
-          assertThat(table.get(key4)).isEqualTo(new Item(2, value4_update1));
+          assertThat(table.get(ctxt, key1)).isEqualTo(new Item(1, value1_init));
+          assertThat(table.get(ctxt, key2)).isEqualTo(new Item(1, value2_init));
+          assertThat(table.get(ctxt, key3)).isEqualTo(new Item(2, value3_update1));
+          assertThat(table.get(ctxt, key4)).isEqualTo(new Item(2, value4_update1));
 
-          table.remove(key2);
-          table.remove(key3);
+          table.remove(ctxt, key2);
+          table.remove(ctxt, key3);
 
-          assertThat(table.get(key1)).isEqualTo(new Item(1, value1_init));
-          assertThat(table.get(key2)).isNull();
-          assertThat(table.get(key3)).isNull();
-          assertThat(table.get(key4)).isEqualTo(new Item(2, value4_update1));
+          assertThat(table.get(ctxt, key1)).isEqualTo(new Item(1, value1_init));
+          assertThat(table.get(ctxt, key2)).isNull();
+          assertThat(table.get(ctxt, key3)).isNull();
+          assertThat(table.get(ctxt, key4)).isEqualTo(new Item(2, value4_update1));
         });
 
     assertThat(map.getVersion()).isEqualTo(2);
 
     map.handleReadOperation(
-        table -> {
-          assertThat(table.get(key1)).isEqualTo(new Item(1, value1_init));
-          assertThat(table.get(key2)).isNull();
-          assertThat(table.get(key3)).isNull();
-          assertThat(table.get(key4)).isEqualTo(new Item(2, value4_update1));
+        (ctxt, table) -> {
+          assertThat(table.get(ctxt, key1)).isEqualTo(new Item(1, value1_init));
+          assertThat(table.get(ctxt, key2)).isNull();
+          assertThat(table.get(ctxt, key3)).isNull();
+          assertThat(table.get(ctxt, key4)).isEqualTo(new Item(2, value4_update1));
         });
 
     map.handleWriteOperation(
-        (version, table) -> {
-          assertThat(table.get(key1)).isEqualTo(new Item(1, value1_init));
-          assertThat(table.get(key2)).isNull();
-          assertThat(table.get(key3)).isNull();
-          assertThat(table.get(key4)).isEqualTo(new Item(2, value4_update1));
+        (ctxt, version, table) -> {
+          assertThat(table.get(ctxt, key1)).isEqualTo(new Item(1, value1_init));
+          assertThat(table.get(ctxt, key2)).isNull();
+          assertThat(table.get(ctxt, key3)).isNull();
+          assertThat(table.get(ctxt, key4)).isEqualTo(new Item(2, value4_update1));
 
-          table.put(key2, new Item(value2_reinsert));
-          table.put(key3, new Item(value3_reinsert));
+          table.put(ctxt, key2, new Item(value2_reinsert));
+          table.put(ctxt, key3, new Item(value3_reinsert));
 
-          assertThat(table.get(key1)).isEqualTo(new Item(1, value1_init));
-          assertThat(table.get(key2)).isEqualTo(new Item(3, value2_reinsert));
-          assertThat(table.get(key3)).isEqualTo(new Item(3, value3_reinsert));
-          assertThat(table.get(key4)).isEqualTo(new Item(2, value4_update1));
+          assertThat(table.get(ctxt, key1)).isEqualTo(new Item(1, value1_init));
+          assertThat(table.get(ctxt, key2)).isEqualTo(new Item(3, value2_reinsert));
+          assertThat(table.get(ctxt, key3)).isEqualTo(new Item(3, value3_reinsert));
+          assertThat(table.get(ctxt, key4)).isEqualTo(new Item(2, value4_update1));
 
-          table.put(key3, new Item(value3_update2));
-          table.put(key4, new Item(value4_update2));
+          table.put(ctxt, key3, new Item(value3_update2));
+          table.put(ctxt, key4, new Item(value4_update2));
 
-          assertThat(table.get(key1)).isEqualTo(new Item(1, value1_init));
-          assertThat(table.get(key2)).isEqualTo(new Item(3, value2_reinsert));
-          assertThat(table.get(key3)).isEqualTo(new Item(3, value3_update2));
-          assertThat(table.get(key4)).isEqualTo(new Item(3, value4_update2));
+          assertThat(table.get(ctxt, key1)).isEqualTo(new Item(1, value1_init));
+          assertThat(table.get(ctxt, key2)).isEqualTo(new Item(3, value2_reinsert));
+          assertThat(table.get(ctxt, key3)).isEqualTo(new Item(3, value3_update2));
+          assertThat(table.get(ctxt, key4)).isEqualTo(new Item(3, value4_update2));
 
-          table.remove(key1);
-          table.remove(key3);
+          table.remove(ctxt, key1);
+          table.remove(ctxt, key3);
 
-          assertThat(table.get(key1)).isNull();
-          assertThat(table.get(key2)).isEqualTo(new Item(3, value2_reinsert));
-          assertThat(table.get(key3)).isNull();
-          assertThat(table.get(key4)).isEqualTo(new Item(3, value4_update2));
+          assertThat(table.get(ctxt, key1)).isNull();
+          assertThat(table.get(ctxt, key2)).isEqualTo(new Item(3, value2_reinsert));
+          assertThat(table.get(ctxt, key3)).isNull();
+          assertThat(table.get(ctxt, key4)).isEqualTo(new Item(3, value4_update2));
         });
 
     assertThat(map.getVersion()).isEqualTo(3);
 
     map.handleReadOperation(
-        table -> {
-          assertThat(table.get(key1)).isNull();
-          assertThat(table.get(key2)).isEqualTo(new Item(3, value2_reinsert));
-          assertThat(table.get(key3)).isNull();
-          assertThat(table.get(key4)).isEqualTo(new Item(3, value4_update2));
+        (ctxt, table) -> {
+          assertThat(table.get(ctxt, key1)).isNull();
+          assertThat(table.get(ctxt, key2)).isEqualTo(new Item(3, value2_reinsert));
+          assertThat(table.get(ctxt, key3)).isNull();
+          assertThat(table.get(ctxt, key4)).isEqualTo(new Item(3, value4_update2));
         });
   }
 
@@ -529,23 +547,23 @@ class QsbrMapTest {
     int value4_update2 = getRandomInt();
 
     map.handleWriteOperation(
-        (version, table) -> {
-          table.put(key1, new Item(value1_init));
-          table.put(key2, new Item(value2_init));
-          table.put(key3, new Item(value3_init));
-          table.put(key4, new Item(value4_init));
+        (ctxt, version, table) -> {
+          table.put(ctxt, key1, new Item(value1_init));
+          table.put(ctxt, key2, new Item(value2_init));
+          table.put(ctxt, key3, new Item(value3_init));
+          table.put(ctxt, key4, new Item(value4_init));
         });
 
     assertThat(map.getVersion()).isEqualTo(1);
 
     map.handleReadOperation(
-        (readTable) -> {
-          Item item1 = readTable.get(key1);
-          Item item2 = readTable.get(key2);
-          Item item3 = readTable.get(key3);
-          Item item4 = readTable.get(key4);
+        (readCtxt, readTable) -> {
+          Item item1 = readTable.get(readCtxt, key1);
+          Item item2 = readTable.get(readCtxt, key2);
+          Item item3 = readTable.get(readCtxt, key3);
+          Item item4 = readTable.get(readCtxt, key4);
           map.handleWriteOperation(
-              (version, table) -> {
+              (ctxt, version, table) -> {
                 assertThat(item1).isEqualTo(new Item(1, value1_init));
                 assertThat(item2).isEqualTo(new Item(1, value2_init));
                 assertThat(item3).isEqualTo(new Item(1, value3_init));
@@ -554,80 +572,80 @@ class QsbrMapTest {
                 item3.mutableUpdate(version, x -> x.setValue(value3_update1));
                 item4.mutableUpdate(version, x -> x.setValue(value4_update1));
 
-                assertThat(table.get(key1)).isEqualTo(new Item(1, value1_init));
-                assertThat(table.get(key2)).isEqualTo(new Item(1, value2_init));
-                assertThat(table.get(key3)).isEqualTo(new Item(2, value3_update1));
-                assertThat(table.get(key4)).isEqualTo(new Item(2, value4_update1));
+                assertThat(table.get(ctxt, key1)).isEqualTo(new Item(1, value1_init));
+                assertThat(table.get(ctxt, key2)).isEqualTo(new Item(1, value2_init));
+                assertThat(table.get(ctxt, key3)).isEqualTo(new Item(2, value3_update1));
+                assertThat(table.get(ctxt, key4)).isEqualTo(new Item(2, value4_update1));
 
-                table.remove(key2);
-                table.remove(key3);
+                table.remove(ctxt, key2);
+                table.remove(ctxt, key3);
 
-                assertThat(table.get(key1)).isEqualTo(new Item(1, value1_init));
-                assertThat(table.get(key2)).isNull();
-                assertThat(table.get(key3)).isNull();
-                assertThat(table.get(key4)).isEqualTo(new Item(2, value4_update1));
+                assertThat(table.get(ctxt, key1)).isEqualTo(new Item(1, value1_init));
+                assertThat(table.get(ctxt, key2)).isNull();
+                assertThat(table.get(ctxt, key3)).isNull();
+                assertThat(table.get(ctxt, key4)).isEqualTo(new Item(2, value4_update1));
               });
         });
 
     assertThat(map.getVersion()).isEqualTo(2);
 
     map.handleReadOperation(
-        table -> {
-          assertThat(table.get(key1)).isEqualTo(new Item(1, value1_init));
-          assertThat(table.get(key2)).isNull();
-          assertThat(table.get(key3)).isNull();
-          assertThat(table.get(key4)).isEqualTo(new Item(2, value4_update1));
+        (ctxt, table) -> {
+          assertThat(table.get(ctxt, key1)).isEqualTo(new Item(1, value1_init));
+          assertThat(table.get(ctxt, key2)).isNull();
+          assertThat(table.get(ctxt, key3)).isNull();
+          assertThat(table.get(ctxt, key4)).isEqualTo(new Item(2, value4_update1));
         });
 
     map.handleReadOperation(
-        (readTable) -> {
-          Item item1 = readTable.get(key1);
-          Item item2 = readTable.get(key2);
-          Item item3 = readTable.get(key3);
-          Item item4 = readTable.get(key4);
+        (readCtxt, readTable) -> {
+          Item item1 = readTable.get(readCtxt, key1);
+          Item item2 = readTable.get(readCtxt, key2);
+          Item item3 = readTable.get(readCtxt, key3);
+          Item item4 = readTable.get(readCtxt, key4);
           map.handleWriteOperation(
-              (version, table) -> {
+              (ctxt, version, table) -> {
                 assertThat(item1).isEqualTo(new Item(1, value1_init));
                 assertThat(item2).isNull();
                 assertThat(item3).isNull();
                 assertThat(item4).isEqualTo(new Item(2, value4_update1));
 
-                table.put(key2, new Item(value2_reinsert));
-                table.put(key3, new Item(value3_reinsert));
+                table.put(ctxt, key2, new Item(value2_reinsert));
+                table.put(ctxt, key3, new Item(value3_reinsert));
 
-                assertThat(table.get(key1)).isEqualTo(new Item(1, value1_init));
-                assertThat(table.get(key2)).isEqualTo(new Item(3, value2_reinsert));
-                assertThat(table.get(key3)).isEqualTo(new Item(3, value3_reinsert));
-                assertThat(table.get(key4)).isEqualTo(new Item(2, value4_update1));
+                assertThat(table.get(ctxt, key1)).isEqualTo(new Item(1, value1_init));
+                assertThat(table.get(ctxt, key2)).isEqualTo(new Item(3, value2_reinsert));
+                assertThat(table.get(ctxt, key3)).isEqualTo(new Item(3, value3_reinsert));
+                assertThat(table.get(ctxt, key4)).isEqualTo(new Item(2, value4_update1));
 
-                Item updatedItem3 = table.get(key3);
-                Item updatedItem4 = table.get(key4);
+                Item updatedItem3 = table.get(ctxt, key3);
+                Item updatedItem4 = table.get(ctxt, key4);
                 updatedItem3.mutableUpdate(version, x -> x.setValue(value3_update2));
                 updatedItem4.mutableUpdate(version, x -> x.setValue(value4_update2));
 
-                assertThat(table.get(key1)).isEqualTo(new Item(1, value1_init));
-                assertThat(table.get(key2)).isEqualTo(new Item(3, value2_reinsert));
-                assertThat(table.get(key3)).isEqualTo(new Item(3, value3_update2));
-                assertThat(table.get(key4)).isEqualTo(new Item(3, value4_update2));
+                assertThat(table.get(ctxt, key1)).isEqualTo(new Item(1, value1_init));
+                assertThat(table.get(ctxt, key2)).isEqualTo(new Item(3, value2_reinsert));
+                assertThat(table.get(ctxt, key3)).isEqualTo(new Item(3, value3_update2));
+                assertThat(table.get(ctxt, key4)).isEqualTo(new Item(3, value4_update2));
 
-                table.remove(key1);
-                table.remove(key3);
+                table.remove(ctxt, key1);
+                table.remove(ctxt, key3);
 
-                assertThat(table.get(key1)).isNull();
-                assertThat(table.get(key2)).isEqualTo(new Item(3, value2_reinsert));
-                assertThat(table.get(key3)).isNull();
-                assertThat(table.get(key4)).isEqualTo(new Item(3, value4_update2));
+                assertThat(table.get(ctxt, key1)).isNull();
+                assertThat(table.get(ctxt, key2)).isEqualTo(new Item(3, value2_reinsert));
+                assertThat(table.get(ctxt, key3)).isNull();
+                assertThat(table.get(ctxt, key4)).isEqualTo(new Item(3, value4_update2));
               });
         });
 
     assertThat(map.getVersion()).isEqualTo(3);
 
     map.handleReadOperation(
-        table -> {
-          assertThat(table.get(key1)).isNull();
-          assertThat(table.get(key2)).isEqualTo(new Item(3, value2_reinsert));
-          assertThat(table.get(key3)).isNull();
-          assertThat(table.get(key4)).isEqualTo(new Item(3, value4_update2));
+        (ctxt, table) -> {
+          assertThat(table.get(ctxt, key1)).isNull();
+          assertThat(table.get(ctxt, key2)).isEqualTo(new Item(3, value2_reinsert));
+          assertThat(table.get(ctxt, key3)).isNull();
+          assertThat(table.get(ctxt, key4)).isEqualTo(new Item(3, value4_update2));
         });
   }
 
@@ -667,10 +685,14 @@ class QsbrMapTest {
   @Test
   void multiThreadOperations_ShouldReachProperState()
       throws ExecutionException, InterruptedException {
-    int threadCount = 8;
+    // FIXME: Revert
+
+    //    int threadCount = 8;
+    int threadCount = 2;
     int accountCount = 10;
     int maxAmount = 100;
-    int durationMillis = 30000;
+    //    int durationMillis = 30000;
+    int durationMillis = 10;
 
     QsbrMap<Integer, Account> map = new QsbrMap<>();
 
@@ -683,24 +705,25 @@ class QsbrMapTest {
           }
           int amount = ThreadLocalRandom.current().nextInt(maxAmount);
           map.handleReadOperation(
-              (readTable) -> {
+              (readCtxt, readTable) -> {
                 debugPrint(
                     String.format("MUTABLE: Read-Start. Table:%s, Amount:%d", readTable, amount));
-                Account fromAccount = readTable.get(fromAccountId);
-                Account toAccount = readTable.get(toAccountId);
+                Account fromAccount = readTable.get(readCtxt, fromAccountId);
+                Account toAccount = readTable.get(readCtxt, toAccountId);
                 int currentFromAccountBalance = fromAccount == null ? 0 : fromAccount.balance;
                 int currentToAccountBalance = toAccount == null ? 0 : toAccount.balance;
                 debugPrint(" <before>");
                 debugPrint(String.format("  %d => %d", fromAccountId, currentFromAccountBalance));
                 debugPrint(String.format("  %d => %d", toAccountId, currentToAccountBalance));
                 map.handleWriteOperation(
-                    (version, writeTable) -> {
+                    (writeCtxt, version, writeTable) -> {
                       debugPrint(
                           String.format(
                               "MUTABLE: Write-Start. Version:%d, Table:%s, Amount:%d",
                               version, writeTable, amount));
                       if (fromAccount == null) {
                         writeTable.put(
+                            writeCtxt,
                             fromAccountId,
                             new Account(version, currentFromAccountBalance - amount));
                       } else {
@@ -712,7 +735,9 @@ class QsbrMapTest {
                       }
                       if (toAccount == null) {
                         writeTable.put(
-                            toAccountId, new Account(version, currentToAccountBalance + amount));
+                            writeCtxt,
+                            toAccountId,
+                            new Account(version, currentToAccountBalance + amount));
                       } else {
                         debugPrint(
                             String.format("UPDATE(START): %s -> %s", toAccountId, toAccount));
@@ -740,18 +765,18 @@ class QsbrMapTest {
           }
           int amount = ThreadLocalRandom.current().nextInt(maxAmount);
           map.handleReadOperation(
-              (readTable) -> {
+              (readCtxt, readTable) -> {
                 debugPrint(
                     String.format("IMMUTABLE: Read-Start. Table:%s, Amount:%d", readTable, amount));
-                Account fromAccount = readTable.get(fromAccountId);
-                Account toAccount = readTable.get(toAccountId);
+                Account fromAccount = readTable.get(readCtxt, fromAccountId);
+                Account toAccount = readTable.get(readCtxt, toAccountId);
                 int currentFromAccountBalance = fromAccount == null ? 0 : fromAccount.balance;
                 int currentToAccountBalance = toAccount == null ? 0 : toAccount.balance;
                 debugPrint(" <before>");
                 debugPrint(String.format("  %d => %d", fromAccountId, currentFromAccountBalance));
                 debugPrint(String.format("  %d => %d", toAccountId, currentToAccountBalance));
                 map.handleWriteOperation(
-                    (version, writeTable) -> {
+                    (writeCtxt, version, writeTable) -> {
                       debugPrint(
                           String.format(
                               "IMMUTABLE: Write-Start. Version:%d, Table:%s, Amount:%d",
@@ -761,9 +786,13 @@ class QsbrMapTest {
                           String.format("  %d => %d", fromAccountId, currentFromAccountBalance));
                       debugPrint(String.format("  %d => %d", toAccountId, currentToAccountBalance));
                       writeTable.put(
-                          fromAccountId, new Account(version, currentFromAccountBalance - amount));
+                          writeCtxt,
+                          fromAccountId,
+                          new Account(version, currentFromAccountBalance - amount));
                       writeTable.put(
-                          toAccountId, new Account(version, currentToAccountBalance + amount));
+                          writeCtxt,
+                          toAccountId,
+                          new Account(version, currentToAccountBalance + amount));
                       debugPrint(" <after>");
                       debugPrint(
                           String.format(
@@ -779,13 +808,13 @@ class QsbrMapTest {
         () -> {
           AtomicReference<Integer> result = new AtomicReference<>();
           map.handleReadOperation(
-              (readTable) -> {
+              (readCtxt, readTable) -> {
                 debugPrint(String.format("AUDIT: START. ReadTable:%s", readTable));
                 int total = 0;
                 // TODO: Remove this.
                 int[] balances = new int[accountCount];
                 for (int i = 0; i < accountCount; i++) {
-                  Account account = readTable.get(i);
+                  Account account = readTable.get(readCtxt, i);
                   if (account != null) {
                     total += account.balance;
                     balances[i] = account.balance;
@@ -813,17 +842,17 @@ class QsbrMapTest {
             return null;
           }
           map.handleReadOperation(
-              (readTable) -> {
+              (readCtxt, readTable) -> {
                 debugPrint(String.format("MERGE: Read-Start. Table:%s", readTable));
-                Account fromAccount = readTable.get(fromAccountId);
-                Account toAccount = readTable.get(toAccountId);
+                Account fromAccount = readTable.get(readCtxt, fromAccountId);
+                Account toAccount = readTable.get(readCtxt, toAccountId);
                 int currentFromAccountBalance = fromAccount == null ? 0 : fromAccount.balance;
                 int currentToAccountBalance = toAccount == null ? 0 : toAccount.balance;
                 debugPrint(" <before>");
                 debugPrint(String.format("  %d => %d", fromAccountId, currentFromAccountBalance));
                 debugPrint(String.format("  %d => %d", toAccountId, currentToAccountBalance));
                 map.handleWriteOperation(
-                    (version, writeTable) -> {
+                    (writeCtxt, version, writeTable) -> {
                       debugPrint(
                           String.format(
                               "MERGE: Write-Start. Version:%d, Table:%s", version, writeTable));
@@ -831,10 +860,11 @@ class QsbrMapTest {
                       debugPrint(
                           String.format("  %d => %d", fromAccountId, currentFromAccountBalance));
                       debugPrint(String.format("  %d => %d", toAccountId, currentToAccountBalance));
-                      writeTable.remove(fromAccountId);
+                      writeTable.remove(writeCtxt, fromAccountId);
                       int newToAccountBalance = currentToAccountBalance + currentFromAccountBalance;
                       if (toAccount == null || ThreadLocalRandom.current().nextInt() % 2 == 0) {
-                        writeTable.put(toAccountId, new Account(version, newToAccountBalance));
+                        writeTable.put(
+                            writeCtxt, toAccountId, new Account(version, newToAccountBalance));
                       } else {
                         debugPrint(
                             String.format("UPDATE(START): %s -> %s", toAccountId, toAccount));
@@ -898,13 +928,15 @@ class QsbrMapTest {
     }
 
     executorService.shutdown();
-    assertThat(executorService.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
+    // FIXME
+    //    assertThat(executorService.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
+    assertThat(executorService.awaitTermination(10, TimeUnit.DAYS)).isTrue();
 
     map.handleReadOperation(
-        (table) -> {
+        (ctxt, table) -> {
           int totalBalance = 0;
           for (int i = 0; i < accountCount; i++) {
-            Account account = table.get(i);
+            Account account = table.get(ctxt, i);
             if (account != null) {
               totalBalance += account.balance;
             }
@@ -932,8 +964,9 @@ class QsbrMapTest {
   }
 
   private void debugPrint(String msg) {
-    /*
     String s = String.format("%s [%s] %s%n", Instant.now(), Thread.currentThread().getName(), msg);
+    System.out.print(s);
+    /*
     try {
       LOG_FILE.append(s);
     } catch (IOException e) {

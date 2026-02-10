@@ -16,12 +16,12 @@
 
 package org.komamitsu.wormhole4j;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
@@ -32,7 +32,6 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
   private final AtomicInteger threadIdCounter = new AtomicInteger();
   private final ThreadLocal<Integer> threadId =
       ThreadLocal.withInitial(threadIdCounter::getAndIncrement);
-  private final ThreadLocal<Context<K>> context = new ThreadLocal<>();
 
   private static class State<K> {
     private final AtomicLong version = new AtomicLong();
@@ -44,7 +43,7 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
     }
 
     synchronized Context<K> createContext() {
-      return new Context<>(version.get(), activeSlotId);
+      return new Context<>(this, version.get(), activeSlotId);
     }
 
     synchronized long nextVersion() {
@@ -52,15 +51,19 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
     }
   }
 
-  private static class Context<K> {
+  static class Context<K> {
+    private final State<K> globalState;
     private Long readVersion;
     private Integer readSlotId;
     private final Collection<Read<K>> readSet = new HashSet<>();
     private final List<Write<K>> writeList = new ArrayList<>();
 
-    private Context() {}
+    private Context(State<K> globalState) {
+      this.globalState = globalState;
+    }
 
-    private Context(Long readVersion, Integer readSlotId) {
+    private Context(State<K> globalState, Long readVersion, Integer readSlotId) {
+      this(globalState);
       this.readVersion = readVersion;
       this.readSlotId = readSlotId;
     }
@@ -74,6 +77,14 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
     public QsbrConflictException(String message, Throwable cause) {
       super(message, cause);
     }
+  }
+
+  interface ReadOperatable<K, V extends Versionable<V>> {
+    void operate(Context<K> context, Map<K, V> table);
+  }
+
+  interface WriteOperatable<K, V extends Versionable<V>> {
+    void operate(Context<K> context, long nextVersion, Map<K, V> table);
   }
 
   // TODO: This can be removed with either of the following changes?
@@ -99,7 +110,7 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
     }
   }
 
-  private static class Put<K, V> extends Write<K> {
+  private static class Put<K, V extends Versionable<V>> extends Write<K> {
     private final V value;
 
     private Put(K key, V value) {
@@ -139,12 +150,11 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
     }
   }
 
-  class Map {
+  static class Map<K, V extends Versionable<V>> {
     private final java.util.Map<K, V> map = new HashMap<>();
 
     @Nullable
-    V get(K key) {
-      Context<K> ctxt = context.get();
+    V get(Context<K> ctxt, K key) {
       V value = map.get(key);
       debugPrint(String.format("COMMAND-GET: %s -> %s", key, value));
       if (value != null && ctxt.readVersion != null && value.getVersion() > ctxt.readVersion) {
@@ -158,9 +168,8 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
     }
 
     @Nullable
-    V put(K key, V value) {
-      Context<K> ctxt = context.get();
-      value.setVersion(state.version.get() + 1);
+    V put(Context<K> ctxt, K key, V value) {
+      value.setVersion(ctxt.globalState.version.get() + 1);
       debugPrint(String.format("COMMAND-PUT: %s -> %s", key, value));
       V oldValue = map.put(key, value);
       ctxt.writeList.add(new Put<>(key, value));
@@ -168,8 +177,7 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
     }
 
     @Nullable
-    V remove(K key) {
-      Context<K> ctxt = context.get();
+    V remove(Context<K> ctxt, K key) {
       V oldValue = map.remove(key);
       debugPrint(String.format("COMMAND-RMV: %s -> %s", key, oldValue));
       ctxt.writeList.add(new Remove<>(key));
@@ -190,7 +198,7 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
   }
 
   private class QsbrSlot {
-    private final Map table = new Map();
+    private final Map<K, V> table = new Map<>();
     private final BitSet readers = new BitSet();
     private final Object qsbrWaitLock = new Object();
 
@@ -291,7 +299,7 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
   }
 
   void validateReadSet(Context<K> ctxt, QsbrSlot activeSlot) {
-    Map activeMap = activeSlot.table;
+    Map<K, V> activeMap = activeSlot.table;
     for (Read<K> read : ctxt.readSet) {
       V currentValue = activeMap.getWithoutRecording(read.key);
       debugPrint(
@@ -322,22 +330,21 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
     ctxt.readVersion = null;
   }
 
-  void handleReadOperation(Consumer<Map> task) {
+  void handleReadOperation(ReadOperatable<K, V> task) {
     Context<K> ctxt = state.createContext();
-    context.set(ctxt);
     debugPrint(
         threadId.get(),
         String.format(
             "handleReadOperation: Start. ReadSlotId:%d, ReadVersion:%d",
             ctxt.readSlotId, ctxt.readVersion));
     QsbrSlot readSlot = getSlot(ctxt.readSlotId);
-    Map table = readSlot.table;
+    Map<K, V> table = readSlot.table;
     try {
       readSlot.enterReadPhase();
       debugPrint(
           threadId.get(),
           String.format("handleReadOperation: Executing Task. ReadSlotId:%d", ctxt.readSlotId));
-      task.accept(table);
+      task.operate(ctxt, table);
       debugPrint(
           threadId.get(),
           String.format("handleReadOperation: Executed Task. ReadSlotId:%d", ctxt.readSlotId));
@@ -350,12 +357,11 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
     }
   }
 
-  void handleWriteOperation(BiConsumer<Long, Map> task) {
-    Context<K> ctxt = context.get();
-    if (ctxt == null) {
-      ctxt = new Context<>();
-      context.set(ctxt);
-    }
+  void handleWriteOperation(WriteOperatable<K, V> task) {
+    handleWriteOperation(state.createContext(), task);
+  }
+
+  void handleWriteOperation(Context<K> ctxt, WriteOperatable<K, V> task) {
     debugPrint(
         threadId.get(),
         String.format(
@@ -393,17 +399,17 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
 
       activeSlotIdBeforeSwitch = state.activeSlotId;
       QsbrSlot activeSlotBeforeSwitch = getSlot(activeSlotIdBeforeSwitch);
-      Map activeTableBeforeSwitch = activeSlotBeforeSwitch.table;
+      Map<K, V> activeTableBeforeSwitch = activeSlotBeforeSwitch.table;
 
       int inactiveSlotIdBeforeSwitch = getInactiveSlotId(activeSlotIdBeforeSwitch);
       QsbrSlot inactiveSlotBeforeSwitch = getSlot(inactiveSlotIdBeforeSwitch);
-      Map inactiveTableBeforeSwitch = inactiveSlotBeforeSwitch.table;
+      Map<K, V> inactiveTableBeforeSwitch = inactiveSlotBeforeSwitch.table;
 
       // Check if the inactive slot has been updated by the preceding writer thread.
       validateReadSet(ctxt, inactiveSlotBeforeSwitch);
 
       long nextVersion = state.nextVersion();
-      task.accept(nextVersion, inactiveTableBeforeSwitch);
+      task.operate(ctxt, nextVersion, inactiveTableBeforeSwitch);
 
       // Switch the slots.
       debugPrint(
@@ -454,12 +460,13 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
         return;
       }
       QsbrSlot activeSlotBeforeSwitch = getSlot(activeSlotIdBeforeSwitch);
-      Map activeTableBeforeSwitch = activeSlotBeforeSwitch.table;
-      Map inactiveTableBeforeSwitch = getSlot(getInactiveSlotId(activeSlotIdBeforeSwitch)).table;
+      Map<K, V> activeTableBeforeSwitch = activeSlotBeforeSwitch.table;
+      Map<K, V> inactiveTableBeforeSwitch =
+          getSlot(getInactiveSlotId(activeSlotIdBeforeSwitch)).table;
 
       Consumer<K> restorer =
           key -> {
-            V origValue = activeTableBeforeSwitch.get(key);
+            V origValue = activeTableBeforeSwitch.getWithoutRecording(key);
             if (origValue == null) {
               inactiveTableBeforeSwitch.removeWithoutRecording(key);
             } else {
@@ -472,7 +479,6 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
       }
       throw e;
     } finally {
-      context.remove();
       writerLock.unlock();
       debugPrint(
           threadId.get(),
@@ -486,16 +492,8 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
     return ++activeSlotId % 2;
   }
 
-  Map getTable() {
-    return getActiveSlot().table;
-  }
-
   private QsbrSlot getSlot(int slotId) {
     return slots.get(slotId);
-  }
-
-  private QsbrSlot getActiveSlot() {
-    return slots.get(state.activeSlotId);
   }
 
   long getVersion() {
@@ -515,8 +513,11 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
    */
 
   private static void debugPrint(int threadId, String msg) {
+    String s =
+        String.format(
+            "%s [%s] (%d) %s%n", Instant.now(), Thread.currentThread().getName(), threadId, msg);
+    System.out.print(s);
     /*
-    String s = String.format("%s [%s] (%d) %s%n", Instant.now(), Thread.currentThread().getName(), threadId, msg);
     try {
       LOG_FILE.append(s);
     } catch (IOException e) {
@@ -526,8 +527,9 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
   }
 
   private static void debugPrint(String msg) {
-    /*
     String s = String.format("%s [%s] %s%n", Instant.now(), Thread.currentThread().getName(), msg);
+    System.out.print(s);
+    /*
     try {
       LOG_FILE.append(s);
     } catch (IOException e) {
