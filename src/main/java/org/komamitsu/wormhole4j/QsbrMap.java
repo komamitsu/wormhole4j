@@ -86,9 +86,6 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
     void operate(Context<K> context, long nextVersion, Map<K, V> table);
   }
 
-  // TODO: This can be removed with either of the following changes?
-  //       - QsbrSlot.Map has an additional Map<K, Version>
-  //       - QsbrSlot.Map manages Version in addition to V (i.e., Map<K, Pair<Version, V>>)
   interface Versionable<T extends Versionable<T>> {
     long getVersion();
 
@@ -159,7 +156,7 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
       if (value != null && ctxt.readVersion != null && value.getVersion() > ctxt.readVersion) {
         throw new QsbrConflictException(
             String.format(
-                "The read value was updated after the reader entered the read phase. ReadPhaseVersion:%d, ValueVersion:%d",
+                "The read key-value has been updated. Read version: %d; Current version: %d",
                 ctxt.readVersion, value.getVersion()));
       }
       ctxt.readSet.add(new Read<>(key, value == null ? null : value.getVersion()));
@@ -307,22 +304,21 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
         if (currentValue != null) {
           throw new QsbrConflictException(
               String.format(
-                  "Read key-value has been updated. Read value: null; Current value: %s",
-                  currentValue));
+                  "The read key-value has been updated. Read version: null; Current version: %d",
+                  currentValue.getVersion()));
         }
       } else {
         if (currentValue == null) {
           throw new QsbrConflictException(
               String.format(
-                  "Read key-value has been updated. Read value: %s; Current value: null", read));
+                  "The read key-value has been updated. Read version: %s; Current version: null",
+                  read.version));
         }
-        // TODO: Revisit here
-        if (currentValue.getVersion() != read.version
-            || currentValue.getVersion() > ctxt.readVersion) {
+        if (currentValue.getVersion() > ctxt.readVersion) {
           throw new QsbrConflictException(
               String.format(
-                  "Read key-value has been updated. Read value: %s; Current value: %s",
-                  read, currentValue));
+                  "The read key-value has been updated. Read version: %d; Current version: %d",
+                  read.version, currentValue.getVersion()));
         }
       }
     }
