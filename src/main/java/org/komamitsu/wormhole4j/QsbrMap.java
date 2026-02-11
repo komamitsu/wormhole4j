@@ -54,6 +54,7 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
     private final State<K> globalState;
     private Long readVersion;
     private Integer readSlotId;
+    private boolean isWritePhaseDone;
     private final Collection<Read<K>> readSet = new HashSet<>();
     private final List<Write<K>> writeList = new ArrayList<>();
 
@@ -66,15 +67,18 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
       this.readVersion = readVersion;
       this.readSlotId = readSlotId;
     }
+
+    private void throwIfWritePhaseIsDone() {
+      if (isWritePhaseDone) {
+        throw new UnsupportedOperationException(
+            "Any operation after the write operation is not permitted");
+      }
+    }
   }
 
   static class QsbrConflictException extends RuntimeException {
     public QsbrConflictException(String message) {
       super(message);
-    }
-
-    public QsbrConflictException(String message, Throwable cause) {
-      super(message, cause);
     }
   }
 
@@ -151,21 +155,17 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
 
     @Nullable
     V get(Context<K> ctxt, K key) {
+      ctxt.throwIfWritePhaseIsDone();
       V value = map.get(key);
       debugPrint(String.format("COMMAND-GET: %s -> %s", key, value));
-      if (value != null && ctxt.readVersion != null && value.getVersion() > ctxt.readVersion) {
-        throw new QsbrConflictException(
-            String.format(
-                "The read key-value has been updated. Read version: %d; Current version: %d",
-                ctxt.readVersion, value.getVersion()));
-      }
       ctxt.readSet.add(new Read<>(key, value == null ? null : value.getVersion()));
       return value;
     }
 
     @Nullable
     V put(Context<K> ctxt, K key, V value) {
-      value.setVersion(ctxt.globalState.version.get() + 1);
+      ctxt.throwIfWritePhaseIsDone();
+      value.setVersion(ctxt.globalState.nextVersion());
       debugPrint(String.format("COMMAND-PUT: %s -> %s", key, value));
       V oldValue = map.put(key, value);
       ctxt.writeList.add(new Put<>(key, value));
@@ -174,6 +174,7 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
 
     @Nullable
     V remove(Context<K> ctxt, K key) {
+      ctxt.throwIfWritePhaseIsDone();
       V oldValue = map.remove(key);
       debugPrint(String.format("COMMAND-RMV: %s -> %s", key, oldValue));
       ctxt.writeList.add(new Remove<>(key));
@@ -295,6 +296,10 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
   }
 
   void validateReadSet(Context<K> ctxt, QsbrSlot activeSlot) {
+    if (ctxt.isWritePhaseDone) {
+      // Read-set is already validated in the write phase.
+      return;
+    }
     Map<K, V> activeMap = activeSlot.table;
     for (Read<K> read : ctxt.readSet) {
       V currentValue = activeMap.getWithoutRecording(read.key);
@@ -322,8 +327,6 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
         }
       }
     }
-    // TODO: Revisit here to re-consider if this is needed.
-    ctxt.readVersion = null;
   }
 
   void handleReadOperation(ReadOperatable<K, V> task) {
@@ -346,7 +349,6 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
           String.format("handleReadOperation: Executed Task. ReadSlotId:%d", ctxt.readSlotId));
       validateReadSet(ctxt, readSlot);
     } finally {
-      ctxt.readSet.clear();
       readSlot.exitReadPhase();
     }
   }
@@ -376,7 +378,6 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
               ctxt.readSlotId, readSlot.readers.cardinality()));
       readSlot.exitReadPhase();
       ctxt.readSlotId = null;
-      // ctxt.readVersion = null;
     }
 
     Integer activeSlotIdBeforeSwitch = null;
@@ -473,9 +474,7 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
       }
       throw e;
     } finally {
-      // TODO: Revisit here
-      // - This is needed for read operations executed after the validation of read phase.
-      ctxt.readSet.clear();
+      ctxt.isWritePhaseDone = true;
       writerLock.unlock();
       debugPrint(
           threadId.get(),
