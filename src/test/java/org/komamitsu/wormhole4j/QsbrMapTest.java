@@ -657,6 +657,28 @@ class QsbrMapTest {
         });
   }
 
+  @Test
+  void getAfterWritePhase_ShouldThrowException() {
+    QsbrMap<Integer, Item> map = new QsbrMap<>();
+
+    int key = getRandomInt();
+    int value = getRandomInt();
+
+    assertThatThrownBy(
+            () ->
+                map.handleReadOperation(
+                    (readCtxt, readTable) -> {
+                      map.handleWriteOperation(
+                          readCtxt,
+                          (writeCtxt, version, writeTable) -> {
+                            assertThat(writeTable.get(writeCtxt, key)).isNull();
+                            writeTable.put(writeCtxt, key, new Item(version, value));
+                          });
+                      readTable.get(readCtxt, key);
+                    }))
+        .isInstanceOf(IllegalStateException.class);
+  }
+
   // TODO: Add:
   //       - When an exception is thrown in write operation block, all the in-flight write
   // operations should be reverted

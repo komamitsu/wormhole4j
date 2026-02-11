@@ -70,8 +70,7 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
 
     private void throwIfWritePhaseIsDone() {
       if (isWritePhaseDone) {
-        throw new UnsupportedOperationException(
-            "Any operation after the write operation is not permitted");
+        throw new IllegalStateException("Any operation after the write operation is not permitted");
       }
     }
   }
