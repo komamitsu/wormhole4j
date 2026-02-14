@@ -17,7 +17,6 @@
 package org.komamitsu.wormhole4j;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -28,9 +27,25 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
   private final State<K> state = new State<>();
   private final List<QsbrSlot> slots = new ArrayList<>();
   private final Lock writerLock = new ReentrantLock(true);
-  private final AtomicInteger threadIdCounter = new AtomicInteger();
-  private final ThreadLocal<Integer> threadId =
-      ThreadLocal.withInitial(threadIdCounter::getAndIncrement);
+  private final BitSet threads = new BitSet();
+  private final ThreadLocal<Integer> threadId = new ThreadLocal<>();
+
+  synchronized void registerThread() {
+    if (threadId.get() != null) {
+      throw new IllegalStateException("This thread is already registered");
+    }
+    int threadId = threads.nextClearBit(0);
+    threads.set(threadId);
+    this.threadId.set(threadId);
+  }
+
+  synchronized void unregisterThread() {
+    if (threadId.get() == null) {
+      throw new IllegalStateException("This thread is not registered");
+    }
+    threads.clear(threadId.get());
+    threadId.remove();
+  }
 
   private static class State<K> {
     private final AtomicLong version = new AtomicLong();
