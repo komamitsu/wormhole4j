@@ -23,7 +23,66 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
-class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
+/**
+ * A thread-safe map implementation using Quiescent State Based (QSB) synchronization with
+ * optimistic concurrency control.
+ *
+ * <p>This map uses a two-slot design where reads operate on one slot while writes prepare updates
+ * on another slot. Writers wait for all readers to reach a quiescent state (exit their read phase)
+ * before applying changes, ensuring readers always see a consistent snapshot without blocking.
+ *
+ * <p><b>Thread Registration:</b> Before any thread can access this map, it must call {@link
+ * #registerThread()}. When the thread is permanently done, it must call {@link #unregisterThread()}
+ * to allow thread ID reuse.
+ *
+ * <p><b>Concurrency Guarantees:</b>
+ *
+ * <ul>
+ *   <li>Readers never block each other or writers (on the active slot)
+ *   <li>Writers are serialized via a lock
+ *   <li>Provides snapshot isolation for read operations
+ *   <li>Detects conflicts via read-set validation, throwing {@link QsbConflictException}
+ * </ul>
+ *
+ * <p><b>Usage Example:</b>
+ *
+ * <pre>{@code
+ * QsbMap<String, Item> map = new QsbMap<>();
+ *
+ * // Register thread before use
+ * map.registerThread();
+ * try {
+ *   // Read operation
+ *   map.handleReadOperation((ctx, table) -> {
+ *     Item item = table.get(ctx, "key");
+ *     // ...
+ *   });
+ *
+ *   // Read-modify-write transaction
+ *   map.handleReadOperation((readCtx, readTable) -> {
+ *     Item item = readTable.get(readCtx, "key");
+ *     map.handleWriteOperation(readCtx, (writeCtx, version, writeTable) -> {
+ *       writeTable.put(writeCtx, "key", new Item(version, newValue));
+ *     });
+ *   });
+ * } finally {
+ *   map.unregisterThread();
+ * }
+ * }</pre>
+ *
+ * <p><b>Performance Characteristics:</b>
+ *
+ * <ul>
+ *   <li>Excellent for read-heavy workloads
+ *   <li>Writers must wait for readers to quiesce (bounded by reader operation time)
+ *   <li>Write operations are serialized (single writer at a time)
+ *   <li>Failed transactions should be retried on {@link QsbConflictException}
+ * </ul>
+ *
+ * @param <K> the type of keys maintained by this map
+ * @param <V> the type of mapped values, must implement {@link Versionable}
+ */
+class QsbMap<K, V extends QsbMap.Versionable<V>> {
   private final State<K> state = new State<>();
   private final List<QsbrSlot> slots = new ArrayList<>();
   private final Lock writerLock = new ReentrantLock(true);
@@ -90,8 +149,8 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
     }
   }
 
-  static class QsbrConflictException extends RuntimeException {
-    public QsbrConflictException(String message) {
+  static class QsbConflictException extends RuntimeException {
+    public QsbConflictException(String message) {
       super(message);
     }
   }
@@ -301,7 +360,7 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
     }
   }
 
-  public QsbrMap() {
+  public QsbMap() {
     // Add active and inactive slots.
     slots.add(new QsbrSlot());
     slots.add(new QsbrSlot());
@@ -321,20 +380,20 @@ class QsbrMap<K, V extends QsbrMap.Versionable<V>> {
           String.format("validateReadSet: ReadSetValue:%s, CurrentValue:%s", read, currentValue));
       if (read.version == null) {
         if (currentValue != null) {
-          throw new QsbrConflictException(
+          throw new QsbConflictException(
               String.format(
                   "The read key-value has been updated. Read version: null; Current version: %d",
                   currentValue.getVersion()));
         }
       } else {
         if (currentValue == null) {
-          throw new QsbrConflictException(
+          throw new QsbConflictException(
               String.format(
                   "The read key-value has been updated. Read version: %s; Current version: null",
                   read.version));
         }
         if (currentValue.getVersion() > ctxt.readVersion) {
-          throw new QsbrConflictException(
+          throw new QsbConflictException(
               String.format(
                   "The read key-value has been updated. Read version: %d; Current version: %d",
                   read.version, currentValue.getVersion()));

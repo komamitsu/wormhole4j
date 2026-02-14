@@ -36,7 +36,7 @@ class MetaTrieHashTable<K, V> {
     this(encodedKeyType, false);
   }
 
-  abstract static class NodeMeta<K, V> implements QsbrMap.Versionable {
+  abstract static class NodeMeta<K, V> implements QsbMap.Versionable {
     final Object anchorPrefix;
     long version;
 
