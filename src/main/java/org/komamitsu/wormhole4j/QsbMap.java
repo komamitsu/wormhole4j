@@ -20,6 +20,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
@@ -107,6 +108,7 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
   }
 
   private static class State<K> {
+    // TODO: Revisit here to consider if these need to be AtomicLong or volatile.
     private final AtomicLong version = new AtomicLong();
     private volatile int activeSlotId = 0;
 
@@ -231,12 +233,14 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
       ctxt.throwIfWritePhaseIsDone();
       V value = map.get(key);
       debugPrint(String.format("COMMAND-GET: %s -> %s", key, value));
+      // TODO: Skip this if it's in a read phase.
       ctxt.readSet.add(new Read<>(key, value == null ? null : value.getVersion()));
       return value;
     }
 
     @Nullable
     V put(Context<K> ctxt, K key, V value) {
+      // TODO: Reject if it's in a read phase.
       ctxt.throwIfWritePhaseIsDone();
       value.setVersion(ctxt.globalState.nextVersion());
       debugPrint(String.format("COMMAND-PUT: %s -> %s", key, value));
@@ -247,11 +251,23 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
 
     @Nullable
     V remove(Context<K> ctxt, K key) {
+      // TODO: Reject if it's in a read phase.
       ctxt.throwIfWritePhaseIsDone();
       V oldValue = map.remove(key);
       debugPrint(String.format("COMMAND-RMV: %s -> %s", key, oldValue));
       ctxt.writeList.add(new Remove<>(key));
       return oldValue;
+    }
+
+    void forEach(Context<K> ctxt, BiConsumer<K, V> consumer) {
+      ctxt.throwIfWritePhaseIsDone();
+      for (java.util.Map.Entry<K, V> entry : map.entrySet()) {
+        K key = entry.getKey();
+        V value = entry.getValue();
+        consumer.accept(key, value);
+        // TODO: Skip this if it's in a read phase.
+        ctxt.readSet.add(new Read<>(key, value == null ? null : value.getVersion()));
+      }
     }
 
     private V getWithoutRecording(K key) {
@@ -264,6 +280,11 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
 
     private V removeWithoutRecording(K key) {
       return map.remove(key);
+    }
+
+    @VisibleForTesting
+    java.util.Map<K, V> getUnderlyingMap() {
+      return map;
     }
   }
 
@@ -567,6 +588,11 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
 
   long getVersion() {
     return state.version.get();
+  }
+
+  @VisibleForTesting
+  Map<K, V> getActiveMap() {
+    return slots.get(state.activeSlotId).table;
   }
 
   // TODO: Remove
