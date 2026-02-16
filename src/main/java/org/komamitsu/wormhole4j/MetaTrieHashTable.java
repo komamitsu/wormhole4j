@@ -140,65 +140,49 @@ class MetaTrieHashTable<K, V> {
     table.handleWriteOperation(task);
   }
 
-  void handleWriteOperation(
-      QsbMap.Context<Object> ctx, QsbMap.WriteOperatable<Object, NodeMeta<K, V>> task) {
-    table.handleWriteOperation(ctx, task);
+  NodeMeta<K, V> get(Object key) {
+    return getMap().get(key);
   }
 
-  NodeMeta<K, V> get(
-      QsbMap.Context<Object> ctx, QsbMap.Map<Object, NodeMeta<K, V>> map, Object key) {
-    return map.get(ctx, key);
-  }
-
-  void put(
-      QsbMap.Context<Object> ctx,
-      QsbMap.Map<Object, NodeMeta<K, V>> map,
-      Object key,
-      NodeMeta<K, V> nodeMeta) {
-    map.put(ctx, key, nodeMeta);
+  void put(Object key, NodeMeta<K, V> nodeMeta) {
+    getMap().put(key, nodeMeta);
     maxAnchorLength = Math.max(maxAnchorLength, EncodedKeyUtils.length(encodedKeyType, key));
   }
 
   @VisibleForTesting
-  Collection<NodeMeta<K, V>> values() {
-    return table.getActiveMap().getUnderlyingMap().values();
+  Collection<NodeMeta<K, V>> valuesForValidate() {
+    return table.getActiveMapForTesting().getUnderlyingMap().values();
   }
 
   @VisibleForTesting
-  Set<Map.Entry<Object, NodeMeta<K, V>>> entrySet() {
-    return table.getActiveMap().getUnderlyingMap().entrySet();
+  Set<Map.Entry<Object, NodeMeta<K, V>>> entrySetForValidate() {
+    return table.getActiveMapForTesting().getUnderlyingMap().entrySet();
   }
 
   @VisibleForTesting
-  NodeMeta<K, V> stalableGet(Object key) {
-    return table.getActiveMap().getUnderlyingMap().get(key);
+  NodeMeta<K, V> getForValidate(Object key) {
+    return table.getActiveMapForTesting().getUnderlyingMap().get(key);
   }
 
-  void handleSplitNodes(
-      QsbMap.Context<Object> ctx,
-      QsbMap.Map<Object, NodeMeta<K, V>> map,
-      Object newAnchorKey,
-      LeafNode<K, V> newLeafNode) {
+  void handleSplitNodes(Object newAnchorKey, LeafNode<K, V> newLeafNode) {
     NodeMetaLeaf<K, V> newNodeMeta = new NodeMetaLeaf<>(newAnchorKey, newLeafNode);
-    NodeMeta<K, V> existingNodeMeta = get(ctx, map, newAnchorKey);
+    NodeMeta<K, V> existingNodeMeta = get(newAnchorKey);
     if (existingNodeMeta != null) {
       throw new AssertionError(
           String.format(
               "There is a node meta that has the same key. Key: %s, Node meta: %s",
               newAnchorKey, existingNodeMeta));
     }
-    put(ctx, map, newAnchorKey, newNodeMeta);
+    put(newAnchorKey, newNodeMeta);
 
     // Update the ancestor NodeMeta instances for the new leaf node.
     for (int prefixLen = 0;
         prefixLen < EncodedKeyUtils.length(encodedKeyType, newAnchorKey);
         prefixLen++) {
       Object prefix = EncodedKeyUtils.slice(encodedKeyType, newAnchorKey, prefixLen);
-      NodeMeta<K, V> node = get(ctx, map, prefix);
+      NodeMeta<K, V> node = get(prefix);
       if (node == null) {
         put(
-            ctx,
-            map,
             prefix,
             new NodeMetaInternal<>(
                 prefix,
@@ -231,7 +215,7 @@ class MetaTrieHashTable<K, V> {
         node = parent;
          */
         node = new NodeMetaInternal<>(prefix, leafNode, newLeafNode, null);
-        put(ctx, map, prefix, node);
+        put(prefix, node);
       }
 
       assert node instanceof NodeMetaInternal;
@@ -255,25 +239,17 @@ class MetaTrieHashTable<K, V> {
     }
   }
 
-  NodeMeta<K, V> searchLongestPrefixMatch(
-      QsbMap.Context<Object> ctx,
-      QsbMap.Map<Object, NodeMeta<K, V>> map,
-      EncodedKeyType encodedKeyType,
-      Object searchKey) {
-    Object lpm = searchLongestPrefixMatchKey(ctx, map, encodedKeyType, searchKey);
-    return get(ctx, map, lpm);
+  NodeMeta<K, V> searchLongestPrefixMatch(EncodedKeyType encodedKeyType, Object searchKey) {
+    Object lpm = searchLongestPrefixMatchKey(encodedKeyType, searchKey);
+    return get(lpm);
   }
 
-  private Object searchLongestPrefixMatchKey(
-      QsbMap.Context<Object> ctx,
-      QsbMap.Map<Object, NodeMeta<K, V>> map,
-      EncodedKeyType encodedKeyType,
-      Object searchKey) {
+  private Object searchLongestPrefixMatchKey(EncodedKeyType encodedKeyType, Object searchKey) {
     int m = 0;
     int n = Math.min(EncodedKeyUtils.length(encodedKeyType, searchKey), maxAnchorLength) + 1;
     while (m + 1 < n) {
       int prefixLen = (m + n) / 2;
-      if (map.get(ctx, EncodedKeyUtils.slice(encodedKeyType, searchKey, prefixLen)) != null) {
+      if (getMap().get(EncodedKeyUtils.slice(encodedKeyType, searchKey, prefixLen)) != null) {
         m = prefixLen;
       } else {
         n = prefixLen;
@@ -282,27 +258,25 @@ class MetaTrieHashTable<K, V> {
     return EncodedKeyUtils.slice(encodedKeyType, searchKey, m);
   }
 
-  void removeNodeMeta(
-      QsbMap.Context<Object> ctx, QsbMap.Map<Object, NodeMeta<K, V>> map, Object anchorKey) {
-    NodeMeta<K, V> removed = map.remove(ctx, anchorKey);
+  void removeNodeMeta(Object anchorKey) {
+    NodeMeta<K, V> removed = getMap().remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(
           String.format("Node meta leaf for anchor key '%s' not found for removal", anchorKey));
     }
     if (EncodedKeyUtils.length(encodedKeyType, anchorKey) >= maxAnchorLength) {
-      maxAnchorLength = calcMaxAnchorLength(ctx, map);
+      maxAnchorLength = calcMaxAnchorLength();
     }
   }
 
-  Object removeNodeMetaInternal(
-      QsbMap.Context<Object> ctx, QsbMap.Map<Object, NodeMeta<K, V>> map, Object anchorKey) {
-    NodeMeta<K, V> removed = map.remove(ctx, anchorKey);
+  Object removeNodeMetaInternal(Object anchorKey) {
+    NodeMeta<K, V> removed = getMap().remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(
           String.format("Node meta internal for anchor key '%s' not found for removal", anchorKey));
     }
     if (EncodedKeyUtils.length(encodedKeyType, anchorKey) >= maxAnchorLength) {
-      maxAnchorLength = calcMaxAnchorLength(ctx, map);
+      maxAnchorLength = calcMaxAnchorLength();
     }
     if (removed instanceof NodeMetaInternal) {
       return anchorKey;
@@ -314,18 +288,21 @@ class MetaTrieHashTable<K, V> {
             NodeMetaInternal.class.getName(), removed.getClass().getName()));
   }
 
-  private int calcMaxAnchorLength(
-      QsbMap.Context<Object> ctx, QsbMap.Map<Object, NodeMeta<K, V>> map) {
+  private int calcMaxAnchorLength() {
     AtomicInteger max = new AtomicInteger();
-    map.forEach(
-        ctx,
-        (key, value) -> {
-          int keyLen = EncodedKeyUtils.length(encodedKeyType, key);
-          if (max.get() < keyLen) {
-            max.set(keyLen);
-          }
-        });
+    getMap()
+        .forEach(
+            (key, value) -> {
+              int keyLen = EncodedKeyUtils.length(encodedKeyType, key);
+              if (max.get() < keyLen) {
+                max.set(keyLen);
+              }
+            });
     return max.get();
+  }
+
+  QsbMap<Object, NodeMeta<K, V>>.Map getMap() {
+    return table.getMap();
   }
 
   @Override

@@ -88,23 +88,28 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
   private final List<QsbrSlot> slots = new ArrayList<>();
   private final Lock writerLock = new ReentrantLock(true);
   private final BitSet threads = new BitSet();
-  private final ThreadLocal<Integer> threadId = new ThreadLocal<>();
+  private final ThreadLocal<Context<K>> ctxt = new ThreadLocal<>();
 
-  synchronized void registerThread() {
-    if (threadId.get() != null) {
+  void registerThread() {
+    if (ctxt.get() != null) {
       throw new IllegalStateException("This thread is already registered");
     }
-    int threadId = threads.nextClearBit(0);
-    threads.set(threadId);
-    this.threadId.set(threadId);
+    int threadId;
+    synchronized (this) {
+      threadId = threads.nextClearBit(0);
+      threads.set(threadId);
+    }
+    ctxt.set(new Context<>(state, threadId));
   }
 
-  synchronized void unregisterThread() {
-    if (threadId.get() == null) {
+  void unregisterThread() {
+    if (ctxt.get() == null) {
       throw new IllegalStateException("This thread is not registered");
     }
-    threads.clear(threadId.get());
-    threadId.remove();
+    synchronized (this) {
+      threads.clear(ctxt.get().threadId);
+      ctxt.remove();
+    }
   }
 
   private static class State<K> {
@@ -117,35 +122,98 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
       this.activeSlotId = activeSlotId;
     }
 
-    synchronized Context<K> createContext() {
-      return new Context<>(this, version.get(), activeSlotId);
-    }
-
     synchronized long nextVersion() {
       return version.get() + 1;
     }
   }
 
+  enum ContextState {
+    INITIALIZED,
+    STARTED,
+    FINISHED
+  }
+
   static class Context<K> {
     private final State<K> globalState;
+    private final int threadId;
+
     private Long readVersion;
     private Integer readSlotId;
-    private boolean isWritePhaseDone;
+    private ContextState readPhaseState = ContextState.INITIALIZED;
     private final Collection<Read<K>> readSet = new HashSet<>();
+
+    private Integer writeSlotId;
+    private Long writeVersion;
+    private ContextState writePhaseState = ContextState.INITIALIZED;
     private final List<Write<K>> writeList = new ArrayList<>();
 
-    private Context(State<K> globalState) {
+    private Context(State<K> globalState, int threadId) {
       this.globalState = globalState;
+      this.threadId = threadId;
     }
 
-    private Context(State<K> globalState, Long readVersion, Integer readSlotId) {
-      this(globalState);
-      this.readVersion = readVersion;
-      this.readSlotId = readSlotId;
+    private void startReadPhase() {
+      if (readPhaseState != ContextState.INITIALIZED) {
+        throw new IllegalStateException("Read phase must be initialized");
+      }
+      if (writePhaseState == ContextState.STARTED) {
+        throw new IllegalStateException("Write phase must not be started");
+      }
+
+      readPhaseState = ContextState.STARTED;
+      // TODO: Refactoring
+      synchronized (globalState) {
+        readVersion = globalState.version.get();
+        readSlotId = globalState.activeSlotId;
+      }
+      if (writePhaseState == ContextState.FINISHED) {
+        writePhaseState = ContextState.INITIALIZED;
+      }
+    }
+
+    private void finishReadPhase() {
+      if (readPhaseState != ContextState.STARTED) {
+        throw new IllegalStateException("Read phase must be started");
+      }
+      if (writePhaseState == ContextState.STARTED) {
+        throw new IllegalStateException("Write phase must be finished");
+      }
+
+      readPhaseState = ContextState.INITIALIZED;
+      if (writePhaseState == ContextState.FINISHED) {
+        writePhaseState = ContextState.INITIALIZED;
+      }
+      readVersion = null;
+      readSlotId = null;
+      readSet.clear();
+    }
+
+    private void startWritePhase() {
+      if (writePhaseState == ContextState.STARTED) {
+        throw new IllegalStateException("Write phase must not be started");
+      }
+      writePhaseState = ContextState.STARTED;
+      writeSlotId = getInactiveSlotId(globalState.activeSlotId);
+      writeVersion = globalState.nextVersion();
+    }
+
+    private void finishWritePhase() {
+      if (readPhaseState == ContextState.FINISHED) {
+        throw new IllegalStateException("Read phase must not be finished");
+      }
+      if (writePhaseState != ContextState.STARTED) {
+        throw new IllegalStateException("Write phase must be started");
+      }
+      writePhaseState = ContextState.FINISHED;
+      writeVersion = null;
+      writeSlotId = null;
+      writeList.clear();
+      // Read-set is already validated in the write phase.
+      readSet.clear();
     }
 
     private void throwIfWritePhaseIsDone() {
-      if (isWritePhaseDone) {
+      if (writePhaseState == ContextState.FINISHED) {
         throw new IllegalStateException("Any operation after the write operation is not permitted");
       }
     }
@@ -158,11 +226,11 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
   }
 
   interface ReadOperatable<K, V extends Versionable<V>> {
-    void operate(Context<K> context, Map<K, V> table);
+    void operate();
   }
 
   interface WriteOperatable<K, V extends Versionable<V>> {
-    void operate(Context<K> context, long nextVersion, Map<K, V> table);
+    void operate();
   }
 
   interface Versionable<T extends Versionable<T>> {
@@ -225,24 +293,29 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
     }
   }
 
-  static class Map<K, V extends Versionable<V>> {
+  class Map {
     private final java.util.Map<K, V> map = new HashMap<>();
 
     @Nullable
-    V get(Context<K> ctxt, K key) {
+    V get(K key) {
+      Context<K> ctxt = QsbMap.this.ctxt.get();
       ctxt.throwIfWritePhaseIsDone();
       V value = map.get(key);
       debugPrint(String.format("COMMAND-GET: %s -> %s", key, value));
-      // TODO: Skip this if it's in a read phase.
-      ctxt.readSet.add(new Read<>(key, value == null ? null : value.getVersion()));
+      if (ctxt.writePhaseState != ContextState.STARTED) {
+        ctxt.readSet.add(new Read<>(key, value == null ? null : value.getVersion()));
+      }
       return value;
     }
 
     @Nullable
-    V put(Context<K> ctxt, K key, V value) {
-      // TODO: Reject if it's in a read phase.
+    V put(K key, V value) {
+      Context<K> ctxt = QsbMap.this.ctxt.get();
+      if (ctxt.writePhaseState != ContextState.STARTED) {
+        throw new IllegalStateException("put() cannot be executed in the read phase");
+      }
       ctxt.throwIfWritePhaseIsDone();
-      value.setVersion(ctxt.globalState.nextVersion());
+      value.setVersion(ctxt.writeVersion);
       debugPrint(String.format("COMMAND-PUT: %s -> %s", key, value));
       V oldValue = map.put(key, value);
       ctxt.writeList.add(new Put<>(key, value));
@@ -250,8 +323,11 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
     }
 
     @Nullable
-    V remove(Context<K> ctxt, K key) {
-      // TODO: Reject if it's in a read phase.
+    V remove(K key) {
+      Context<K> ctxt = QsbMap.this.ctxt.get();
+      if (ctxt.writePhaseState != ContextState.STARTED) {
+        throw new IllegalStateException("remove() cannot be executed in the read phase");
+      }
       ctxt.throwIfWritePhaseIsDone();
       V oldValue = map.remove(key);
       debugPrint(String.format("COMMAND-RMV: %s -> %s", key, oldValue));
@@ -259,14 +335,16 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
       return oldValue;
     }
 
-    void forEach(Context<K> ctxt, BiConsumer<K, V> consumer) {
+    void forEach(BiConsumer<K, V> consumer) {
+      Context<K> ctxt = QsbMap.this.ctxt.get();
       ctxt.throwIfWritePhaseIsDone();
       for (java.util.Map.Entry<K, V> entry : map.entrySet()) {
         K key = entry.getKey();
         V value = entry.getValue();
         consumer.accept(key, value);
-        // TODO: Skip this if it's in a read phase.
-        ctxt.readSet.add(new Read<>(key, value == null ? null : value.getVersion()));
+        if (ctxt.writePhaseState != ContextState.STARTED) {
+          ctxt.readSet.add(new Read<>(key, value == null ? null : value.getVersion()));
+        }
       }
     }
 
@@ -289,50 +367,50 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
   }
 
   private class QsbrSlot {
-    private final Map<K, V> table = new Map<>();
+    private final Map table = new Map();
     private final BitSet readers = new BitSet();
     private final Object qsbrWaitLock = new Object();
 
     void enterReadPhase() {
       debugPrint(
-          threadId.get(),
+          ctxt.get().threadId,
           String.format(
               "enterReadPhase: Start. ThreadId:%d, ActiveReaders:%s",
-              threadId.get(), readers.cardinality()));
+              ctxt.get().threadId, readers.cardinality()));
       synchronized (readers) {
-        readers.set(threadId.get());
+        readers.set(ctxt.get().threadId);
       }
       debugPrint(
-          threadId.get(),
+          ctxt.get().threadId,
           String.format(
               "enterReadPhase: End. ThreadId:%d, ActiveReaders:%s",
-              threadId.get(), readers.cardinality()));
+              ctxt.get().threadId, readers.cardinality()));
     }
 
     void exitReadPhase() {
       debugPrint(
-          threadId.get(),
+          ctxt.get().threadId,
           String.format(
               "exitReadPhase: Start. ThreadId:%d, ActiveReaders:%s",
-              threadId.get(), readers.cardinality()));
+              ctxt.get().threadId, readers.cardinality()));
       // If the reader is also the writer, the flag should be already unset and the reader count is
       // decremented.
       // Nothing to do.
       boolean isInReadPhase;
       synchronized (readers) {
-        isInReadPhase = readers.get(threadId.get());
+        isInReadPhase = readers.get(ctxt.get().threadId);
       }
       if (!isInReadPhase) {
         debugPrint(
-            threadId.get(),
+            ctxt.get().threadId,
             String.format(
                 "exitReadPhase: Already done. ThreadId:%d, ActiveReaders:%s",
-                threadId.get(), readers.cardinality()));
+                ctxt.get().threadId, readers.cardinality()));
         return;
       }
       boolean isNoReader;
       synchronized (readers) {
-        readers.clear(threadId.get());
+        readers.clear(ctxt.get().threadId);
         isNoReader = readers.isEmpty();
       }
       if (isNoReader) {
@@ -341,36 +419,36 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
         }
       }
       debugPrint(
-          threadId.get(),
+          ctxt.get().threadId,
           String.format(
               "exitReadPhase: End. ThreadId:%d, ActiveReaders:%s",
-              threadId.get(), readers.cardinality()));
+              ctxt.get().threadId, readers.cardinality()));
     }
 
     void waitUntilNoReader() {
       debugPrint(
-          threadId.get(),
+          ctxt.get().threadId,
           String.format(
               "waitUntilNoReader: Start. ThreadId:%d, ActiveReaders:%s",
-              threadId.get(), readers.cardinality()));
+              ctxt.get().threadId, readers.cardinality()));
       synchronized (qsbrWaitLock) {
         while (true) {
           synchronized (readers) {
             if (readers.isEmpty()) {
               debugPrint(
-                  threadId.get(),
+                  ctxt.get().threadId,
                   String.format(
                       "waitUntilNoReader: Empty. ThreadId:%d, ActiveReaders:%s",
-                      threadId.get(), readers.cardinality()));
+                      ctxt.get().threadId, readers.cardinality()));
               break;
             }
           }
           try {
             debugPrint(
-                threadId.get(),
+                ctxt.get().threadId,
                 String.format(
                     "waitUntilNoReader: Waiting. ThreadId:%d, ActiveReaders:%s",
-                    threadId.get(), readers.cardinality()));
+                    ctxt.get().threadId, readers.cardinality()));
             qsbrWaitLock.wait();
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -389,12 +467,9 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
         String.format("Initialize: Map1:%s, Map2:%s", slots.get(0).table, slots.get(1).table));
   }
 
-  void validateReadSet(Context<K> ctxt, QsbrSlot activeSlot) {
-    if (ctxt.isWritePhaseDone) {
-      // Read-set is already validated in the write phase.
-      return;
-    }
-    Map<K, V> activeMap = activeSlot.table;
+  void validateReadSet(QsbrSlot activeSlot) {
+    Context<K> ctxt = this.ctxt.get();
+    Map activeMap = activeSlot.table;
     for (Read<K> read : ctxt.readSet) {
       V currentValue = activeMap.getWithoutRecording(read.key);
       debugPrint(
@@ -424,85 +499,84 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
   }
 
   void handleReadOperation(ReadOperatable<K, V> task) {
-    Context<K> ctxt = state.createContext();
+    Context<K> ctxt = this.ctxt.get();
+    ctxt.startReadPhase();
     debugPrint(
-        threadId.get(),
+        ctxt.threadId,
         String.format(
             "handleReadOperation: Start. ReadSlotId:%d, ReadVersion:%d",
             ctxt.readSlotId, ctxt.readVersion));
     QsbrSlot readSlot = getSlot(ctxt.readSlotId);
-    Map<K, V> table = readSlot.table;
+    Map table = readSlot.table;
     try {
       readSlot.enterReadPhase();
       debugPrint(
-          threadId.get(),
+          ctxt.threadId,
           String.format("handleReadOperation: Executing Task. ReadSlotId:%d", ctxt.readSlotId));
-      task.operate(ctxt, table);
+      task.operate();
       debugPrint(
-          threadId.get(),
+          ctxt.threadId,
           String.format("handleReadOperation: Executed Task. ReadSlotId:%d", ctxt.readSlotId));
-      validateReadSet(ctxt, readSlot);
+      validateReadSet(readSlot);
     } finally {
       readSlot.exitReadPhase();
+      ctxt.finishReadPhase();
     }
   }
 
   void handleWriteOperation(WriteOperatable<K, V> task) {
-    handleWriteOperation(state.createContext(), task);
-  }
-
-  void handleWriteOperation(Context<K> ctxt, WriteOperatable<K, V> task) {
+    Context<K> ctxt = this.ctxt.get();
     debugPrint(
-        threadId.get(),
+        ctxt.threadId,
         String.format(
             "handleWriteOperation: Start. ActiveSlotId:%d, WriteListSize:%d",
             state.activeSlotId, ctxt.writeList.size()));
 
     // If the writer is also in the read phase, exit it to decrement the reader count.
     debugPrint(
-        threadId.get(),
+        ctxt.threadId,
         String.format(
             "handleWriteOperation: Check if in read phase. ReadSlotId:%d", ctxt.readSlotId));
     if (ctxt.readSlotId != null) {
       QsbrSlot readSlot = slots.get(ctxt.readSlotId);
       debugPrint(
-          threadId.get(),
+          ctxt.threadId,
           String.format(
               "handleWriteOperation: Exiting read phase. ReadSlotId:%d, ActiveReaders:%s",
               ctxt.readSlotId, readSlot.readers.cardinality()));
       readSlot.exitReadPhase();
-      ctxt.readSlotId = null;
     }
 
     Integer activeSlotIdBeforeSwitch = null;
     try {
       debugPrint(
-          threadId.get(),
+          ctxt.threadId,
           String.format("handleWriteOperation: Waiting lock. ActiveSlotId:%d", state.activeSlotId));
       writerLock.lock();
+      ctxt.startWritePhase();
 
       debugPrint(
-          threadId.get(),
+          ctxt.threadId,
           String.format(
               "handleWriteOperation: Acquired Lock. ActiveSlotId:%d", activeSlotIdBeforeSwitch));
 
       activeSlotIdBeforeSwitch = state.activeSlotId;
       QsbrSlot activeSlotBeforeSwitch = getSlot(activeSlotIdBeforeSwitch);
-      Map<K, V> activeTableBeforeSwitch = activeSlotBeforeSwitch.table;
+      Map activeTableBeforeSwitch = activeSlotBeforeSwitch.table;
 
       int inactiveSlotIdBeforeSwitch = getInactiveSlotId(activeSlotIdBeforeSwitch);
       QsbrSlot inactiveSlotBeforeSwitch = getSlot(inactiveSlotIdBeforeSwitch);
-      Map<K, V> inactiveTableBeforeSwitch = inactiveSlotBeforeSwitch.table;
+      Map inactiveTableBeforeSwitch = inactiveSlotBeforeSwitch.table;
 
       // Check if the inactive slot has been updated by the preceding writer thread.
-      validateReadSet(ctxt, inactiveSlotBeforeSwitch);
+      validateReadSet(inactiveSlotBeforeSwitch);
 
       long nextVersion = state.nextVersion();
-      task.operate(ctxt, nextVersion, inactiveTableBeforeSwitch);
+      task.operate();
 
       // Switch the slots.
       debugPrint(
-          threadId.get(),
+          ctxt.threadId,
           String.format(
               "handleWriteOperation: Switching ActiveSlotId. %d -> %d. Actual ActiveSlotId:%d",
               activeSlotIdBeforeSwitch, inactiveSlotIdBeforeSwitch, state.activeSlotId));
@@ -512,16 +586,17 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
 
       // Wait for all readers to finish with the current inactive slot.
       debugPrint(
-          threadId.get(),
+          ctxt.threadId,
           String.format(
               "handleWriteOperation: Wait until no readers. CurrentInactiveSlotId:%d",
               activeSlotIdBeforeSwitch));
       activeSlotBeforeSwitch.waitUntilNoReader();
 
-      //      debugPrint(threadId.get(), String.format("  Commands:%s", inactiveTable.commands));
+      //      debugPrint(context.get().threadId, String.format("  Commands:%s",
+      // inactiveTable.commands));
 
       debugPrint(
-          threadId.get(),
+          ctxt.threadId,
           String.format(
               "handleWriteOperation: Applying write operations. TargetSlotId:%d",
               activeSlotIdBeforeSwitch));
@@ -531,27 +606,27 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
         if (write instanceof Put) {
           Put<K, V> put = (Put<K, V>) write;
           activeTableBeforeSwitch.putWithoutRecording(put.key, put.value);
-          debugPrint(threadId.get(), String.format("  APPLY-PUT: %s -> %s", put.key, put.value));
+          debugPrint(
+              this.ctxt.get().threadId, String.format("  APPLY-PUT: %s -> %s", put.key, put.value));
         } else if (write instanceof Remove) {
           Remove<K> remove = (Remove<K>) write;
           activeTableBeforeSwitch.removeWithoutRecording(remove.key);
-          debugPrint(threadId.get(), String.format("  APPLY-RMV: %s", remove.key));
+          debugPrint(this.ctxt.get().threadId, String.format("  APPLY-RMV: %s", remove.key));
         } else {
           throw new AssertionError();
         }
       }
     } catch (Exception e) {
       debugPrint(
-          threadId.get(),
+          ctxt.threadId,
           String.format("handleWriteOperation: Caught exception: %s", e.getMessage()));
       if (activeSlotIdBeforeSwitch == null) {
         // Something happened when acquiring the write lock.
         return;
       }
       QsbrSlot activeSlotBeforeSwitch = getSlot(activeSlotIdBeforeSwitch);
-      Map<K, V> activeTableBeforeSwitch = activeSlotBeforeSwitch.table;
-      Map<K, V> inactiveTableBeforeSwitch =
-          getSlot(getInactiveSlotId(activeSlotIdBeforeSwitch)).table;
+      Map activeTableBeforeSwitch = activeSlotBeforeSwitch.table;
+      Map inactiveTableBeforeSwitch = getSlot(getInactiveSlotId(activeSlotIdBeforeSwitch)).table;
 
       Consumer<K> restorer =
           key -> {
@@ -568,17 +643,35 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
       }
       throw e;
     } finally {
-      ctxt.isWritePhaseDone = true;
+      ctxt.finishWritePhase();
       writerLock.unlock();
       debugPrint(
-          threadId.get(),
+          ctxt.threadId,
           String.format(
               "handleWriteOperation: Quiting. ActiveSlotId before switch:%d, Current ActiveSlotId:%d",
               activeSlotIdBeforeSwitch, state.activeSlotId));
     }
   }
 
-  private int getInactiveSlotId(int activeSlotId) {
+  Map getMap() {
+    int slotId;
+    if (ctxt.get().writePhaseState == ContextState.STARTED) {
+      slotId = ctxt.get().writeSlotId;
+    } else {
+      slotId = ctxt.get().readSlotId;
+    }
+    return slots.get(slotId).table;
+  }
+
+  long getWriteVersion() {
+    Long writeVersion = ctxt.get().writeVersion;
+    if (writeVersion == null) {
+      throw new IllegalStateException();
+    }
+    return writeVersion;
+  }
+
+  private static int getInactiveSlotId(int activeSlotId) {
     return ++activeSlotId % 2;
   }
 
@@ -586,13 +679,33 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
     return slots.get(slotId);
   }
 
-  long getVersion() {
+  @VisibleForTesting
+  long getVersionForTesting() {
     return state.version.get();
   }
 
   @VisibleForTesting
-  Map<K, V> getActiveMap() {
+  Map getActiveMapForTesting() {
     return slots.get(state.activeSlotId).table;
+  }
+
+  @Nullable
+  V get(K key) {
+    return getMap().get(key);
+  }
+
+  @Nullable
+  V put(K key, V value) {
+    return getMap().put(key, value);
+  }
+
+  @Nullable
+  V remove(K key) {
+    return getMap().remove(key);
+  }
+
+  void forEach(BiConsumer<K, V> consumer) {
+    getMap().forEach(consumer);
   }
 
   // TODO: Remove
