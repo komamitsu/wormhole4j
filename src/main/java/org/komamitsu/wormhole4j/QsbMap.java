@@ -217,6 +217,13 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
         throw new IllegalStateException("Any operation after the write operation is not permitted");
       }
     }
+
+    private synchronized long getVersion() {
+      if (writePhaseState == ContextState.STARTED) {
+        return writeVersion;
+      }
+      return readVersion;
+    }
   }
 
   static class QsbConflictException extends RuntimeException {
@@ -669,6 +676,10 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
       throw new IllegalStateException();
     }
     return writeVersion;
+  }
+
+  long getVersion() {
+    return state.version.get();
   }
 
   private static int getInactiveSlotId(int activeSlotId) {

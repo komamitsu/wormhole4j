@@ -133,6 +133,14 @@ class MetaTrieHashTable<K, V> {
     }
   }
 
+  long getVersion() {
+    return table.getVersion();
+  }
+
+  long getWriteVersion() {
+    return table.getWriteVersion();
+  }
+
   void handleReadOperation(QsbMap.ReadOperatable<Object, NodeMeta<K, V>> task) {
     table.handleReadOperation(task);
   }

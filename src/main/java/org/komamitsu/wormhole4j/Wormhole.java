@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaInternal;
 import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
@@ -44,6 +45,8 @@ abstract class Wormhole<K, V> {
   private final int leafNodeSize;
   private final int leafNodeMergeSize;
   private final Function<Object, Object> validAnchorKeyProvider;
+  private final ThreadLocal<Collection<ThreadSafeLeafNode<K, V>>> leafNodeTracer =
+      ThreadLocal.withInitial(ArrayList::new);
   @Nullable private final Validator<K, V> validator;
 
   /**
@@ -52,7 +55,7 @@ abstract class Wormhole<K, V> {
    * @param encodedKeyType the encoded key type
    */
   protected Wormhole(EncodedKeyType encodedKeyType) {
-    this(encodedKeyType, false);
+    this(encodedKeyType, true);
   }
 
   /**
@@ -140,6 +143,30 @@ abstract class Wormhole<K, V> {
 
   protected abstract Object createEmptyEncodedKey();
 
+  private <R> R withLeafNodeValidate(Supplier<R> task) {
+    // TODO: Revert
+    // while (true) {
+    for (int i = 0; i < 8; i++) {
+      Collection<ThreadSafeLeafNode<K, V>> tracedLeafNodes = leafNodeTracer.get();
+      tracedLeafNodes.clear();
+      long version = table.getVersion();
+      R result = task.get();
+      boolean shouldRetry = false;
+      for (ThreadSafeLeafNode<K, V> leafNode : tracedLeafNodes) {
+        if (leafNode.getVersion() > version) {
+          System.out.println("The leaf node has been updated. Retrying... LeafNode: " + leafNode);
+          shouldRetry = true;
+          break;
+        }
+      }
+      if (!shouldRetry) {
+        return result;
+      }
+    }
+    // TODO: Remove this?
+    throw new RuntimeException("Retried out");
+  }
+
   /**
    * Inserts or updates a key-value pair.
    *
@@ -148,7 +175,13 @@ abstract class Wormhole<K, V> {
    * @return the previous value associated with the key, or {@code null} if there was no previous
    *     mapping
    */
+  @Nullable
   public V put(K key, V value) {
+    return withLeafNodeValidate(() -> putInternal(key, value));
+  }
+
+  @Nullable
+  private V putInternal(K key, V value) {
     Object encodedKey = createEncodedKey(key);
     // TODO: Make MetaTrieHashTable.handleReadOperation return a value.
     AtomicReference<V> result = new AtomicReference<>();
@@ -197,6 +230,10 @@ abstract class Wormhole<K, V> {
    * @return {@code true} if the key was removed, {@code false} otherwise
    */
   public boolean delete(K key) {
+    return withLeafNodeValidate(() -> deleteInternal(key));
+  }
+
+  private boolean deleteInternal(K key) {
     Object encodedKey = createEncodedKey(key);
     // TODO: Make MetaTrieHashTable.handleReadOperation return a value.
     AtomicBoolean result = new AtomicBoolean(true);
@@ -236,6 +273,11 @@ abstract class Wormhole<K, V> {
    */
   @Nullable
   public V get(K key) {
+    return withLeafNodeValidate(() -> getInternal(key));
+  }
+
+  @Nullable
+  private V getInternal(K key) {
     Object encodedKey = createEncodedKey(key);
     // TODO: Make MetaTrieHashTable.handleReadOperation return a value.
     AtomicReference<V> result = new AtomicReference<>();
@@ -247,7 +289,7 @@ abstract class Wormhole<K, V> {
     return result.get();
   }
 
-  private void scanInternal(
+  private void scan(
       @Nullable K startKey,
       @Nullable K endKey,
       boolean isEndKeyExclusive,
@@ -291,7 +333,7 @@ abstract class Wormhole<K, V> {
   }
 
   /**
-   * Scans the keys.
+   * Scans the key range.
    *
    * @param startKey the start key (inclusive)
    * @param endKey the end key
@@ -299,12 +341,16 @@ abstract class Wormhole<K, V> {
    * @param function a function applied to each key-value pair; if it returns {@code true}, the scan
    *     continues, otherwise the scan stops
    */
-  public void scan(
+  public void scanRange(
       @Nullable K startKey,
       @Nullable K endKey,
       boolean isEndKeyExclusive,
       BiFunction<K, V, Boolean> function) {
-    scanInternal(startKey, endKey, isEndKeyExclusive, null, function);
+    withLeafNodeValidate(
+        () -> {
+          scan(startKey, endKey, isEndKeyExclusive, null, function);
+          return null;
+        });
   }
 
   /**
@@ -315,8 +361,12 @@ abstract class Wormhole<K, V> {
    * @return a list of key-value pairs
    */
   public List<KeyValue<K, V>> scanWithCount(@Nullable K startKey, int count) {
+    return withLeafNodeValidate(() -> scanWithCountInternal(startKey, count));
+  }
+
+  private List<KeyValue<K, V>> scanWithCountInternal(@Nullable K startKey, int count) {
     List<KeyValue<K, V>> result = new ArrayList<>(count);
-    scanInternal(
+    scan(
         startKey,
         null, /* Not used */
         false,
@@ -328,14 +378,53 @@ abstract class Wormhole<K, V> {
     return result;
   }
 
+  private LeafNode<K, V> createLeafNode(
+      long version,
+      EncodedKeyType encodedKeyType,
+      Function<Object, Object> validAnchorKeyProvider,
+      Object anchorKey,
+      int maxSize,
+      @Nullable LeafNode<K, V> leftNode,
+      @Nullable LeafNode<K, V> rightNode) {
+    LeafNode<K, V> leafNode;
+    if (isThreadSafe) {
+      leafNode =
+          new ThreadSafeLeafNode<>(
+              encodedKeyType, validAnchorKeyProvider, anchorKey, maxSize, leftNode, rightNode);
+      setLeafNodeVersion(leafNode, version);
+    } else {
+      leafNode =
+          new LeafNode<>(
+              encodedKeyType, validAnchorKeyProvider, anchorKey, maxSize, leftNode, rightNode);
+    }
+    return leafNode;
+  }
+
+  private void setLeafNodeVersion(LeafNode<K, V> leafNode, long version) {
+    if (!isThreadSafe) {
+      return;
+    }
+    assert leafNode instanceof ThreadSafeLeafNode;
+    ((ThreadSafeLeafNode<K, V>) leafNode).setVersion(version);
+  }
+
   private void initialize() {
     Object key = createEmptyEncodedKey();
-    LeafNode<K, V> rootLeafNode =
-        new LeafNode<>(
-            encodedKeyType, isThreadSafe, validAnchorKeyProvider, key, leafNodeSize, null, null);
     // Add the root.
     table.handleWriteOperation(
-        () -> table.put(key, new MetaTrieHashTable.NodeMetaLeaf<>(key, rootLeafNode)));
+        () ->
+            table.put(
+                key,
+                new NodeMetaLeaf<>(
+                    key,
+                    createLeafNode(
+                        table.getWriteVersion(),
+                        encodedKeyType,
+                        validAnchorKeyProvider,
+                        key,
+                        leafNodeSize,
+                        null,
+                        null))));
   }
 
   private LeafNode<K, V> searchTrieHashTable(Object encodedKey) {
@@ -411,6 +500,8 @@ abstract class Wormhole<K, V> {
     Tuple<Object, LeafNode<K, V>> newLeafNodeAndAnchor = leafNode.splitToNewLeafNode();
     Object newAnchor = newLeafNodeAndAnchor.first;
     LeafNode<K, V> newLeafNode = newLeafNodeAndAnchor.second;
+    setLeafNodeVersion(leafNode, table.getWriteVersion());
+    setLeafNodeVersion(newLeafNode, table.getWriteVersion());
     table.handleSplitNodes(newAnchor, newLeafNode);
     return newLeafNode;
   }

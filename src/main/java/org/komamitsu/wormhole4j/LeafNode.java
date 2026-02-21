@@ -22,25 +22,18 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
-final class LeafNode<K, V> {
+class LeafNode<K, V> {
   private static final int TUPLE_SIZE = 3;
   private static final int ENCODED_KEY_OFFSET = 0;
   private static final int KEY_OFFSET = 1;
   private static final int VALUE_OFFSET = 2;
   private final EncodedKeyType encodedKeyType;
-  private final boolean isThreadSafe;
   final Object anchorKey;
   private final int maxSize;
   private final Function<Object, Object> validAnchorKeyProvider;
 
   @Nullable private LeafNode<K, V> left;
   @Nullable private LeafNode<K, V> right;
-
-  private long version = 0;
-
-  long getVersion() {
-    return version;
-  }
 
   // For KeyValues
   private int keyValuesCount;
@@ -421,14 +414,12 @@ final class LeafNode<K, V> {
   @SuppressWarnings("unchecked")
   LeafNode(
       EncodedKeyType encodedKeyType,
-      boolean isThreadSafe,
       Function<Object, Object> validAnchorKeyProvider,
       Object anchorKey,
       int maxSize,
       @Nullable LeafNode<K, V> left,
       @Nullable LeafNode<K, V> right) {
     this.encodedKeyType = encodedKeyType;
-    this.isThreadSafe = isThreadSafe;
     this.validAnchorKeyProvider = validAnchorKeyProvider;
     this.anchorKey = anchorKey;
     this.maxSize = maxSize;
@@ -509,6 +500,16 @@ final class LeafNode<K, V> {
     }
   }
 
+  protected LeafNode<K, V> createLeafNode(
+      EncodedKeyType encodedKeyType,
+      Function<Object, Object> validAnchorKeyProvider,
+      Object anchorKey,
+      int maxSize,
+      @Nullable LeafNode<K, V> left,
+      @Nullable LeafNode<K, V> right) {
+    return new LeafNode<>(encodedKeyType, validAnchorKeyProvider, anchorKey, maxSize, left, right);
+  }
+
   private Tuple<LeafNode<K, V>, List<Integer>> copyToNewLeafNode(
       Object newAnchor, int startKeyRefIndex) {
     if (!isKeyRefsSorted()) {
@@ -522,14 +523,8 @@ final class LeafNode<K, V> {
 
     // Copy entries to a new leaf node.
     LeafNode<K, V> newLeafNode =
-        new LeafNode<>(
-            encodedKeyType,
-            isThreadSafe,
-            validAnchorKeyProvider,
-            newAnchor,
-            maxSize,
-            this,
-            this.right);
+        createLeafNode(
+            encodedKeyType, validAnchorKeyProvider, newAnchor, maxSize, this, this.right);
     List<Integer> keyValueIndexListOfNewLeafNode = new ArrayList<>(currentSize);
     for (int i = startKeyRefIndex; i < currentSize; i++) {
       int keyValueIndex = getKeyValueIndexFromKeyRef(i);
