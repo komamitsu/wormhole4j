@@ -40,10 +40,11 @@ abstract class Wormhole<K, V> {
   private final EncodedKeyType encodedKeyType;
   private final boolean isThreadSafe;
   private final MetaTrieHashTable<K, V> table;
+  private boolean isInitialized = false;
   private final int leafNodeSize;
   private final int leafNodeMergeSize;
-  @Nullable private final Validator<K, V> validator;
   private final Function<Object, Object> validAnchorKeyProvider;
+  @Nullable private final Validator<K, V> validator;
 
   /**
    * Creates a Wormhole.
@@ -109,10 +110,23 @@ abstract class Wormhole<K, V> {
     this.isThreadSafe = isThreadSafe;
     this.leafNodeSize = leafNodeSize;
     this.leafNodeMergeSize = leafNodeSize * 3 / 4;
-    this.table = new MetaTrieHashTable<>(encodedKeyType, isThreadSafe);
+    this.table = new MetaTrieHashTable<>(encodedKeyType);
     validAnchorKeyProvider = this::provideValidAnchorKey;
-    initialize();
     validator = debugMode ? new Validator<>(this) : null;
+  }
+
+  void registerThread() {
+    table.registerThread();
+    synchronized (this) {
+      if (!isInitialized) {
+        initialize();
+        isInitialized = true;
+      }
+    }
+  }
+
+  void unregisterThread() {
+    table.unregisterThread();
   }
 
   private void validateIfNeeded() {

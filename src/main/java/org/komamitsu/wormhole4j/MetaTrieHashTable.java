@@ -24,17 +24,18 @@ class MetaTrieHashTable<K, V> {
   private final EncodedKeyType encodedKeyType;
   private int maxAnchorLength;
 
-  private final boolean isThreadSafe;
-  private volatile long globalVersion = 0;
   private final QsbMap<Object, NodeMeta<K, V>> table = new QsbMap<>();
 
-  public MetaTrieHashTable(EncodedKeyType encodedKeyType, boolean isThreadSafe) {
+  MetaTrieHashTable(EncodedKeyType encodedKeyType) {
     this.encodedKeyType = encodedKeyType;
-    this.isThreadSafe = isThreadSafe;
   }
 
-  public MetaTrieHashTable(EncodedKeyType encodedKeyType) {
-    this(encodedKeyType, false);
+  void registerThread() {
+    table.registerThread();
+  }
+
+  void unregisterThread() {
+    table.unregisterThread();
   }
 
   abstract static class NodeMeta<K, V> implements QsbMap.Versionable<NodeMeta<K, V>> {
@@ -141,11 +142,11 @@ class MetaTrieHashTable<K, V> {
   }
 
   NodeMeta<K, V> get(Object key) {
-    return getMap().get(key);
+    return table.get(key);
   }
 
   void put(Object key, NodeMeta<K, V> nodeMeta) {
-    getMap().put(key, nodeMeta);
+    table.put(key, nodeMeta);
     maxAnchorLength = Math.max(maxAnchorLength, EncodedKeyUtils.length(encodedKeyType, key));
   }
 
@@ -249,7 +250,7 @@ class MetaTrieHashTable<K, V> {
     int n = Math.min(EncodedKeyUtils.length(encodedKeyType, searchKey), maxAnchorLength) + 1;
     while (m + 1 < n) {
       int prefixLen = (m + n) / 2;
-      if (getMap().get(EncodedKeyUtils.slice(encodedKeyType, searchKey, prefixLen)) != null) {
+      if (table.get(EncodedKeyUtils.slice(encodedKeyType, searchKey, prefixLen)) != null) {
         m = prefixLen;
       } else {
         n = prefixLen;
@@ -259,7 +260,7 @@ class MetaTrieHashTable<K, V> {
   }
 
   void removeNodeMeta(Object anchorKey) {
-    NodeMeta<K, V> removed = getMap().remove(anchorKey);
+    NodeMeta<K, V> removed = table.remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(
           String.format("Node meta leaf for anchor key '%s' not found for removal", anchorKey));
@@ -270,7 +271,7 @@ class MetaTrieHashTable<K, V> {
   }
 
   Object removeNodeMetaInternal(Object anchorKey) {
-    NodeMeta<K, V> removed = getMap().remove(anchorKey);
+    NodeMeta<K, V> removed = table.remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(
           String.format("Node meta internal for anchor key '%s' not found for removal", anchorKey));
@@ -290,19 +291,14 @@ class MetaTrieHashTable<K, V> {
 
   private int calcMaxAnchorLength() {
     AtomicInteger max = new AtomicInteger();
-    getMap()
-        .forEach(
-            (key, value) -> {
-              int keyLen = EncodedKeyUtils.length(encodedKeyType, key);
-              if (max.get() < keyLen) {
-                max.set(keyLen);
-              }
-            });
+    table.forEach(
+        (key, value) -> {
+          int keyLen = EncodedKeyUtils.length(encodedKeyType, key);
+          if (max.get() < keyLen) {
+            max.set(keyLen);
+          }
+        });
     return max.get();
-  }
-
-  QsbMap<Object, NodeMeta<K, V>>.Map getMap() {
-    return table.getMap();
   }
 
   @Override
