@@ -15,9 +15,11 @@
  */
 
 import org.jetbrains.lincheck.datastructures.*
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.komamitsu.wormhole4j.WormholeForIntKey
+import java.util.TreeMap
 
 @Param(name = "key", gen = IntGen::class, conf = "1:20")
 @Param(name = "value", gen = IntGen::class, conf = "1:100")
@@ -28,6 +30,11 @@ class WormholeTest {
     fun beforeEach() {
         wormhole = WormholeForIntKey(4)
         wormhole.registerThread()
+    }
+
+    @AfterEach
+    fun afterEach() {
+        wormhole.unregisterThread()
     }
 
     @Operation(params = ["key", "value"])
@@ -49,7 +56,7 @@ class WormholeTest {
     fun put6(key: Int, value: Int) = wormhole.put(key, value)
 
     @Operation(params = ["key"])
-    fun get(key: Int) = wormhole.get(key)
+    fun get(key: Int): Int? = wormhole.get(key)
 
     @Operation(params = ["key"])
     fun delete(key: Int) = wormhole.delete(key)
@@ -57,4 +64,24 @@ class WormholeTest {
     @Test
     fun stressTest() = StressOptions().check(this::class)
     // fun modelCheckingTest() = ModelCheckingOptions().check(this::class)
+
+    class SequentialMap {
+        private val map = TreeMap<Int, Int>()
+
+        fun put1(key: Int, value: Int) = map.put(key, value)
+
+        fun put2(key: Int, value: Int) = map.put(key, value)
+
+        fun put3(key: Int, value: Int) = map.put(key, value)
+
+        fun put4(key: Int, value: Int) = map.put(key, value)
+
+        fun put5(key: Int, value: Int) = map.put(key, value)
+
+        fun put6(key: Int, value: Int) = map.put(key, value)
+
+        fun get(key: Int): Int? = map[key]
+
+        fun delete(key: Int) = map.remove(key)
+    }
 }
