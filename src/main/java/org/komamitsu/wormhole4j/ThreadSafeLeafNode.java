@@ -120,16 +120,6 @@ class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
   }
 
   @Override
-  public String toString() {
-    ReadLock readLock = lock.readLock();
-    try {
-      return super.toString();
-    } finally {
-      readLock.unlock();
-    }
-  }
-
-  @Override
   boolean iterateKeyValues(
       @Nullable Object startKey,
       @Nullable Object endKey,

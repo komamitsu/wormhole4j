@@ -21,6 +21,7 @@ plugins {
     id("org.jreleaser") version "1.19.0"
     id("com.diffplug.spotless") version "6.13.0"
     id("me.champeau.jmh") version "0.7.3"
+    kotlin("jvm")
 }
 
 group = "org.komamitsu"
@@ -41,6 +42,8 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.assertj:assertj-core:3.27.2")
+    testImplementation("org.jetbrains.lincheck:lincheck:3.4")
+    // testImplementation(kotlin("stdlib"))
     jmhImplementation("it.unimi.dsi:fastutil:8.5.16")
 }
 

@@ -118,7 +118,7 @@ abstract class Wormhole<K, V> {
     validator = debugMode ? new Validator<>(this) : null;
   }
 
-  void registerThread() {
+  public void registerThread() {
     table.registerThread();
     synchronized (this) {
       if (!isInitialized) {
@@ -128,7 +128,7 @@ abstract class Wormhole<K, V> {
     }
   }
 
-  void unregisterThread() {
+  public void unregisterThread() {
     table.unregisterThread();
   }
 
