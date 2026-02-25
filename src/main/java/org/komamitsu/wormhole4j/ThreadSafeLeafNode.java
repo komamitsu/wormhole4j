@@ -49,6 +49,7 @@ class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
   @Override
   LeafNode<K, V> getLeft() {
     ReadLock readLock = lock.readLock();
+    readLock.lock();
     try {
       return super.getLeft();
     } finally {
@@ -60,6 +61,7 @@ class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
   @Override
   LeafNode<K, V> getRight() {
     ReadLock readLock = lock.readLock();
+    readLock.lock();
     try {
       return super.getRight();
     } finally {
@@ -71,6 +73,7 @@ class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
   @Override
   V lookupAndSetValue(Object encodedKey, V newValue) {
     WriteLock writeLock = lock.writeLock();
+    writeLock.lock();
     try {
       return super.lookupAndSetValue(encodedKey, newValue);
     } finally {
@@ -82,6 +85,7 @@ class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
   @Override
   V lookupValue(Object encodedKey) {
     ReadLock readLock = lock.readLock();
+    readLock.lock();
     try {
       return super.lookupValue(encodedKey);
     } finally {
@@ -92,6 +96,7 @@ class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
   @Override
   void incSort() {
     WriteLock writeLock = lock.writeLock();
+    writeLock.lock();
     try {
       super.incSort();
     } finally {
@@ -102,6 +107,7 @@ class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
   @Override
   Tuple<Object, LeafNode<K, V>> splitToNewLeafNode() {
     WriteLock writeLock = lock.writeLock();
+    writeLock.lock();
     try {
       return super.splitToNewLeafNode();
     } finally {
@@ -112,6 +118,7 @@ class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
   @Override
   int size() {
     ReadLock readLock = lock.readLock();
+    readLock.lock();
     try {
       return super.size();
     } finally {
@@ -126,6 +133,7 @@ class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
       boolean isEndKeyExclusive,
       BiFunction<K, V, Boolean> function) {
     ReadLock readLock = lock.readLock();
+    readLock.lock();
     try {
       return super.iterateKeyValues(startKey, endKey, isEndKeyExclusive, function);
     } finally {
@@ -136,6 +144,7 @@ class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
   @Override
   void add(Object encodedKey, K key, V value) {
     WriteLock writeLock = lock.writeLock();
+    writeLock.lock();
     try {
       super.add(encodedKey, key, value);
     } finally {
@@ -146,6 +155,7 @@ class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
   @Override
   boolean delete(Object key) {
     WriteLock writeLock = lock.writeLock();
+    writeLock.lock();
     try {
       return super.delete(key);
     } finally {
@@ -156,16 +166,12 @@ class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
   @Override
   void merge(LeafNode<K, V> right) {
     WriteLock writeLock = lock.writeLock();
+    writeLock.lock();
     try {
       super.merge(right);
     } finally {
       writeLock.unlock();
     }
-  }
-
-  @Override
-  void validate() {
-    super.validate();
   }
 
   @Override
