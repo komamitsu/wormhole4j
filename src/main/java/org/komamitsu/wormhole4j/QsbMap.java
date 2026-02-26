@@ -308,7 +308,7 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
       Context<K> ctxt = QsbMap.this.ctxt.get();
       ctxt.throwIfWritePhaseIsDone();
       V value = map.get(key);
-      debugPrint(String.format("COMMAND-GET: %s -> %s", key, value));
+      // debugPrint(String.format("COMMAND-GET: %s -> %s", key, value));
       if (ctxt.writePhaseState != ContextState.STARTED) {
         ctxt.readSet.add(new Read<>(key, value == null ? null : value.getVersion()));
       }
@@ -323,7 +323,7 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
       }
       ctxt.throwIfWritePhaseIsDone();
       value.setVersion(ctxt.writeVersion);
-      debugPrint(String.format("COMMAND-PUT: %s -> %s", key, value));
+      // debugPrint(String.format("COMMAND-PUT: %s -> %s", key, value));
       V oldValue = map.put(key, value);
       ctxt.writeList.add(new Put<>(key, value));
       return oldValue;
@@ -337,7 +337,7 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
       }
       ctxt.throwIfWritePhaseIsDone();
       V oldValue = map.remove(key);
-      debugPrint(String.format("COMMAND-RMV: %s -> %s", key, oldValue));
+      // debugPrint(String.format("COMMAND-RMV: %s -> %s", key, oldValue));
       ctxt.writeList.add(new Remove<>(key));
       return oldValue;
     }
@@ -379,27 +379,33 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
     private final Object qsbrWaitLock = new Object();
 
     void enterReadPhase() {
+      /*
       debugPrint(
           ctxt.get().threadId,
           String.format(
               "enterReadPhase: Start. ThreadId:%d, ActiveReaders:%s",
               ctxt.get().threadId, readers.cardinality()));
+       */
       synchronized (readers) {
         readers.set(ctxt.get().threadId);
       }
+      /*
       debugPrint(
           ctxt.get().threadId,
           String.format(
               "enterReadPhase: End. ThreadId:%d, ActiveReaders:%s",
               ctxt.get().threadId, readers.cardinality()));
+       */
     }
 
     void exitReadPhase() {
+      /*
       debugPrint(
           ctxt.get().threadId,
           String.format(
               "exitReadPhase: Start. ThreadId:%d, ActiveReaders:%s",
               ctxt.get().threadId, readers.cardinality()));
+       */
       // If the reader is also the writer, the flag should be already unset and the reader count is
       // decremented.
       // Nothing to do.
@@ -408,11 +414,13 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
         isInReadPhase = readers.get(ctxt.get().threadId);
       }
       if (!isInReadPhase) {
+        /*
         debugPrint(
             ctxt.get().threadId,
             String.format(
                 "exitReadPhase: Already done. ThreadId:%d, ActiveReaders:%s",
                 ctxt.get().threadId, readers.cardinality()));
+         */
         return;
       }
       boolean isNoReader;
@@ -425,37 +433,45 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
           qsbrWaitLock.notify();
         }
       }
+      /*
       debugPrint(
           ctxt.get().threadId,
           String.format(
               "exitReadPhase: End. ThreadId:%d, ActiveReaders:%s",
               ctxt.get().threadId, readers.cardinality()));
+       */
     }
 
     void waitUntilNoReader() {
+      /*
       debugPrint(
           ctxt.get().threadId,
           String.format(
               "waitUntilNoReader: Start. ThreadId:%d, ActiveReaders:%s",
               ctxt.get().threadId, readers.cardinality()));
+       */
       synchronized (qsbrWaitLock) {
         while (true) {
           synchronized (readers) {
             if (readers.isEmpty()) {
+              /*
               debugPrint(
                   ctxt.get().threadId,
                   String.format(
                       "waitUntilNoReader: Empty. ThreadId:%d, ActiveReaders:%s",
                       ctxt.get().threadId, readers.cardinality()));
+               */
               break;
             }
           }
           try {
+            /*
             debugPrint(
                 ctxt.get().threadId,
                 String.format(
                     "waitUntilNoReader: Waiting. ThreadId:%d, ActiveReaders:%s",
                     ctxt.get().threadId, readers.cardinality()));
+             */
             qsbrWaitLock.wait();
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -470,8 +486,10 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
     // Add active and inactive slots.
     slots.add(new QsbrSlot());
     slots.add(new QsbrSlot());
+    /*
     debugPrint(
         String.format("Initialize: Map1:%s, Map2:%s", slots.get(0).table, slots.get(1).table));
+     */
   }
 
   void validateReadSet(QsbrSlot activeSlot) {
@@ -479,8 +497,10 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
     Map activeMap = activeSlot.table;
     for (Read<K> read : ctxt.readSet) {
       V currentValue = activeMap.getWithoutRecording(read.key);
+      /*
       debugPrint(
           String.format("validateReadSet: ReadSetValue:%s, CurrentValue:%s", read, currentValue));
+       */
       if (read.version == null) {
         if (currentValue != null) {
           throw new QsbConflictException(
@@ -508,22 +528,28 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
   void handleReadOperation(ReadOperatable<K, V> task) {
     Context<K> ctxt = this.ctxt.get();
     ctxt.startReadPhase();
+    /*
     debugPrint(
         ctxt.threadId,
         String.format(
             "handleReadOperation: Start. ReadSlotId:%d, ReadVersion:%d",
             ctxt.readSlotId, ctxt.readVersion));
+     */
     QsbrSlot readSlot = getSlot(ctxt.readSlotId);
     Map table = readSlot.table;
     try {
       readSlot.enterReadPhase();
+      /*
       debugPrint(
           ctxt.threadId,
           String.format("handleReadOperation: Executing Task. ReadSlotId:%d", ctxt.readSlotId));
+       */
       task.operate();
+      /*
       debugPrint(
           ctxt.threadId,
           String.format("handleReadOperation: Executed Task. ReadSlotId:%d", ctxt.readSlotId));
+       */
       validateReadSet(readSlot);
     } finally {
       readSlot.exitReadPhase();
@@ -533,39 +559,49 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
 
   void handleWriteOperation(WriteOperatable<K, V> task) {
     Context<K> ctxt = this.ctxt.get();
+    /*
     debugPrint(
         ctxt.threadId,
         String.format(
             "handleWriteOperation: Start. ActiveSlotId:%d, WriteListSize:%d",
             state.activeSlotId, ctxt.writeList.size()));
+     */
 
     // If the writer is also in the read phase, exit it to decrement the reader count.
+    /*
     debugPrint(
         ctxt.threadId,
         String.format(
             "handleWriteOperation: Check if in read phase. ReadSlotId:%d", ctxt.readSlotId));
+     */
     if (ctxt.readSlotId != null) {
       QsbrSlot readSlot = slots.get(ctxt.readSlotId);
+      /*
       debugPrint(
           ctxt.threadId,
           String.format(
               "handleWriteOperation: Exiting read phase. ReadSlotId:%d, ActiveReaders:%s",
               ctxt.readSlotId, readSlot.readers.cardinality()));
+       */
       readSlot.exitReadPhase();
     }
 
     Integer activeSlotIdBeforeSwitch = null;
     try {
+      /*
       debugPrint(
           ctxt.threadId,
           String.format("handleWriteOperation: Waiting lock. ActiveSlotId:%d", state.activeSlotId));
+       */
       writerLock.lock();
       ctxt.startWritePhase();
 
+      /*
       debugPrint(
           ctxt.threadId,
           String.format(
               "handleWriteOperation: Acquired Lock. ActiveSlotId:%d", activeSlotIdBeforeSwitch));
+       */
 
       activeSlotIdBeforeSwitch = state.activeSlotId;
       QsbrSlot activeSlotBeforeSwitch = getSlot(activeSlotIdBeforeSwitch);
@@ -582,51 +618,60 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
       task.operate();
 
       // Switch the slots.
+      /*
       debugPrint(
           ctxt.threadId,
           String.format(
               "handleWriteOperation: Switching ActiveSlotId. %d -> %d. Actual ActiveSlotId:%d",
               activeSlotIdBeforeSwitch, inactiveSlotIdBeforeSwitch, state.activeSlotId));
+       */
       assert state.activeSlotId == activeSlotIdBeforeSwitch;
 
       state.update(nextVersion, inactiveSlotIdBeforeSwitch);
 
       // Wait for all readers to finish with the current inactive slot.
+      /*
       debugPrint(
           ctxt.threadId,
           String.format(
               "handleWriteOperation: Wait until no readers. CurrentInactiveSlotId:%d",
               activeSlotIdBeforeSwitch));
+       */
       activeSlotBeforeSwitch.waitUntilNoReader();
 
-      //      debugPrint(context.get().threadId, String.format("  Commands:%s",
-      // inactiveTable.commands));
+      // debugPrint(context.get().threadId, String.format("  Commands:%s", inactiveTable.commands));
 
+      /*
       debugPrint(
           ctxt.threadId,
           String.format(
               "handleWriteOperation: Applying write operations. TargetSlotId:%d",
               activeSlotIdBeforeSwitch));
+       */
 
       // Apply the recent commands to the current inactive slot table.
       for (Write<K> write : ctxt.writeList) {
         if (write instanceof Put) {
           Put<K, V> put = (Put<K, V>) write;
           activeTableBeforeSwitch.putWithoutRecording(put.key, put.value);
+          /*
           debugPrint(
               this.ctxt.get().threadId, String.format("  APPLY-PUT: %s -> %s", put.key, put.value));
+           */
         } else if (write instanceof Remove) {
           Remove<K> remove = (Remove<K>) write;
           activeTableBeforeSwitch.removeWithoutRecording(remove.key);
-          debugPrint(this.ctxt.get().threadId, String.format("  APPLY-RMV: %s", remove.key));
+          // debugPrint(this.ctxt.get().threadId, String.format("  APPLY-RMV: %s", remove.key));
         } else {
           throw new AssertionError();
         }
       }
     } catch (Exception e) {
+      /*
       debugPrint(
           ctxt.threadId,
           String.format("handleWriteOperation: Caught exception: %s", e.getMessage()));
+       */
       if (activeSlotIdBeforeSwitch == null) {
         // Something happened when acquiring the write lock.
         return;
@@ -652,11 +697,13 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
     } finally {
       ctxt.finishWritePhase();
       writerLock.unlock();
+      /*
       debugPrint(
           ctxt.threadId,
           String.format(
               "handleWriteOperation: Quiting. ActiveSlotId before switch:%d, Current ActiveSlotId:%d",
               activeSlotIdBeforeSwitch, state.activeSlotId));
+       */
     }
   }
 
