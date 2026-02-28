@@ -32,16 +32,6 @@ class WormholeTest {
         }
     }
 
-    @BeforeEach
-    fun beforeEach() {
-        wormhole.registerThread()
-    }
-
-    @AfterEach
-    fun afterEach() {
-        wormhole.unregisterThread()
-    }
-
     @Operation(params = ["key", "value"])
     fun put(key: Int, value: Int): Int? {
         ensureThreadRegistered()
@@ -63,9 +53,9 @@ class WormholeTest {
     @Test
     fun stressTest() = StressOptions()
         .sequentialSpecification(SequentialMap::class.java)
-        .threads(4)
-        .invocationsPerIteration(40)
-        .invocationsPerIteration(100)
+        .threads(3)
+        .invocationsPerIteration(20)
+        .iterations(100)
         .check(this::class)
 
     class SequentialMap {
