@@ -38,6 +38,10 @@ class MetaTrieHashTable<K, V> {
     table.unregisterThread();
   }
 
+  boolean isThreadRegistered() {
+    return table.isThreadRegistered();
+  }
+
   abstract static class NodeMeta<K, V> implements QsbMap.Versionable<NodeMeta<K, V>> {
     final Object anchorPrefix;
     long version;

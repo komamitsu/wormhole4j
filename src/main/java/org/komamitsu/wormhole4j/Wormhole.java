@@ -132,6 +132,10 @@ abstract class Wormhole<K, V> {
     table.unregisterThread();
   }
 
+  public boolean isThreadRegistered() {
+    return table.isThreadRegistered();
+  }
+
   private void validateIfNeeded() {
     if (validator == null) {
       return;
@@ -230,6 +234,7 @@ abstract class Wormhole<K, V> {
    * @return {@code true} if the key was removed, {@code false} otherwise
    */
   public boolean delete(K key) {
+    // TODO: Return the deleted value
     return withLeafNodeValidate(() -> deleteInternal(key));
   }
 

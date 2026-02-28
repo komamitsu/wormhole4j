@@ -17,7 +17,6 @@
 package org.komamitsu.wormhole4j;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
@@ -113,17 +112,16 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
   }
 
   private static class State<K> {
-    // TODO: Revisit here to consider if these need to be AtomicLong or volatile.
-    private final AtomicLong version = new AtomicLong();
-    private volatile int activeSlotId = 0;
+    private volatile long version;
+    private volatile int activeSlotId;
 
     synchronized void update(long version, int activeSlotId) {
-      this.version.set(version);
+      this.version = version;
       this.activeSlotId = activeSlotId;
     }
 
     synchronized long nextVersion() {
-      return version.get() + 1;
+      return version + 1;
     }
   }
 
@@ -161,11 +159,8 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
       }
 
       readPhaseState = ContextState.STARTED;
-      // TODO: Refactoring
-      synchronized (globalState) {
-        readVersion = globalState.version.get();
-        readSlotId = globalState.activeSlotId;
-      }
+      readVersion = globalState.version;
+      readSlotId = globalState.activeSlotId;
       if (writePhaseState == ContextState.FINISHED) {
         writePhaseState = ContextState.INITIALIZED;
       }
@@ -726,7 +721,7 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
   }
 
   long getVersion() {
-    return state.version.get();
+    return state.version;
   }
 
   private static int getInactiveSlotId(int activeSlotId) {
@@ -737,9 +732,8 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
     return slots.get(slotId);
   }
 
-  @VisibleForTesting
-  long getVersionForTesting() {
-    return state.version.get();
+  boolean isThreadRegistered() {
+    return ctxt.get() != null;
   }
 
   @VisibleForTesting

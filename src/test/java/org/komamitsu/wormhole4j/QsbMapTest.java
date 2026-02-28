@@ -114,7 +114,7 @@ class QsbMapTest {
     withThreadRegistration(
         map,
         () -> {
-          assertThat(map.getVersionForTesting()).isEqualTo(0);
+          assertThat(map.getVersion()).isEqualTo(0);
 
           int key = getRandomInt();
           int value = getRandomInt();
@@ -125,7 +125,7 @@ class QsbMapTest {
                 map.getMap().put(key, new Item(map.getWriteVersion(), value));
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(1);
+          assertThat(map.getVersion()).isEqualTo(1);
 
           map.handleReadOperation(
               () -> assertThat(map.getMap().get(key)).isEqualTo(new Item(1, value)));
@@ -138,7 +138,7 @@ class QsbMapTest {
     withThreadRegistration(
         map,
         () -> {
-          assertThat(map.getVersionForTesting()).isEqualTo(0);
+          assertThat(map.getVersion()).isEqualTo(0);
 
           int key = getRandomInt();
           int value = getRandomInt();
@@ -150,7 +150,7 @@ class QsbMapTest {
                     () -> map.getMap().put(key, new Item(map.getWriteVersion(), value)));
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(1);
+          assertThat(map.getVersion()).isEqualTo(1);
 
           map.handleReadOperation(
               () -> assertThat(map.getMap().get(key)).isEqualTo(new Item(1, value)));
@@ -163,7 +163,7 @@ class QsbMapTest {
     withThreadRegistration(
         map,
         () -> {
-          assertThat(map.getVersionForTesting()).isEqualTo(0);
+          assertThat(map.getVersion()).isEqualTo(0);
 
           int key = getRandomInt();
           int value1 = getRandomInt();
@@ -177,7 +177,7 @@ class QsbMapTest {
                     () -> map.put(key, new Item(map.getWriteVersion(), value1)));
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(1);
+          assertThat(map.getVersion()).isEqualTo(1);
 
           map.handleReadOperation(
               () -> {
@@ -186,7 +186,7 @@ class QsbMapTest {
                     () -> map.put(key, new Item(map.getWriteVersion(), value2)));
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(2);
+          assertThat(map.getVersion()).isEqualTo(2);
 
           map.handleReadOperation(
               () -> {
@@ -195,7 +195,7 @@ class QsbMapTest {
                     () -> map.put(key, new Item(map.getWriteVersion(), value3)));
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(3);
+          assertThat(map.getVersion()).isEqualTo(3);
 
           map.handleReadOperation(() -> assertThat(map.get(key)).isEqualTo(new Item(3, value3)));
         });
@@ -207,7 +207,7 @@ class QsbMapTest {
     withThreadRegistration(
         map,
         () -> {
-          assertThat(map.getVersionForTesting()).isEqualTo(0);
+          assertThat(map.getVersion()).isEqualTo(0);
 
           int key = getRandomInt();
           int value = getRandomInt();
@@ -235,7 +235,7 @@ class QsbMapTest {
                     () -> map.put(key, new Item(map.getWriteVersion(), value)));
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(1);
+          assertThat(map.getVersion()).isEqualTo(1);
 
           executorService.shutdown();
           assertThat(executorService.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
@@ -250,7 +250,7 @@ class QsbMapTest {
     withThreadRegistration(
         map,
         () -> {
-          assertThat(map.getVersionForTesting()).isEqualTo(0);
+          assertThat(map.getVersion()).isEqualTo(0);
 
           int key = getRandomInt();
           int value = getRandomInt();
@@ -272,14 +272,14 @@ class QsbMapTest {
 
           map.handleReadOperation(() -> assertThat(map.get(key)).isNull());
 
-          assertThat(map.getVersionForTesting()).isEqualTo(0);
+          assertThat(map.getVersion()).isEqualTo(0);
 
           readBeforeModifyLatch.countDown();
 
           executorService.shutdown();
           assertThat(executorService.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
 
-          assertThat(map.getVersionForTesting()).isEqualTo(1);
+          assertThat(map.getVersion()).isEqualTo(1);
 
           map.handleReadOperation(() -> assertThat(map.get(key)).isEqualTo(new Item(1, value)));
         });
@@ -291,7 +291,7 @@ class QsbMapTest {
     withThreadRegistration(
         map,
         () -> {
-          assertThat(map.getVersionForTesting()).isEqualTo(0);
+          assertThat(map.getVersion()).isEqualTo(0);
 
           int key = getRandomInt();
           int value1 = getRandomInt();
@@ -302,12 +302,12 @@ class QsbMapTest {
                 map.put(key, new Item(map.getWriteVersion(), value1));
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(1);
+          assertThat(map.getVersion()).isEqualTo(1);
 
           map.handleWriteOperation(
               () -> assertThat(map.remove(key)).isEqualTo(new Item(1, value1)));
 
-          assertThat(map.getVersionForTesting()).isEqualTo(2);
+          assertThat(map.getVersion()).isEqualTo(2);
 
           map.handleReadOperation(() -> assertThat(map.get(key)).isNull());
         });
@@ -319,7 +319,7 @@ class QsbMapTest {
     withThreadRegistration(
         map,
         () -> {
-          assertThat(map.getVersionForTesting()).isEqualTo(0);
+          assertThat(map.getVersion()).isEqualTo(0);
 
           int key = getRandomInt();
           int value = getRandomInt();
@@ -329,7 +329,7 @@ class QsbMapTest {
                 map.put(key, new Item(map.getWriteVersion(), value));
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(1);
+          assertThat(map.getVersion()).isEqualTo(1);
 
           map.handleReadOperation(
               () -> {
@@ -337,7 +337,7 @@ class QsbMapTest {
                 map.handleWriteOperation(() -> map.remove(key));
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(2);
+          assertThat(map.getVersion()).isEqualTo(2);
 
           map.handleReadOperation(() -> assertThat(map.get(key)).isNull());
         });
@@ -349,7 +349,7 @@ class QsbMapTest {
     withThreadRegistration(
         map,
         () -> {
-          assertThat(map.getVersionForTesting()).isEqualTo(0);
+          assertThat(map.getVersion()).isEqualTo(0);
 
           int key1 = getRandomInt();
           int value1 = getRandomInt();
@@ -365,7 +365,7 @@ class QsbMapTest {
                     () -> map.put(key1, new Item(map.getWriteVersion(), value1)));
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(1);
+          assertThat(map.getVersion()).isEqualTo(1);
 
           map.handleReadOperation(
               () -> {
@@ -377,7 +377,7 @@ class QsbMapTest {
                     });
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(2);
+          assertThat(map.getVersion()).isEqualTo(2);
 
           map.handleReadOperation(
               () -> {
@@ -390,7 +390,7 @@ class QsbMapTest {
                     });
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(3);
+          assertThat(map.getVersion()).isEqualTo(3);
 
           map.handleReadOperation(
               () -> {
@@ -407,7 +407,7 @@ class QsbMapTest {
     withThreadRegistration(
         map,
         () -> {
-          assertThat(map.getVersionForTesting()).isEqualTo(0);
+          assertThat(map.getVersion()).isEqualTo(0);
 
           int key = getRandomInt();
           int value = getRandomInt();
@@ -417,7 +417,7 @@ class QsbMapTest {
                 assertThat(map.get(key)).isNull();
                 map.put(key, new Item(map.getWriteVersion(), value));
               });
-          assertThat(map.getVersionForTesting()).isEqualTo(1);
+          assertThat(map.getVersion()).isEqualTo(1);
 
           CountDownLatch readBeforeRemoveLatch = new CountDownLatch(1);
           ExecutorService executorService = Executors.newCachedThreadPool();
@@ -442,7 +442,7 @@ class QsbMapTest {
                 map.handleWriteOperation(() -> map.remove(key));
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(2);
+          assertThat(map.getVersion()).isEqualTo(2);
 
           executorService.shutdown();
           assertThat(executorService.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
@@ -457,7 +457,7 @@ class QsbMapTest {
     withThreadRegistration(
         map,
         () -> {
-          assertThat(map.getVersionForTesting()).isEqualTo(0);
+          assertThat(map.getVersion()).isEqualTo(0);
 
           int key1 = getRandomInt();
           int value1_init = getRandomInt();
@@ -482,7 +482,7 @@ class QsbMapTest {
                 map.put(key4, new Item(value4_init));
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(1);
+          assertThat(map.getVersion()).isEqualTo(1);
 
           map.handleWriteOperation(
               () -> {
@@ -508,7 +508,7 @@ class QsbMapTest {
                 assertThat(map.get(key4)).isEqualTo(new Item(2, value4_update1));
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(2);
+          assertThat(map.getVersion()).isEqualTo(2);
 
           map.handleReadOperation(
               () -> {
@@ -550,7 +550,7 @@ class QsbMapTest {
                 assertThat(map.get(key4)).isEqualTo(new Item(3, value4_update2));
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(3);
+          assertThat(map.getVersion()).isEqualTo(3);
 
           map.handleReadOperation(
               () -> {
@@ -568,7 +568,7 @@ class QsbMapTest {
     withThreadRegistration(
         map,
         () -> {
-          assertThat(map.getVersionForTesting()).isEqualTo(0);
+          assertThat(map.getVersion()).isEqualTo(0);
 
           int key1 = getRandomInt();
           int value1_init = getRandomInt();
@@ -593,7 +593,7 @@ class QsbMapTest {
                 map.put(key4, new Item(value4_init));
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(1);
+          assertThat(map.getVersion()).isEqualTo(1);
 
           map.handleReadOperation(
               () -> {
@@ -626,7 +626,7 @@ class QsbMapTest {
                     });
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(2);
+          assertThat(map.getVersion()).isEqualTo(2);
 
           map.handleReadOperation(
               () -> {
@@ -679,7 +679,7 @@ class QsbMapTest {
                     });
               });
 
-          assertThat(map.getVersionForTesting()).isEqualTo(3);
+          assertThat(map.getVersion()).isEqualTo(3);
 
           map.handleReadOperation(
               () -> {

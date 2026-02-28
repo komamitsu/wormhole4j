@@ -24,11 +24,16 @@ import java.util.TreeMap
 @Param(name = "key", gen = IntGen::class, conf = "1:20")
 @Param(name = "value", gen = IntGen::class, conf = "1:100")
 class WormholeTest {
-    private lateinit var wormhole : WormholeForIntKey<Int>
+    private val wormhole = WormholeForIntKey<Int>(4)
+
+    private fun ensureThreadRegistered() {
+        if (!wormhole.isThreadRegistered) {
+            wormhole.registerThread()
+        }
+    }
 
     @BeforeEach
     fun beforeEach() {
-        wormhole = WormholeForIntKey(4)
         wormhole.registerThread()
     }
 
@@ -38,50 +43,38 @@ class WormholeTest {
     }
 
     @Operation(params = ["key", "value"])
-    fun put1(key: Int, value: Int) = wormhole.put(key, value)
-
-    @Operation(params = ["key", "value"])
-    fun put2(key: Int, value: Int) = wormhole.put(key, value)
-
-    @Operation(params = ["key", "value"])
-    fun put3(key: Int, value: Int) = wormhole.put(key, value)
-
-    @Operation(params = ["key", "value"])
-    fun put4(key: Int, value: Int) = wormhole.put(key, value)
-
-    @Operation(params = ["key", "value"])
-    fun put5(key: Int, value: Int) = wormhole.put(key, value)
-
-    @Operation(params = ["key", "value"])
-    fun put6(key: Int, value: Int) = wormhole.put(key, value)
+    fun put(key: Int, value: Int): Int? {
+        ensureThreadRegistered()
+        return wormhole.put(key, value)
+    }
 
     @Operation(params = ["key"])
-    fun get(key: Int): Int? = wormhole.get(key)
+    fun get(key: Int): Int? {
+        ensureThreadRegistered()
+        return wormhole.get(key)
+    }
 
     @Operation(params = ["key"])
-    fun delete(key: Int) = wormhole.delete(key)
+    fun delete(key: Int): Boolean {
+        ensureThreadRegistered()
+        return wormhole.delete(key)
+    }
 
     @Test
-    fun stressTest() = StressOptions().check(this::class)
-    // fun modelCheckingTest() = ModelCheckingOptions().check(this::class)
+    fun stressTest() = StressOptions()
+        .sequentialSpecification(SequentialMap::class.java)
+        .threads(4)
+        .invocationsPerIteration(40)
+        .invocationsPerIteration(100)
+        .check(this::class)
 
     class SequentialMap {
         private val map = TreeMap<Int, Int>()
 
-        fun put1(key: Int, value: Int) = map.put(key, value)
-
-        fun put2(key: Int, value: Int) = map.put(key, value)
-
-        fun put3(key: Int, value: Int) = map.put(key, value)
-
-        fun put4(key: Int, value: Int) = map.put(key, value)
-
-        fun put5(key: Int, value: Int) = map.put(key, value)
-
-        fun put6(key: Int, value: Int) = map.put(key, value)
+        fun put(key: Int, value: Int): Int? = map.put(key, value)
 
         fun get(key: Int): Int? = map[key]
 
-        fun delete(key: Int) = map.remove(key)
+        fun delete(key: Int): Boolean = map.remove(key) != null
     }
 }
