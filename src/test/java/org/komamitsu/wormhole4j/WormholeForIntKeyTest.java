@@ -47,10 +47,16 @@ class WormholeForIntKeyTest {
 
   @BeforeEach
   void setUp() {
-    wormholeForIntValue = new WormholeForIntKey<>(leafNodeSize, true);
+    wormholeForIntValue = new WormholeForIntKey.Builder<Integer>()
+        .setLeafNodeSize(leafNodeSize)
+        .setDebugMode(true)
+        .build();
     wormholeForIntValue.registerThread();
 
-    wormholeForStrValue = new WormholeForIntKey<>(leafNodeSize, true);
+    wormholeForStrValue = new WormholeForIntKey.Builder<String>()
+        .setLeafNodeSize(leafNodeSize)
+        .setDebugMode(true)
+        .build();
     wormholeForStrValue.registerThread();
   }
 

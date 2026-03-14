@@ -565,6 +565,31 @@ abstract class Wormhole<K, V> {
     return "Wormhole{" + "table=" + table + ", leafNodeSize=" + leafNodeSize + '}';
   }
 
+  static abstract class Builder<W extends Wormhole<K, V>, B extends Builder<W, B, K, V>, K, V> {
+    protected boolean isThreadSafe = false;
+    protected boolean isDebugMode = false;
+    protected int leafNodeSize = DEFAULT_LEAF_NODE_SIZE;
+
+    protected abstract B self();
+
+    B setThreadSafe(boolean isThreadSafe) {
+      this.isThreadSafe = isThreadSafe;
+      return self();
+    }
+
+    B setDebugMode(boolean isDebugMode) {
+      this.isDebugMode = isDebugMode;
+      return self();
+    }
+
+    B setLeafNodeSize(int leafNodeSize) {
+      this.leafNodeSize = leafNodeSize;
+      return self();
+    }
+
+    abstract W build();
+  }
+
   static class Validator<K, T> {
     private final Wormhole<K, T> wormhole;
 

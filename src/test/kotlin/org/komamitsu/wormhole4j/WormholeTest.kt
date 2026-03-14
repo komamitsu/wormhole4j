@@ -22,7 +22,7 @@ import java.util.TreeMap
 @Param(name = "key", gen = IntGen::class, conf = "1:20")
 @Param(name = "value", gen = IntGen::class, conf = "1:100")
 class WormholeTest {
-    private val wormhole = WormholeForIntKey<Int>(4)
+    private val wormhole = WormholeForIntKey.Builder<Int>().setThreadSafe(true).setLeafNodeSize(4).build()
 
     private fun ensureThreadRegistered() {
         if (!wormhole.isThreadRegistered) {

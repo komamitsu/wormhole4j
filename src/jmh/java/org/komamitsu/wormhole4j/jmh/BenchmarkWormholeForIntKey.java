@@ -36,7 +36,7 @@ public class BenchmarkWormholeForIntKey {
 
     @Setup(Level.Iteration)
     public void setup(IntKeysState data) {
-      map = new WormholeForIntKey<>();
+      map = new WormholeForIntKey.Builder<Integer>().build();
       for (int key : data.keys) {
         map.put(key, randomInt());
       }
