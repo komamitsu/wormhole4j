@@ -13,12 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.komamitsu.wormhole4j
 
 import org.jetbrains.lincheck.datastructures.*
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.komamitsu.wormhole4j.WormholeForIntKey
 import java.util.TreeMap
 
 @Param(name = "key", gen = IntGen::class, conf = "1:20")
