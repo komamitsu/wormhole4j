@@ -18,6 +18,7 @@ package org.komamitsu.wormhole4j;
 
 import static java.util.concurrent.locks.ReentrantReadWriteLock.*;
 
+import java.util.Optional;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -71,13 +72,16 @@ class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
 
   @Nullable
   @Override
-  V lookupAndSetValue(Object encodedKey, V newValue) {
+  Optional<V> lookupAndPutValue(Object encodedKey, K key, V newValue) {
+    Wormhole.debugPrint(String.format("lookupAndSetValue: Start. Value:%s", newValue));
     WriteLock writeLock = lock.writeLock();
     writeLock.lock();
+    Wormhole.debugPrint("lookupAndSetValue: Acquired the write lock");
     try {
-      return super.lookupAndSetValue(encodedKey, newValue);
+      return super.lookupAndPutValue(encodedKey, key, newValue);
     } finally {
       writeLock.unlock();
+      Wormhole.debugPrint("lookupAndSetValue: Released the write lock");
     }
   }
 

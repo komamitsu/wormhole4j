@@ -16,6 +16,7 @@
 
 package org.komamitsu.wormhole4j;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -157,6 +158,9 @@ abstract class Wormhole<K, V> {
       R result = task.get();
       boolean shouldRetry = false;
       for (ThreadSafeLeafNode<K, V> leafNode : tracedLeafNodes) {
+        debugPrint(
+            String.format("withLeafNodeValidate: leafNode.versioon:%d, table.version:%d",
+                leafNode.getVersion(), version));
         if (leafNode.getVersion() > version) {
           System.out.println("The leaf node has been updated. Retrying... LeafNode: " + leafNode);
           shouldRetry = true;
@@ -184,47 +188,53 @@ abstract class Wormhole<K, V> {
     return withLeafNodeValidate(() -> putInternal(key, value));
   }
 
+  static void debugPrint(String msg) {
+    System.out.printf("[%s] (%s) %s %n", Instant.now(), Thread.currentThread().getName(), msg);
+  }
+
   @Nullable
   private V putInternal(K key, V value) {
     Object encodedKey = createEncodedKey(key);
     // TODO: Make MetaTrieHashTable.handleReadOperation return a value.
-    AtomicReference<V> result = new AtomicReference<>();
+    AtomicReference<Optional<V>> result = new AtomicReference<>();
     table.handleReadOperation(
         () -> {
+          debugPrint(String.format("Read operation started; Key:%s, Value:%s", key, value));
           LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
-          V existingValue = leafNode.lookupAndSetValue(encodedKey, value);
+          debugPrint("LeafNode: " + leafNode);
+          Optional<V> existingValue = leafNode.lookupAndPutValue(encodedKey, key, value);
+          debugPrint("Existing value: " + existingValue);
           if (existingValue != null) {
             validateIfNeeded();
             result.set(existingValue);
+            debugPrint("Updated the existing value");
           }
 
           // TODO: Remove this if-block.
           if (result.get() == null) {
-            if (leafNode.size() == leafNodeSize) {
-              // TODO: Make MetaTrieHashTable.handleReadOperation return a value.
-              AtomicReference<LeafNode<K, V>> newLeafNode = new AtomicReference<>();
-              table.handleWriteOperation(
-                  () -> {
-                    // TODO: Revert this.
-                    // LeafNode<K, V> newLeafNode = split(leafNode);
+            result.set(Optional.empty());
+            debugPrint("Adding the new value");
+            debugPrint("Splitting");
+            // TODO: Make MetaTrieHashTable.handleReadOperation return a value.
+            AtomicReference<LeafNode<K, V>> newLeafNode = new AtomicReference<>();
+            table.handleWriteOperation(
+                () -> {
+                  // TODO: Revert this.
+                  // LeafNode<K, V> newLeafNode = split(leafNode);
 
-                    // Split the node and get a new right leaf node.
-                    newLeafNode.set(split(leafNode));
-                  });
-              if (EncodedKeyUtils.compare(encodedKeyType, encodedKey, newLeafNode.get().anchorKey)
-                  < 0) {
-                leafNode.add(encodedKey, key, value);
-              } else {
-                newLeafNode.get().add(encodedKey, key, value);
-              }
-            } else {
-              assert leafNode.size() < leafNodeSize;
-              leafNode.add(encodedKey, key, value);
-            }
+                  // Split the node and get a new right leaf node.
+                  newLeafNode.set(split(leafNode));
+                  if (EncodedKeyUtils.compare(encodedKeyType, encodedKey, newLeafNode.get().anchorKey)
+                      < 0) {
+                    leafNode.add(encodedKey, key, value);
+                  } else {
+                    newLeafNode.get().add(encodedKey, key, value);
+                  }
+                });
           }
         });
     validateIfNeeded();
-    return result.get();
+    return result.get().orElse(null);
   }
 
   /**
@@ -432,11 +442,19 @@ abstract class Wormhole<K, V> {
                         null))));
   }
 
+  private LeafNode<K, V> traceLeafNode(LeafNode<K, V> leafNode) {
+    if (leafNode instanceof ThreadSafeLeafNode) {
+      debugPrint("Traced: " + leafNode);
+      leafNodeTracer.get().add((ThreadSafeLeafNode<K, V>) leafNode);
+    }
+    return  leafNode;
+  }
+
   private LeafNode<K, V> searchTrieHashTable(Object encodedKey) {
     MetaTrieHashTable.NodeMeta<K, V> nodeMeta =
         table.searchLongestPrefixMatch(encodedKeyType, encodedKey);
     if (nodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf) {
-      return ((MetaTrieHashTable.NodeMetaLeaf<K, V>) nodeMeta).leafNode;
+      return traceLeafNode(((MetaTrieHashTable.NodeMetaLeaf<K, V>) nodeMeta).leafNode);
     }
 
     NodeMetaInternal<K, V> nodeMetaInternal = (NodeMetaInternal<K, V>) nodeMeta;
@@ -449,9 +467,9 @@ abstract class Wormhole<K, V> {
       if (EncodedKeyUtils.compare(encodedKeyType, encodedKey, leafNode.anchorKey) < 0) {
         // For example, if the paper's example had key "J" in the second leaf node and the search
         // key is "J", this special treatment would be necessary.
-        return leafNode.getLeft();
+        return traceLeafNode(leafNode.getLeft());
       } else {
-        return leafNode;
+        return traceLeafNode(leafNode);
       }
     }
 
@@ -463,7 +481,7 @@ abstract class Wormhole<K, V> {
     int missingToken = EncodedKeyUtils.get(encodedKeyType, encodedKey, anchorPrefixLength);
     Integer siblingToken = nodeMetaInternal.findOneSibling(missingToken);
     if (siblingToken == null) {
-      return nodeMetaInternal.getLeftMostLeafNode();
+      return traceLeafNode(nodeMetaInternal.getLeftMostLeafNode());
     }
 
     MetaTrieHashTable.NodeMeta<K, V> childNode =
@@ -476,18 +494,18 @@ abstract class Wormhole<K, V> {
     if (childNode instanceof MetaTrieHashTable.NodeMetaLeaf) {
       LeafNode<K, V> leafNode = ((MetaTrieHashTable.NodeMetaLeaf<K, V>) childNode).leafNode;
       if (missingToken < siblingToken) {
-        return leafNode.getLeft();
+        return traceLeafNode(leafNode.getLeft());
       } else {
-        return leafNode;
+        return traceLeafNode(leafNode);
       }
     } else {
       NodeMetaInternal<K, V> childNodeInternal = (NodeMetaInternal<K, V>) childNode;
       if (missingToken < siblingToken) {
         // The child node is a subtree right to the target node.
-        return childNodeInternal.getLeftMostLeafNode().getLeft();
+        return traceLeafNode(childNodeInternal.getLeftMostLeafNode().getLeft());
       } else {
         // The child node is a subtree left to the target node.
-        return childNodeInternal.getRightMostLeafNode();
+        return traceLeafNode(childNodeInternal.getRightMostLeafNode());
       }
     }
   }

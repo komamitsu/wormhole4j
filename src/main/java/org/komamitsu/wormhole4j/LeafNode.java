@@ -478,15 +478,29 @@ class LeafNode<K, V> {
     return null;
   }
 
+  // TODO: Add annotation
   @Nullable
-  V lookupAndSetValue(Object encodedKey, V newValue) {
-    return pointSearchLeaf(
+  Optional<V> lookupAndPutValue(Object encodedKey, K key, V newValue) {
+    Wormhole.debugPrint(String.format("lookupAndSetValue(Parent): Start. Value:%s", newValue));
+    @Nullable
+    Optional<V> result = pointSearchLeaf(
         encodedKey,
         (keyValueIndex, tagIndex) -> {
+          Wormhole.debugPrint(String.format("lookupAndSetValue(Parent): keyValueIndex:%d, tagIndex:%d", keyValueIndex, tagIndex));
           V oldValue = getValue(keyValueIndex);
+          Wormhole.debugPrint(String.format("lookupAndSetValue(Parent): old value:%s", oldValue));
           setValue(keyValueIndex, newValue);
-          return oldValue;
+          Wormhole.debugPrint(String.format("lookupAndSetValue(Parent): set the new value:%s", newValue));
+          return Optional.ofNullable(oldValue);
         });
+    if (result != null) {
+      return result;
+    }
+    if (size() < maxSize) {
+      add(encodedKey, key, newValue);
+      return Optional.empty();
+    }
+    return null;
   }
 
   @Nullable
