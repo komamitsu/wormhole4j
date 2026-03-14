@@ -18,9 +18,7 @@ package org.komamitsu.wormhole4j;
 
 import static java.util.concurrent.locks.ReentrantReadWriteLock.*;
 
-import java.util.Optional;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import javax.annotation.Nullable;
 
@@ -46,6 +44,19 @@ class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
     this.version = version;
   }
 
+  WriteLock acquireWriteLock() {
+    WriteLock writeLock = lock.writeLock();
+    writeLock.lock();
+    return writeLock;
+  }
+
+  ReadLock acquireReadLock() {
+    ReadLock readLock = lock.readLock();
+    readLock.lock();
+    return readLock;
+  }
+
+  /*
   @Nullable
   @Override
   LeafNode<K, V> getLeft() {
@@ -177,6 +188,7 @@ class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
       writeLock.unlock();
     }
   }
+   */
 
   @Override
   protected LeafNode<K, V> createLeafNode(

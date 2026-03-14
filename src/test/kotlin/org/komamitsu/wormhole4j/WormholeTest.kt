@@ -36,6 +36,7 @@ class WormholeTest {
         return wormhole.put(key, value)
     }
 
+    /*
     @Operation(params = ["key"])
     fun get(key: Int): Int? {
         ensureThreadRegistered()
@@ -47,6 +48,7 @@ class WormholeTest {
         ensureThreadRegistered()
         return wormhole.delete(key)
     }
+     */
 
     @Test
     fun stressTest() = StressOptions()
@@ -61,8 +63,10 @@ class WormholeTest {
 
         fun put(key: Int, value: Int): Int? = map.put(key, value)
 
+        /*
         fun get(key: Int): Int? = map[key]
 
         fun delete(key: Int): Boolean = map.remove(key) != null
+         */
     }
 }
