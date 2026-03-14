@@ -21,7 +21,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -172,17 +171,23 @@ abstract class Wormhole<K, V> {
     return leafNodeTracer.get();
   }
 
-  private <R> R withLeafNodeValidate(Supplier<R> task) {
+  private <R> R withLeafNodeValidate(Function<Long, R> task) {
     if (!isThreadSafe) {
-      return task.get();
+      return task.apply(null);
     }
 
-    // TODO: Revert
-    // while (true) {
-    for (int i = 0; i < 8; i++) {
+    while (true) {
+    // for (int i = 0; i < 8; i++) {
       clearTracedLeafNodes();
       long version = table.getVersion();
-      R result = task.get();
+      R result;
+      try {
+        result = task.apply(version);
+      }
+      catch (ConflictException e) {
+        System.out.println("Detected version conflicts");
+        continue;
+      }
       boolean shouldRetry = false;
       for (ThreadSafeLeafNode<K, V> leafNode : getTracedLeafNodes()) {
         debugPrint(
@@ -198,8 +203,7 @@ abstract class Wormhole<K, V> {
         return result;
       }
     }
-    // TODO: Remove this?
-    throw new RuntimeException("Retried out");
+    // throw new RuntimeException("Retried out");
   }
 
   static void debugPrint(String msg) {
@@ -244,6 +248,16 @@ abstract class Wormhole<K, V> {
     readLock.unlock();
   }
 
+  private void throwIfLeafNodeIsModified(Long version, LeafNode<K, V> leafNode) {
+    if (!isThreadSafe) {
+      return;
+    }
+    assert leafNode instanceof ThreadSafeLeafNode<K,V>;
+    if (((ThreadSafeLeafNode<K, V>)leafNode).getVersion() > version) {
+      throw new ConflictException();
+    }
+  }
+
   /**
    * Inserts or updates a key-value pair.
    *
@@ -254,12 +268,11 @@ abstract class Wormhole<K, V> {
    */
   @Nullable
   public V put(K key, V value) {
-//    return withLeafNodeValidate(() -> putInternal(key, value));
-    return putInternal(key, value);
+    return withLeafNodeValidate(version -> putInternal(version, key, value));
   }
 
   @Nullable
-  private V putInternal(K key, V value) {
+  private V putInternal(@Nullable Long version, K key, V value) {
     Object encodedKey = createEncodedKey(key);
     // TODO: Make MetaTrieHashTable.handleReadOperation return a value.
     AtomicReference<Optional<V>> result = new AtomicReference<>();
@@ -270,6 +283,7 @@ abstract class Wormhole<K, V> {
           WriteLock writeLock = acquireWriteLock(leafNode);
           try {
             debugPrint("LeafNode: " + leafNode);
+            throwIfLeafNodeIsModified(version, leafNode);
             Optional<V> existingValue = leafNode.lookupAndPutValue(encodedKey, key, value);
             debugPrint("Existing value: " + existingValue);
             if (existingValue != null) {
@@ -322,11 +336,10 @@ abstract class Wormhole<K, V> {
    */
   public boolean delete(K key) {
     // TODO: Return the deleted value
-//    return withLeafNodeValidate(() -> deleteInternal(key));
-    return deleteInternal(key);
+    return withLeafNodeValidate(version -> deleteInternal(version, key));
   }
 
-  private boolean deleteInternal(K key) {
+  private boolean deleteInternal(@Nullable Long version, K key) {
     Object encodedKey = createEncodedKey(key);
     // TODO: Make MetaTrieHashTable.handleReadOperation return a value.
     AtomicBoolean result = new AtomicBoolean(true);
@@ -335,6 +348,7 @@ abstract class Wormhole<K, V> {
           LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
           WriteLock writeLock = acquireWriteLock(leafNode);
           try {
+            throwIfLeafNodeIsModified(version, leafNode);
             if (!leafNode.delete(encodedKey)) {
               // TODO: Revert this.
               // return false;
@@ -371,7 +385,7 @@ abstract class Wormhole<K, V> {
    */
   @Nullable
   public V get(K key) {
-    return withLeafNodeValidate(() -> getInternal(key));
+    return withLeafNodeValidate(version -> getInternal(key));
   }
 
   @Nullable
@@ -461,11 +475,11 @@ abstract class Wormhole<K, V> {
       @Nullable K endKey,
       boolean isEndKeyExclusive,
       BiFunction<K, V, Boolean> function) {
-//    withLeafNodeValidate(
-//        () -> {
+    withLeafNodeValidate(
+        version -> {
           scan(startKey, endKey, isEndKeyExclusive, null, function);
-//          return null;
-//        });
+          return null;
+        });
   }
 
   /**
@@ -476,8 +490,7 @@ abstract class Wormhole<K, V> {
    * @return a list of key-value pairs
    */
   public List<KeyValue<K, V>> scanWithCount(@Nullable K startKey, int count) {
-//    return withLeafNodeValidate(() -> scanWithCountInternal(startKey, count));
-    return scanWithCountInternal(startKey, count);
+    return withLeafNodeValidate(version -> scanWithCountInternal(startKey, count));
   }
 
   private List<KeyValue<K, V>> scanWithCountInternal(@Nullable K startKey, int count) {
@@ -710,6 +723,8 @@ abstract class Wormhole<K, V> {
 
     abstract W build();
   }
+
+  private static class ConflictException extends RuntimeException {}
 
   static class Validator<K, T> {
     private final Wormhole<K, T> wormhole;

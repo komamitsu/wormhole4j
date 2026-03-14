@@ -147,6 +147,7 @@ class MultiThreadWormholeTest {
   @Test
   void concurrent2PutsAfterSplit_ShouldReturnProperValues_2() throws ExecutionException, InterruptedException {
     for (int i = 0; i < 100; i++) {
+      System.out.println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA: " + i);
       // Arrange
       Wormhole<Integer, Integer> wormhole = new WormholeForIntKey.Builder<Integer>()
           .setThreadSafe(true)
