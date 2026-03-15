@@ -123,6 +123,14 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
     synchronized long nextVersion() {
       return version + 1;
     }
+
+    @Override
+    public String toString() {
+      return "State{" +
+          "version=" + version +
+          ", activeSlotId=" + activeSlotId +
+          '}';
+    }
   }
 
   enum ContextState {
@@ -218,6 +226,22 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
         return writeVersion;
       }
       return readVersion;
+    }
+
+    @Override
+    public String toString() {
+      return "Context{" +
+          "globalState=" + globalState +
+          ", threadId=" + threadId +
+          ", readVersion=" + readVersion +
+          ", readSlotId=" + readSlotId +
+          ", readPhaseState=" + readPhaseState +
+          ", readSet=" + readSet +
+          ", writeSlotId=" + writeSlotId +
+          ", writeVersion=" + writeVersion +
+          ", writePhaseState=" + writePhaseState +
+          ", writeList=" + writeList +
+          '}';
     }
   }
 
@@ -337,6 +361,13 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
       return oldValue;
     }
 
+    @Override
+    public String toString() {
+      return "Map{" +
+          "keys=" + map.keySet() +
+          '}';
+    }
+
     void forEach(BiConsumer<K, V> consumer) {
       Context<K> ctxt = QsbMap.this.ctxt.get();
       ctxt.throwIfWritePhaseIsDone();
@@ -348,6 +379,8 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
           ctxt.readSet.add(new Read<>(key, value == null ? null : value.getVersion()));
         }
       }
+
+
     }
 
     private V getWithoutRecording(K key) {
@@ -475,6 +508,15 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
         }
       }
     }
+
+    @Override
+    public String toString() {
+      return "QsbrSlot{" +
+          "table=" + table +
+          ", readers=" + readers +
+          ", qsbrWaitLock=" + qsbrWaitLock +
+          '}';
+    }
   }
 
   public QsbMap() {
@@ -521,6 +563,10 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
   }
 
   void handleReadOperation(ReadOperatable<K, V> task) {
+    handleReadOperation(true, task);
+  }
+
+  void handleReadOperation(boolean shouldValidate, ReadOperatable<K, V> task) {
     Context<K> ctxt = this.ctxt.get();
     ctxt.startReadPhase();
     /*
@@ -533,7 +579,9 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
     QsbrSlot readSlot = getSlot(ctxt.readSlotId);
     Map table = readSlot.table;
     try {
-      readSlot.enterReadPhase();
+      if (shouldValidate) {
+        readSlot.enterReadPhase();
+      }
       /*
       debugPrint(
           ctxt.threadId,
@@ -545,9 +593,13 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
           ctxt.threadId,
           String.format("handleReadOperation: Executed Task. ReadSlotId:%d", ctxt.readSlotId));
        */
-      validateReadSet(readSlot);
+      if (shouldValidate) {
+        validateReadSet(readSlot);
+      }
     } finally {
-      readSlot.exitReadPhase();
+      if (shouldValidate) {
+        readSlot.exitReadPhase();
+      }
       ctxt.finishReadPhase();
     }
   }
@@ -772,8 +824,8 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
   }
    */
 
-  private static void debugPrint(int threadId, String msg) {
     /*
+  private static void debugPrint(int threadId, String msg) {
     String s =
         String.format(
             "%s [%s] (%d) %s%n", Instant.now(), Thread.currentThread().getName(), threadId, msg);
@@ -783,11 +835,9 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-     */
   }
 
   private static void debugPrint(String msg) {
-    /*
     String s = String.format("%s [%s] %s%n", Instant.now(), Thread.currentThread().getName(), msg);
     // System.out.print(s);
     try {
@@ -795,6 +845,19 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-     */
   }
+     */
+
+  /*
+  @Override
+  public String toString() {
+    return "QsbMap{" +
+        "state=" + state +
+        ", slots=" + slots +
+        ", writerLock=" + writerLock +
+        ", threads=" + threads +
+        ", ctxt=" + ctxt.get() +
+        '}';
+  }
+   */
 }

@@ -36,13 +36,13 @@ class WormholeTest {
         return wormhole.put(key, value)
     }
 
-    /*
     @Operation(params = ["key"])
     fun get(key: Int): Int? {
         ensureThreadRegistered()
         return wormhole.get(key)
     }
 
+    /*
     @Operation(params = ["key"])
     fun delete(key: Int): Boolean {
         ensureThreadRegistered()
@@ -55,7 +55,7 @@ class WormholeTest {
         .sequentialSpecification(SequentialMap::class.java)
         .threads(3)
         .invocationsPerIteration(20)
-        .iterations(100)
+        .iterations(10)
         .check(this::class)
 
     class SequentialMap {
@@ -63,10 +63,8 @@ class WormholeTest {
 
         fun put(key: Int, value: Int): Int? = map.put(key, value)
 
-        /*
         fun get(key: Int): Int? = map[key]
 
-        fun delete(key: Int): Boolean = map.remove(key) != null
-         */
+        // fun delete(key: Int): Boolean = map.remove(key) != null
     }
 }

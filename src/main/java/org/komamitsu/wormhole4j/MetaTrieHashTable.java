@@ -71,7 +71,11 @@ class MetaTrieHashTable<K, V> {
 
     @Override
     public String toString() {
-      return "NodeMetaLeaf{" + "leafNode=" + leafNode + '}';
+      return "NodeMetaLeaf{" +
+          "leafNode=" + leafNode +
+          ", anchorPrefix=" + anchorPrefix +
+          ", version=" + version +
+          '}';
     }
   }
 
@@ -133,6 +137,8 @@ class MetaTrieHashTable<K, V> {
           + rightMostLeafNode
           + ", bitmap="
           + bitmap
+          + ", version="
+          + version
           + '}';
     }
   }
@@ -143,6 +149,10 @@ class MetaTrieHashTable<K, V> {
 
   long getWriteVersion() {
     return table.getWriteVersion();
+  }
+
+  void handleReadOperation(boolean shouldValidate, QsbMap.ReadOperatable<Object, NodeMeta<K, V>> task) {
+    table.handleReadOperation(shouldValidate, task);
   }
 
   void handleReadOperation(QsbMap.ReadOperatable<Object, NodeMeta<K, V>> task) {
@@ -244,10 +254,16 @@ class MetaTrieHashTable<K, V> {
       // left-most and right-most ranges are updated to include the new leaf node.
       // Therefore, the new leaf node should probably be checked and set if needed.
       if (internalNode.getLeftMostLeafNode() == newLeafNode.getRight()) {
-        internalNode.setLeftMostLeafNode(newLeafNode);
+        internalNode.mutableUpdate(table.getWriteVersion(), nodeMeta -> {
+          assert nodeMeta instanceof MetaTrieHashTable.NodeMetaInternal<K,V>;
+          ((NodeMetaInternal<K, V>) nodeMeta).setLeftMostLeafNode(newLeafNode);
+        });
       }
       if (internalNode.getRightMostLeafNode() == newLeafNode.getLeft()) {
-        internalNode.setRightMostLeafNode(newLeafNode);
+        internalNode.mutableUpdate(table.getWriteVersion(), nodeMeta -> {
+          assert nodeMeta instanceof MetaTrieHashTable.NodeMetaInternal<K,V>;
+          ((NodeMetaInternal<K, V>) nodeMeta).setRightMostLeafNode(newLeafNode);
+        });
       }
     }
   }
