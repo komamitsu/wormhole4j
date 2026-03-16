@@ -210,7 +210,7 @@ abstract class Wormhole<K, V> {
   }
 
   static void debugPrint(String msg) {
-//    System.out.printf("[%s] (%s) %s %n", Instant.now(), Thread.currentThread().getName(), msg);
+    System.out.printf("[%s] (%s) %s %n", Instant.now(), Thread.currentThread().getName(), msg);
   }
 
   @Nullable
@@ -281,51 +281,53 @@ abstract class Wormhole<K, V> {
     AtomicReference<Optional<V>> result = new AtomicReference<>();
     table.handleReadOperation(false,
         () -> {
-          debugPrint(String.format("Read operation started; Key:%s, Value:%s", key, value));
-          debugPrint(String.format("Current table:%s", table));
+          debugPrint(String.format("[PUT] Read operation started; Key:%s, Value:%s", key, value));
+          debugPrint(String.format("[PUT] Current table:%s", table));
           LeafNode<K, V> leafNode = searchTrieHashTable(version, encodedKey);
+          debugPrint("[PUT] Acquiring the write lock. LeafNode: " + leafNode);
           WriteLock writeLock = acquireWriteLock(leafNode);
           try {
-            debugPrint("Acquired the write lock. LeafNode: " + leafNode);
+            debugPrint("[PUT] Acquired the write lock. LeafNode: " + leafNode);
             throwIfLeafNodeIsModified(version, leafNode);
             Optional<V> existingValue = leafNode.lookupAndPutValue(encodedKey, key, value);
-            debugPrint("Write operation is done? " + existingValue);
+            debugPrint("[PUT] Write operation is done? " + existingValue);
             if (existingValue != null) {
               validateIfNeeded();
               result.set(existingValue);
-              debugPrint("Updated or inserted the value in the existing LeafNode");
+              debugPrint("[PUT] Updated or inserted the value in the existing LeafNode");
               return;
             }
 
             // TODO: Remove this if-block.
             result.set(Optional.empty());
-            debugPrint("Splitting");
+            debugPrint("[PUT] Splitting");
             // TODO: Make MetaTrieHashTable.handleReadOperation return a value.
             AtomicReference<LeafNode<K, V>> newLeafNode = new AtomicReference<>();
 
 //            leafNodeTracer.get().clear();
             table.handleWriteOperation(
                 () -> {
-                  debugPrint("Entered in the write operation phase");
+                  debugPrint("[PUT] Entered in the write operation phase");
 
                   // TODO: Revert this.
                   // LeafNode<K, V> newLeafNode = split(leafNode);
 
                   // Split the node and get a new right leaf node.
                   newLeafNode.set(split(leafNode));
-                  debugPrint("Split!");
+                  debugPrint("[PUT] Split!");
                   if (EncodedKeyUtils.compare(encodedKeyType, encodedKey, newLeafNode.get().anchorKey) < 0) {
                     leafNode.add(encodedKey, key, value);
                   } else {
                     newLeafNode.get().add(encodedKey, key, value);
                   }
                   unlockWriteLock(writeLock);
-                  debugPrint("Quitting from the write operation phase");
+                  debugPrint("[PUT] Quitting from the write operation phase");
                 });
-            debugPrint("Quitting from the read operation phase");
+            debugPrint("[PUT] Quitting from the read operation phase");
           }
           finally {
             unlockWriteLock(writeLock);
+            debugPrint("[PUT] Done");
           }
         });
     validateIfNeeded();
@@ -399,16 +401,22 @@ abstract class Wormhole<K, V> {
     AtomicReference<V> result = new AtomicReference<>();
     table.handleReadOperation(
         () -> {
+          debugPrint(String.format("[GET] Read operation started; Key:%s", key));
+          debugPrint(String.format("[GET] Current table:%s", table));
           LeafNode<K, V> leafNode = searchTrieHashTable(version, encodedKey);
           addTracedLeafNode(leafNode);
+          debugPrint("[GET] Acquiring the read lock");
           ReadLock readLock = acquireReadLock(leafNode);
+          debugPrint("[GET] Acquired the read lock");
           try {
             result.set(leafNode.lookupValue(encodedKey));
           }
           finally {
+            debugPrint("[GET] Quitting from the read operation phase");
             unlockReadLock(readLock);
           }
         });
+    debugPrint("[GET] Done");
     return result.get();
   }
 

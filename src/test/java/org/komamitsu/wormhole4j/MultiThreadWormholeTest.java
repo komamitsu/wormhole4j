@@ -408,4 +408,83 @@ class MultiThreadWormholeTest {
       wormhole.unregisterThread();
     }
   }
+
+  @Test
+  void concurrent3PutsAfterSplit_ShouldReturnProperValues_3() throws ExecutionException, InterruptedException, FileNotFoundException, TimeoutException {
+    for (int i = 0; i < 100000; i++) {
+      // PrintStream printStream = new PrintStream(new FileOutputStream("/home/komamitsu/tmp/debug.txt"));
+      // System.setOut(printStream);
+      // System.setErr(printStream);
+      // Arrange
+      Wormhole<Integer, Integer> wormhole = new WormholeForIntKey.Builder<Integer>()
+          .setThreadSafe(true)
+          .setLeafNodeSize(4)
+          .build();
+      wormhole.registerThread();
+      assertThat(wormhole.put(11, 110)).isNull();
+      assertThat(wormhole.put(10, 100)).isNull();
+      assertThat(wormhole.put(8, 80)).isNull();
+      assertThat(wormhole.put(6, 60)).isNull();
+      assertThat(wormhole.put(9, 90)).isNull();
+      assertThat(wormhole.put(15, 150)).isNull();
+      assertThat(wormhole.put(16, 160)).isNull();
+
+      assertThat(wormhole.put(7, 70)).isNull();
+
+      ExecutorService executorService = Executors.newFixedThreadPool(3);
+      List<Future<List<Integer>>> futures = new ArrayList<>();
+      CyclicBarrier barrier = new CyclicBarrier(3);
+
+      // Act
+      futures.add(executorService.submit(() -> {
+        wormhole.registerThread();
+        barrier.await();
+        List<Integer> existingValues = new ArrayList<>();
+        existingValues.add(wormhole.put(5, 50));
+        wormhole.unregisterThread();
+        return existingValues;
+      }));
+      futures.add(executorService.submit(() -> {
+        wormhole.registerThread();
+        barrier.await();
+        List<Integer> existingValues = new ArrayList<>();
+        // existingValues.add(wormhole.put(7, 70));
+        Thread.sleep(0, 50);
+        wormhole.get(4);
+        wormhole.unregisterThread();
+        return existingValues;
+      }));
+      futures.add(executorService.submit(() -> {
+        wormhole.registerThread();
+        barrier.await();
+        List<Integer> existingValues = new ArrayList<>();
+        existingValues.add(wormhole.put(17, 170));
+        wormhole.unregisterThread();
+        return existingValues;
+      }));
+
+      // Assert
+      List<Integer> resultValues = new ArrayList<>();
+      for (Future<List<Integer>> future : futures) {
+        List<Integer> result = future.get(10, TimeUnit.SECONDS).stream().filter(Objects::nonNull).toList();
+        resultValues.addAll(result);
+      }
+      assertThat(resultValues).hasSize(0);
+      executorService.shutdown();
+
+      assertThat(wormhole.get(5)).isEqualTo(50);
+      assertThat(wormhole.get(6)).isEqualTo(60);
+      assertThat(wormhole.get(7)).isEqualTo(70);
+      assertThat(wormhole.get(8)).isEqualTo(80);
+      assertThat(wormhole.get(9)).isEqualTo(90);
+      assertThat(wormhole.get(10)).isEqualTo(100);
+      assertThat(wormhole.get(11)).isEqualTo(110);
+      assertThat(wormhole.get(15)).isEqualTo(150);
+      assertThat(wormhole.get(16)).isEqualTo(160);
+      assertThat(wormhole.get(17)).isEqualTo(170);
+      wormhole.unregisterThread();
+
+      // printStream.close();
+    }
+  }
 }

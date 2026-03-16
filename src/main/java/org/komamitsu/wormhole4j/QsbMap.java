@@ -848,16 +848,14 @@ class QsbMap<K, V extends QsbMap.Versionable<V>> {
   }
      */
 
-  /*
   @Override
   public String toString() {
     return "QsbMap{" +
         "state=" + state +
-        ", slots=" + slots +
+//        ", slots=" + slots +
         ", writerLock=" + writerLock +
         ", threads=" + threads +
         ", ctxt=" + ctxt.get() +
         '}';
   }
-   */
 }
