@@ -22,6 +22,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
+import static java.util.concurrent.locks.ReentrantReadWriteLock.*;
+
 class LeafNode<K, V> {
   private static final int TUPLE_SIZE = 3;
   private static final int ENCODED_KEY_OFFSET = 0;
@@ -731,6 +733,16 @@ class LeafNode<K, V> {
       return new Tuple<>(i, validatedAnchorKey);
     }
     throw new IllegalStateException("Cannot split the leaf node. Leaf node: " + this);
+  }
+
+  @Nullable
+  WriteLock acquireWriteLock() {
+    return null;
+  }
+
+  @Nullable
+  ReadLock acquireReadLock() {
+    return null;
   }
 
   void validate() {

@@ -24,28 +24,19 @@ import java.util.TreeMap
 class WormholeTest {
     private val wormhole = WormholeForIntKey.Builder<Int>().setThreadSafe(true).setLeafNodeSize(4).build()
 
-    private fun ensureThreadRegistered() {
-        if (!wormhole.isThreadRegistered) {
-            wormhole.registerThread()
-        }
-    }
-
     @Operation(params = ["key", "value"])
     fun put(key: Int, value: Int): Int? {
-        ensureThreadRegistered()
         return wormhole.put(key, value)
     }
 
     @Operation(params = ["key"])
     fun get(key: Int): Int? {
-        ensureThreadRegistered()
         return wormhole.get(key)
     }
 
     /*
     @Operation(params = ["key"])
     fun delete(key: Int): Boolean {
-        ensureThreadRegistered()
         return wormhole.delete(key)
     }
      */

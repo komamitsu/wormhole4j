@@ -52,20 +52,11 @@ class WormholeForStringKeyTest {
         .setLeafNodeSize(leafNodeSize)
         .setDebugMode(true)
         .build();
-    wormholeForIntValue.registerThread();
 
     wormholeForStrValue = new WormholeForStringKey.Builder<String>()
         .setLeafNodeSize(leafNodeSize)
         .setDebugMode(true)
         .build();
-    wormholeForStrValue.registerThread();
-  }
-
-  @AfterEach
-  void tearDown() {
-    wormholeForIntValue.unregisterThread();
-
-    wormholeForStrValue.unregisterThread();
   }
 
   @Nested

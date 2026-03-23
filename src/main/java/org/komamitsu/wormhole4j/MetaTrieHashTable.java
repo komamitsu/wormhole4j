@@ -18,50 +18,53 @@ package org.komamitsu.wormhole4j;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.StampedLock;
 import javax.annotation.Nullable;
 
 class MetaTrieHashTable<K, V> {
   private final EncodedKeyType encodedKeyType;
   private int maxAnchorLength;
 
-  private final QsbMap<Object, NodeMeta<K, V>> table = new QsbMap<>();
+  private final Map<Object, NodeMeta> table = new HashMap<>();
+  private final boolean isThreadSafe;
+  private final StampedLock lock = new StampedLock();
 
-  MetaTrieHashTable(EncodedKeyType encodedKeyType) {
+  MetaTrieHashTable(EncodedKeyType encodedKeyType, boolean isThreadSafe) {
     this.encodedKeyType = encodedKeyType;
+    this.isThreadSafe = isThreadSafe;
   }
 
-  void registerThread() {
-    table.registerThread();
+  long acquireReadLock() {
+    if (!isThreadSafe) {
+      return 0;
+    }
+    return lock.readLock();
   }
 
-  void unregisterThread() {
-    table.unregisterThread();
+  long acquireWriteLock() {
+    if (!isThreadSafe) {
+      return 0;
+    }
+    return lock.writeLock();
   }
 
-  boolean isThreadRegistered() {
-    return table.isThreadRegistered();
+  void releaseLock(long lock) {
+    if (!isThreadSafe) {
+      return;
+    }
+    this.lock.unlock(lock);
   }
 
-  abstract static class NodeMeta<K, V> implements QsbMap.Versionable<NodeMeta<K, V>> {
+  abstract static class NodeMeta {
     final Object anchorPrefix;
     long version;
 
     public NodeMeta(Object anchorPrefix) {
       this.anchorPrefix = anchorPrefix;
     }
-
-    @Override
-    public long getVersion() {
-      return version;
-    }
-
-    @Override
-    public void setVersion(long version) {
-      this.version = version;
-    }
   }
 
-  static class NodeMetaLeaf<K, V> extends NodeMeta<K, V> {
+  static class NodeMetaLeaf<K, V> extends NodeMeta {
     final LeafNode<K, V> leafNode;
 
     NodeMetaLeaf(Object anchorPrefix, LeafNode<K, V> leafNode) {
@@ -79,7 +82,7 @@ class MetaTrieHashTable<K, V> {
     }
   }
 
-  static class NodeMetaInternal<K, V> extends NodeMeta<K, V> {
+  static class NodeMetaInternal<K, V> extends NodeMeta {
     private LeafNode<K, V> leftMostLeafNode;
     private LeafNode<K, V> rightMostLeafNode;
     final BitSet bitmap;
@@ -143,53 +146,33 @@ class MetaTrieHashTable<K, V> {
     }
   }
 
-  long getVersion() {
-    return table.getVersion();
-  }
-
-  long getWriteVersion() {
-    return table.getWriteVersion();
-  }
-
-  void handleReadOperation(boolean shouldValidate, QsbMap.ReadOperatable<Object, NodeMeta<K, V>> task) {
-    table.handleReadOperation(shouldValidate, task);
-  }
-
-  void handleReadOperation(QsbMap.ReadOperatable<Object, NodeMeta<K, V>> task) {
-    table.handleReadOperation(task);
-  }
-
-  void handleWriteOperation(QsbMap.WriteOperatable<Object, NodeMeta<K, V>> task) {
-    table.handleWriteOperation(task);
-  }
-
-  NodeMeta<K, V> get(Object key) {
+  NodeMeta get(Object key) {
     return table.get(key);
   }
 
-  void put(Object key, NodeMeta<K, V> nodeMeta) {
+  void put(Object key, NodeMeta nodeMeta) {
     table.put(key, nodeMeta);
     maxAnchorLength = Math.max(maxAnchorLength, EncodedKeyUtils.length(encodedKeyType, key));
   }
 
   @VisibleForTesting
-  Collection<NodeMeta<K, V>> valuesForValidate() {
-    return table.getActiveMapForTesting().getUnderlyingMap().values();
+  Collection<NodeMeta> valuesForValidate() {
+    return table.values();
   }
 
   @VisibleForTesting
-  Set<Map.Entry<Object, NodeMeta<K, V>>> entrySetForValidate() {
-    return table.getActiveMapForTesting().getUnderlyingMap().entrySet();
+  Set<Map.Entry<Object, NodeMeta>> entrySetForValidate() {
+    return table.entrySet();
   }
 
   @VisibleForTesting
-  NodeMeta<K, V> getForValidate(Object key) {
-    return table.getActiveMapForTesting().getUnderlyingMap().get(key);
+  NodeMeta getForValidate(Object key) {
+    return table.get(key);
   }
 
   void handleSplitNodes(Object newAnchorKey, LeafNode<K, V> newLeafNode) {
     NodeMetaLeaf<K, V> newNodeMeta = new NodeMetaLeaf<>(newAnchorKey, newLeafNode);
-    NodeMeta<K, V> existingNodeMeta = get(newAnchorKey);
+    NodeMeta existingNodeMeta = get(newAnchorKey);
     if (existingNodeMeta != null) {
       throw new AssertionError(
           String.format(
@@ -203,7 +186,7 @@ class MetaTrieHashTable<K, V> {
         prefixLen < EncodedKeyUtils.length(encodedKeyType, newAnchorKey);
         prefixLen++) {
       Object prefix = EncodedKeyUtils.slice(encodedKeyType, newAnchorKey, prefixLen);
-      NodeMeta<K, V> node = get(prefix);
+      NodeMeta node = get(prefix);
       if (node == null) {
         put(
             prefix,
@@ -254,21 +237,15 @@ class MetaTrieHashTable<K, V> {
       // left-most and right-most ranges are updated to include the new leaf node.
       // Therefore, the new leaf node should probably be checked and set if needed.
       if (internalNode.getLeftMostLeafNode() == newLeafNode.getRight()) {
-        internalNode.mutableUpdate(table.getWriteVersion(), nodeMeta -> {
-          assert nodeMeta instanceof MetaTrieHashTable.NodeMetaInternal<K,V>;
-          ((NodeMetaInternal<K, V>) nodeMeta).setLeftMostLeafNode(newLeafNode);
-        });
+        internalNode.setLeftMostLeafNode(newLeafNode);
       }
       if (internalNode.getRightMostLeafNode() == newLeafNode.getLeft()) {
-        internalNode.mutableUpdate(table.getWriteVersion(), nodeMeta -> {
-          assert nodeMeta instanceof MetaTrieHashTable.NodeMetaInternal<K,V>;
-          ((NodeMetaInternal<K, V>) nodeMeta).setRightMostLeafNode(newLeafNode);
-        });
+        internalNode.setRightMostLeafNode(newLeafNode);
       }
     }
   }
 
-  NodeMeta<K, V> searchLongestPrefixMatch(EncodedKeyType encodedKeyType, Object searchKey) {
+  NodeMeta searchLongestPrefixMatch(EncodedKeyType encodedKeyType, Object searchKey) {
     Object lpm = searchLongestPrefixMatchKey(encodedKeyType, searchKey);
     return get(lpm);
   }
@@ -288,7 +265,7 @@ class MetaTrieHashTable<K, V> {
   }
 
   void removeNodeMeta(Object anchorKey) {
-    NodeMeta<K, V> removed = table.remove(anchorKey);
+    NodeMeta removed = table.remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(
           String.format("Node meta leaf for anchor key '%s' not found for removal", anchorKey));
@@ -299,7 +276,7 @@ class MetaTrieHashTable<K, V> {
   }
 
   Object removeNodeMetaInternal(Object anchorKey) {
-    NodeMeta<K, V> removed = table.remove(anchorKey);
+    NodeMeta removed = table.remove(anchorKey);
     if (removed == null) {
       throw new AssertionError(
           String.format("Node meta internal for anchor key '%s' not found for removal", anchorKey));

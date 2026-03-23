@@ -32,19 +32,13 @@ class MultiThreadWormholeTest {
         .setThreadSafe(true)
         .setLeafNodeSize(4)
         .build();
-    wormhole.registerThread();
 
     // Act Assert
-    try {
-      assertThat(wormhole.put(10, 100)).isNull();
-      assertThat(wormhole.put(11, 110)).isNull();
-      assertThat(wormhole.put(9, 90)).isNull();
-      assertThat(wormhole.put(12, 120)).isNull();
-      assertThat(wormhole.put(8, 80)).isNull();
-    }
-    finally {
-      wormhole.unregisterThread();
-    }
+    assertThat(wormhole.put(10, 100)).isNull();
+    assertThat(wormhole.put(11, 110)).isNull();
+    assertThat(wormhole.put(9, 90)).isNull();
+    assertThat(wormhole.put(12, 120)).isNull();
+    assertThat(wormhole.put(8, 80)).isNull();
   }
 
   @Test
@@ -59,18 +53,8 @@ class MultiThreadWormholeTest {
       List<Future<Integer>> futures = new ArrayList<>();
 
       // Act
-      futures.add(executorService.submit(() -> {
-        wormhole.registerThread();
-        Integer existingValue = wormhole.put(1, 10);
-        wormhole.unregisterThread();
-        return existingValue;
-      }));
-      futures.add(executorService.submit(() -> {
-        wormhole.registerThread();
-        Integer existingValue = wormhole.put(1, 20);
-        wormhole.unregisterThread();
-        return existingValue;
-      }));
+      futures.add(executorService.submit(() -> wormhole.put(1, 10)));
+      futures.add(executorService.submit(() -> wormhole.put(1, 20)));
 
       // Assert
       List<Integer> resultValues = new ArrayList<>();
@@ -84,9 +68,7 @@ class MultiThreadWormholeTest {
       assertThat(resultValues.getFirst()).isIn(10, 20);
       executorService.shutdown();
 
-      wormhole.registerThread();
       assertThat(wormhole.get(1)).isIn(10, 20);
-      wormhole.unregisterThread();
     }
   }
 
@@ -98,7 +80,6 @@ class MultiThreadWormholeTest {
           .setThreadSafe(true)
           .setLeafNodeSize(4)
           .build();
-      wormhole.registerThread();
       assertThat(wormhole.put(8, 80)).isNull();
       assertThat(wormhole.put(9, 90)).isNull();
       assertThat(wormhole.put(10, 100)).isNull();
@@ -110,18 +91,12 @@ class MultiThreadWormholeTest {
 
       // Act
       futures.add(executorService.submit(() -> {
-        wormhole.registerThread();
         barrier.await();
-        Integer existingValue = wormhole.put(9, 99);
-        wormhole.unregisterThread();
-        return existingValue;
+        return wormhole.put(9, 99);
       }));
       futures.add(executorService.submit(() -> {
-        wormhole.registerThread();
         barrier.await();
-        Integer existingValue = wormhole.put(12, 120);
-        wormhole.unregisterThread();
-        return existingValue;
+        return wormhole.put(12, 120);
       }));
 
       // Assert
@@ -141,7 +116,6 @@ class MultiThreadWormholeTest {
       assertThat(wormhole.get(10)).isEqualTo(100);
       assertThat(wormhole.get(11)).isEqualTo(110);
       assertThat(wormhole.get(12)).isEqualTo(120);
-      wormhole.unregisterThread();
     }
   }
 
@@ -153,7 +127,6 @@ class MultiThreadWormholeTest {
           .setThreadSafe(true)
           .setLeafNodeSize(4)
           .build();
-      wormhole.registerThread();
       assertThat(wormhole.put(10, 100)).isNull();
       assertThat(wormhole.put(11, 110)).isNull();
       assertThat(wormhole.put(12, 120)).isNull();
@@ -165,18 +138,12 @@ class MultiThreadWormholeTest {
 
       // Act
       futures.add(executorService.submit(() -> {
-        wormhole.registerThread();
         barrier.await();
-        Integer existingValue = wormhole.put(8, 80);
-        wormhole.unregisterThread();
-        return existingValue;
+        return wormhole.put(8, 80);
       }));
       futures.add(executorService.submit(() -> {
-        wormhole.registerThread();
         barrier.await();
-        Integer existingValue = wormhole.put(11, 111);
-        wormhole.unregisterThread();
-        return existingValue;
+        return wormhole.put(11, 111);
       }));
 
       // Assert
@@ -196,7 +163,6 @@ class MultiThreadWormholeTest {
       assertThat(wormhole.get(10)).isEqualTo(100);
       assertThat(wormhole.get(11)).isEqualTo(111);
       assertThat(wormhole.get(12)).isEqualTo(120);
-      wormhole.unregisterThread();
     }
   }
 
@@ -215,7 +181,6 @@ class MultiThreadWormholeTest {
             .setThreadSafe(true)
             .setLeafNodeSize(4)
             .build();
-        wormhole.registerThread();
         assertThat(wormhole.put(10, 100)).isNull();
         assertThat(wormhole.put(11, 110)).isNull();
         assertThat(wormhole.put(9, 90)).isNull();
@@ -228,27 +193,21 @@ class MultiThreadWormholeTest {
 
         // Act
         futures.add(executorService.submit(() -> {
-          wormhole.registerThread();
           barrier.await();
           List<Integer> existingValues = new ArrayList<>();
           existingValues.add(wormhole.put(12, 120));
-          wormhole.unregisterThread();
           return existingValues;
         }));
         futures.add(executorService.submit(() -> {
-          wormhole.registerThread();
           barrier.await();
           List<Integer> existingValues = new ArrayList<>();
           existingValues.add(wormhole.put(13, 130));
-          wormhole.unregisterThread();
           return existingValues;
         }));
         futures.add(executorService.submit(() -> {
-          wormhole.registerThread();
           barrier.await();
           List<Integer> existingValues = new ArrayList<>();
           existingValues.add(wormhole.put(15, 150));
-          wormhole.unregisterThread();
           return existingValues;
         }));
 
@@ -269,7 +228,6 @@ class MultiThreadWormholeTest {
         assertThat(wormhole.get(13)).isEqualTo(130);
         assertThat(wormhole.get(14)).isEqualTo(140);
         assertThat(wormhole.get(15)).isEqualTo(150);
-        wormhole.unregisterThread();
       }
       finally {
         printStream.close();
@@ -287,7 +245,6 @@ class MultiThreadWormholeTest {
           .setThreadSafe(true)
           .setLeafNodeSize(4)
           .build();
-      wormhole.registerThread();
       assertThat(wormhole.put(10, 100)).isNull();
       assertThat(wormhole.put(11, 110)).isNull();
       assertThat(wormhole.put(9, 90)).isNull();
@@ -298,29 +255,23 @@ class MultiThreadWormholeTest {
 
       // Act
       futures.add(executorService.submit(() -> {
-        wormhole.registerThread();
         barrier.await();
         List<Integer> existingValues = new ArrayList<>();
         existingValues.add(wormhole.put(7, 70));
         existingValues.add(wormhole.put(12, 120));
-        wormhole.unregisterThread();
         return existingValues;
       }));
       futures.add(executorService.submit(() -> {
-        wormhole.registerThread();
         barrier.await();
         List<Integer> existingValues = new ArrayList<>();
         existingValues.add(wormhole.put(13, 130));
-        wormhole.unregisterThread();
         return existingValues;
       }));
       futures.add(executorService.submit(() -> {
-        wormhole.registerThread();
         barrier.await();
         List<Integer> existingValues = new ArrayList<>();
         existingValues.add(wormhole.put(14, 140));
         existingValues.add(wormhole.put(15, 150));
-        wormhole.unregisterThread();
         return existingValues;
       }));
 
@@ -341,7 +292,6 @@ class MultiThreadWormholeTest {
       assertThat(wormhole.get(13)).isEqualTo(130);
       assertThat(wormhole.get(14)).isEqualTo(140);
       assertThat(wormhole.get(15)).isEqualTo(150);
-      wormhole.unregisterThread();
     }
   }
 
@@ -353,7 +303,6 @@ class MultiThreadWormholeTest {
           .setThreadSafe(true)
           .setLeafNodeSize(4)
           .build();
-      wormhole.registerThread();
       assertThat(wormhole.put(11, 110)).isNull();
       assertThat(wormhole.put(9, 90)).isNull();
       assertThat(wormhole.put(12, 120)).isNull();
@@ -365,27 +314,21 @@ class MultiThreadWormholeTest {
 
       // Act
       futures.add(executorService.submit(() -> {
-        wormhole.registerThread();
         barrier.await();
         List<Integer> existingValues = new ArrayList<>();
         existingValues.add(wormhole.put(10, 100));
-        wormhole.unregisterThread();
         return existingValues;
       }));
       futures.add(executorService.submit(() -> {
-        wormhole.registerThread();
         barrier.await();
         List<Integer> existingValues = new ArrayList<>();
         existingValues.add(wormhole.put(13, 130));
-        wormhole.unregisterThread();
         return existingValues;
       }));
       futures.add(executorService.submit(() -> {
-        wormhole.registerThread();
         barrier.await();
         List<Integer> existingValues = new ArrayList<>();
         existingValues.add(wormhole.put(15, 150));
-        wormhole.unregisterThread();
         return existingValues;
       }));
 
@@ -405,13 +348,13 @@ class MultiThreadWormholeTest {
       assertThat(wormhole.get(12)).isEqualTo(120);
       assertThat(wormhole.get(13)).isEqualTo(130);
       assertThat(wormhole.get(15)).isEqualTo(150);
-      wormhole.unregisterThread();
     }
   }
 
   @Test
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_3() throws ExecutionException, InterruptedException, FileNotFoundException, TimeoutException {
     for (int i = 0; i < 100000; i++) {
+      // FIXME
       // PrintStream printStream = new PrintStream(new FileOutputStream("/home/komamitsu/tmp/debug.txt"));
       // System.setOut(printStream);
       // System.setErr(printStream);
@@ -420,7 +363,6 @@ class MultiThreadWormholeTest {
           .setThreadSafe(true)
           .setLeafNodeSize(4)
           .build();
-      wormhole.registerThread();
       assertThat(wormhole.put(11, 110)).isNull();
       assertThat(wormhole.put(10, 100)).isNull();
       assertThat(wormhole.put(8, 80)).isNull();
@@ -437,29 +379,23 @@ class MultiThreadWormholeTest {
 
       // Act
       futures.add(executorService.submit(() -> {
-        wormhole.registerThread();
         barrier.await();
         List<Integer> existingValues = new ArrayList<>();
         existingValues.add(wormhole.put(5, 50));
-        wormhole.unregisterThread();
         return existingValues;
       }));
       futures.add(executorService.submit(() -> {
-        wormhole.registerThread();
         barrier.await();
         List<Integer> existingValues = new ArrayList<>();
         // existingValues.add(wormhole.put(7, 70));
         Thread.sleep(0, 50);
         wormhole.get(4);
-        wormhole.unregisterThread();
         return existingValues;
       }));
       futures.add(executorService.submit(() -> {
-        wormhole.registerThread();
         barrier.await();
         List<Integer> existingValues = new ArrayList<>();
         existingValues.add(wormhole.put(17, 170));
-        wormhole.unregisterThread();
         return existingValues;
       }));
 
@@ -482,7 +418,6 @@ class MultiThreadWormholeTest {
       assertThat(wormhole.get(15)).isEqualTo(150);
       assertThat(wormhole.get(16)).isEqualTo(160);
       assertThat(wormhole.get(17)).isEqualTo(170);
-      wormhole.unregisterThread();
 
       // printStream.close();
     }

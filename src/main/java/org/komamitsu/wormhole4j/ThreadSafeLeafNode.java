@@ -23,7 +23,6 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
-  private long version;
   private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
   ThreadSafeLeafNode(
@@ -36,20 +35,14 @@ class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
     super(encodedKeyType, validAnchorKeyProvider, anchorKey, maxSize, left, right);
   }
 
-  long getVersion() {
-    return version;
-  }
-
-  void setVersion(long version) {
-    this.version = version;
-  }
-
+  @Override
   WriteLock acquireWriteLock() {
     WriteLock writeLock = lock.writeLock();
     writeLock.lock();
     return writeLock;
   }
 
+  @Override
   ReadLock acquireReadLock() {
     ReadLock readLock = lock.readLock();
     readLock.lock();
