@@ -145,7 +145,8 @@ abstract class Wormhole<K, V> {
   public V put(K key, V value) {
     Object encodedKey = createEncodedKey(key);
     debugPrint(String.format("[PUT] Start; Key:%s, Value:%s", key, value));
-    long tableLock = table.acquireReadLock();
+    // TODO: Try with a read lock first.
+    long tableLock = table.acquireWriteLock();
     try {
       LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
       debugPrint("[PUT] Acquiring the write lock. LeafNode: " + leafNode);
@@ -162,8 +163,6 @@ abstract class Wormhole<K, V> {
         }
 
         debugPrint("[PUT] Splitting");
-
-        // TODO: Promote the read lock of the table.
 
         // Split the node and get a new right leaf node.
         LeafNode<K, V> newLeafNode = split(leafNode);
@@ -196,7 +195,8 @@ abstract class Wormhole<K, V> {
    */
   public boolean delete(K key) {
     Object encodedKey = createEncodedKey(key);
-    long tableLock = table.acquireReadLock();
+    // TODO: Try with a read lock first.
+    long tableLock = table.acquireWriteLock();
     try {
       LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
       @Nullable
@@ -205,8 +205,6 @@ abstract class Wormhole<K, V> {
         if (!leafNode.delete(encodedKey)) {
           return false;
         }
-
-        // TODO: Promote the read lock of the table.
 
         if (leafNode.getLeft() != null
             && leafNode.size() + leafNode.getLeft().size() < leafNodeMergeSize) {

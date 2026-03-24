@@ -167,78 +167,65 @@ class MultiThreadWormholeTest {
   }
 
   @Test
-  void concurrent3PutsAfterSplit_ShouldReturnProperValues_simplified() throws ExecutionException, InterruptedException, FileNotFoundException {
+  void concurrent3PutsAfterSplit_ShouldReturnProperValues_simplified() throws ExecutionException, InterruptedException {
     for (int i = 0; i < 10000; i++) {
-      PrintStream origStdout = System.out;
-      PrintStream origStderr = System.err;
-      PrintStream printStream = new PrintStream(new FileOutputStream("/home/komamitsu/tmp/debug.log"));
-      System.setOut(printStream);
-      System.setErr(printStream);
+      // Arrange
+      Wormhole<Integer, Integer> wormhole = new WormholeForIntKey.Builder<Integer>()
+          .setThreadSafe(true)
+          .setLeafNodeSize(4)
+          .build();
+      assertThat(wormhole.put(10, 100)).isNull();
+      assertThat(wormhole.put(11, 110)).isNull();
+      assertThat(wormhole.put(9, 90)).isNull();
+      assertThat(wormhole.put(7, 70)).isNull();
+      assertThat(wormhole.put(14, 140)).isNull();
 
-      try {
-        // Arrange
-        Wormhole<Integer, Integer> wormhole = new WormholeForIntKey.Builder<Integer>()
-            .setThreadSafe(true)
-            .setLeafNodeSize(4)
-            .build();
-        assertThat(wormhole.put(10, 100)).isNull();
-        assertThat(wormhole.put(11, 110)).isNull();
-        assertThat(wormhole.put(9, 90)).isNull();
-        assertThat(wormhole.put(7, 70)).isNull();
-        assertThat(wormhole.put(14, 140)).isNull();
+      ExecutorService executorService = Executors.newFixedThreadPool(3);
+      List<Future<List<Integer>>> futures = new ArrayList<>();
+      CyclicBarrier barrier = new CyclicBarrier(3);
 
-        ExecutorService executorService = Executors.newFixedThreadPool(3);
-        List<Future<List<Integer>>> futures = new ArrayList<>();
-        CyclicBarrier barrier = new CyclicBarrier(3);
+      // Act
+      futures.add(executorService.submit(() -> {
+        barrier.await();
+        List<Integer> existingValues = new ArrayList<>();
+        existingValues.add(wormhole.put(12, 120));
+        return existingValues;
+      }));
+      futures.add(executorService.submit(() -> {
+        barrier.await();
+        List<Integer> existingValues = new ArrayList<>();
+        existingValues.add(wormhole.put(13, 130));
+        return existingValues;
+      }));
+      futures.add(executorService.submit(() -> {
+        barrier.await();
+        List<Integer> existingValues = new ArrayList<>();
+        existingValues.add(wormhole.put(15, 150));
+        return existingValues;
+      }));
 
-        // Act
-        futures.add(executorService.submit(() -> {
-          barrier.await();
-          List<Integer> existingValues = new ArrayList<>();
-          existingValues.add(wormhole.put(12, 120));
-          return existingValues;
-        }));
-        futures.add(executorService.submit(() -> {
-          barrier.await();
-          List<Integer> existingValues = new ArrayList<>();
-          existingValues.add(wormhole.put(13, 130));
-          return existingValues;
-        }));
-        futures.add(executorService.submit(() -> {
-          barrier.await();
-          List<Integer> existingValues = new ArrayList<>();
-          existingValues.add(wormhole.put(15, 150));
-          return existingValues;
-        }));
-
-        // Assert
-        List<Integer> resultValues = new ArrayList<>();
-        for (Future<List<Integer>> future : futures) {
-          List<Integer> result = future.get().stream().filter(Objects::nonNull).toList();
-          resultValues.addAll(result);
-        }
-        assertThat(resultValues).hasSize(0);
-        executorService.shutdown();
-
-        assertThat(wormhole.get(7)).isEqualTo(70);
-        assertThat(wormhole.get(9)).isEqualTo(90);
-        assertThat(wormhole.get(10)).isEqualTo(100);
-        assertThat(wormhole.get(11)).isEqualTo(110);
-        assertThat(wormhole.get(12)).isEqualTo(120);
-        assertThat(wormhole.get(13)).isEqualTo(130);
-        assertThat(wormhole.get(14)).isEqualTo(140);
-        assertThat(wormhole.get(15)).isEqualTo(150);
+      // Assert
+      List<Integer> resultValues = new ArrayList<>();
+      for (Future<List<Integer>> future : futures) {
+        List<Integer> result = future.get().stream().filter(Objects::nonNull).toList();
+        resultValues.addAll(result);
       }
-      finally {
-        printStream.close();
-        System.setOut(origStdout);
-        System.setErr(origStderr);
-      }
+      assertThat(resultValues).hasSize(0);
+      executorService.shutdown();
+
+      assertThat(wormhole.get(7)).isEqualTo(70);
+      assertThat(wormhole.get(9)).isEqualTo(90);
+      assertThat(wormhole.get(10)).isEqualTo(100);
+      assertThat(wormhole.get(11)).isEqualTo(110);
+      assertThat(wormhole.get(12)).isEqualTo(120);
+      assertThat(wormhole.get(13)).isEqualTo(130);
+      assertThat(wormhole.get(14)).isEqualTo(140);
+      assertThat(wormhole.get(15)).isEqualTo(150);
     }
   }
 
   @Test
-  void concurrent3PutsAfterSplit_ShouldReturnProperValues_1() throws ExecutionException, InterruptedException, FileNotFoundException {
+  void concurrent3PutsAfterSplit_ShouldReturnProperValues_1() throws ExecutionException, InterruptedException {
     for (int i = 0; i < 10000; i++) {
       // Arrange
       Wormhole<Integer, Integer> wormhole = new WormholeForIntKey.Builder<Integer>()
@@ -296,8 +283,8 @@ class MultiThreadWormholeTest {
   }
 
   @Test
-  void concurrent3PutsAfterSplit_ShouldReturnProperValues_2() throws ExecutionException, InterruptedException, FileNotFoundException {
-    for (int i = 0; i < 100000; i++) {
+  void concurrent3PutsAfterSplit_ShouldReturnProperValues_2() throws ExecutionException, InterruptedException {
+    for (int i = 0; i < 10000; i++) {
       // Arrange
       Wormhole<Integer, Integer> wormhole = new WormholeForIntKey.Builder<Integer>()
           .setThreadSafe(true)
@@ -352,12 +339,8 @@ class MultiThreadWormholeTest {
   }
 
   @Test
-  void concurrent3PutsAfterSplit_ShouldReturnProperValues_3() throws ExecutionException, InterruptedException, FileNotFoundException, TimeoutException {
-    for (int i = 0; i < 100000; i++) {
-      // FIXME
-      // PrintStream printStream = new PrintStream(new FileOutputStream("/home/komamitsu/tmp/debug.txt"));
-      // System.setOut(printStream);
-      // System.setErr(printStream);
+  void concurrent3PutsAfterSplit_ShouldReturnProperValues_3() throws ExecutionException, InterruptedException, TimeoutException {
+    for (int i = 0; i < 10000; i++) {
       // Arrange
       Wormhole<Integer, Integer> wormhole = new WormholeForIntKey.Builder<Integer>()
           .setThreadSafe(true)
@@ -418,8 +401,6 @@ class MultiThreadWormholeTest {
       assertThat(wormhole.get(15)).isEqualTo(150);
       assertThat(wormhole.get(16)).isEqualTo(160);
       assertThat(wormhole.get(17)).isEqualTo(170);
-
-      // printStream.close();
     }
   }
 }

@@ -48,11 +48,11 @@ class MetaTrieHashTable<K, V> {
     return lock.writeLock();
   }
 
-  void releaseLock(long lock) {
+  void releaseLock(long stamp) {
     if (!isThreadSafe) {
       return;
     }
-    this.lock.unlock(lock);
+    this.lock.unlock(stamp);
   }
 
   abstract static class NodeMeta {
