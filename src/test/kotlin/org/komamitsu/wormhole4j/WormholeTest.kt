@@ -34,19 +34,17 @@ class WormholeTest {
         return wormhole.get(key)
     }
 
-    /*
     @Operation(params = ["key"])
     fun delete(key: Int): Boolean {
         return wormhole.delete(key)
     }
-     */
 
     @Test
     fun stressTest() = StressOptions()
         .sequentialSpecification(SequentialMap::class.java)
         .threads(3)
         .invocationsPerIteration(20)
-        .iterations(10)
+        .iterations(100)
         .check(this::class)
 
     class SequentialMap {
@@ -56,6 +54,6 @@ class WormholeTest {
 
         fun get(key: Int): Int? = map[key]
 
-        // fun delete(key: Int): Boolean = map.remove(key) != null
+        fun delete(key: Int): Boolean = map.remove(key) != null
     }
 }

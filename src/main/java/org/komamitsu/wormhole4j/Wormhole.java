@@ -130,7 +130,7 @@ abstract class Wormhole<K, V> {
   protected abstract Object createEmptyEncodedKey();
 
   static void debugPrint(String msg) {
-    System.out.printf("[%s] (%s) %s %n", Instant.now(), Thread.currentThread().getName(), msg);
+//    System.out.printf("[%s] (%s) %s %n", Instant.now(), Thread.currentThread().getName(), msg);
   }
 
   /**
@@ -145,46 +145,53 @@ abstract class Wormhole<K, V> {
   public V put(K key, V value) {
     Object encodedKey = createEncodedKey(key);
     debugPrint(String.format("[PUT] Start; Key:%s, Value:%s", key, value));
-    // TODO: Try with a read lock first.
-    long tableLock = table.acquireWriteLock();
-    try {
-      LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
-      debugPrint("[PUT] Acquiring the write lock. LeafNode: " + leafNode);
-      @Nullable
-      WriteLock writeLock = leafNode.acquireWriteLock();
+    boolean writeLockOnTable = false;
+    while (true) {
+      long tableLock = writeLockOnTable ? table.acquireWriteLock() : table.acquireReadLock();
       try {
-        debugPrint("[PUT] Acquired the write lock. LeafNode: " + leafNode);
-        Optional<V> existingValue = leafNode.lookupAndPutValue(encodedKey, key, value);
-        debugPrint("[PUT] Write operation is done? " + existingValue);
-        if (existingValue != null) {
+        LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+        debugPrint("[PUT] Acquiring the write lock. LeafNode: " + leafNode);
+        @Nullable
+        WriteLock writeLock = leafNode.acquireWriteLock();
+        try {
+          debugPrint("[PUT] Acquired the write lock. LeafNode: " + leafNode);
+          Optional<V> existingValue = leafNode.lookupAndPutValue(encodedKey, key, value);
+          debugPrint("[PUT] Write operation is done? " + existingValue);
+          if (existingValue != null) {
+            validateIfNeeded();
+            debugPrint("[PUT] Updated or inserted the value in the existing LeafNode");
+            return existingValue.orElse(null);
+          }
+
+          // Retry with a write lock when the current lock is a read lock.
+          if (!writeLockOnTable) {
+            writeLockOnTable = true;
+            continue;
+          }
+
+          debugPrint("[PUT] Splitting");
+
+          // Split the node and get a new right leaf node.
+          LeafNode<K, V> newLeafNode = split(leafNode);
+
+          debugPrint("[PUT] Split!");
+          if (EncodedKeyUtils.compare(encodedKeyType, encodedKey, newLeafNode.anchorKey) < 0) {
+            leafNode.add(encodedKey, key, value);
+          } else {
+            newLeafNode.add(encodedKey, key, value);
+          }
           validateIfNeeded();
-          debugPrint("[PUT] Updated or inserted the value in the existing LeafNode");
-          return existingValue.orElse(null);
-        }
-
-        debugPrint("[PUT] Splitting");
-
-        // Split the node and get a new right leaf node.
-        LeafNode<K, V> newLeafNode = split(leafNode);
-
-        debugPrint("[PUT] Split!");
-        if (EncodedKeyUtils.compare(encodedKeyType, encodedKey, newLeafNode.anchorKey) < 0) {
-          leafNode.add(encodedKey, key, value);
-        } else {
-          newLeafNode.add(encodedKey, key, value);
+          return null;
+        } finally{
+          if (writeLock != null) {
+            writeLock.unlock();
+          }
+          debugPrint("[PUT] Done");
         }
       } finally {
-        if (writeLock != null) {
-          writeLock.unlock();
-        }
-        debugPrint("[PUT] Done");
+        table.releaseLock(tableLock);
       }
     }
-    finally {
-      table.releaseLock(tableLock);
-    }
-    validateIfNeeded();
-    return null;
   }
 
   /**
@@ -195,7 +202,6 @@ abstract class Wormhole<K, V> {
    */
   public boolean delete(K key) {
     Object encodedKey = createEncodedKey(key);
-    // TODO: Try with a read lock first.
     long tableLock = table.acquireWriteLock();
     try {
       LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
@@ -520,17 +526,17 @@ abstract class Wormhole<K, V> {
 
     protected abstract B self();
 
-    B setThreadSafe(boolean isThreadSafe) {
+    public B setThreadSafe(boolean isThreadSafe) {
       this.isThreadSafe = isThreadSafe;
       return self();
     }
 
-    B setDebugMode(boolean isDebugMode) {
+    public B setDebugMode(boolean isDebugMode) {
       this.isDebugMode = isDebugMode;
       return self();
     }
 
-    B setLeafNodeSize(int leafNodeSize) {
+    public B setLeafNodeSize(int leafNodeSize) {
       this.leafNodeSize = leafNodeSize;
       return self();
     }
