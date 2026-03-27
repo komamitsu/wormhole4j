@@ -129,10 +129,6 @@ abstract class Wormhole<K, V> {
 
   protected abstract Object createEmptyEncodedKey();
 
-  static void debugPrint(String msg) {
-//    System.out.printf("[%s] (%s) %s %n", Instant.now(), Thread.currentThread().getName(), msg);
-  }
-
   /**
    * Inserts or updates a key-value pair.
    *
@@ -144,22 +140,22 @@ abstract class Wormhole<K, V> {
   @Nullable
   public V put(K key, V value) {
     Object encodedKey = createEncodedKey(key);
-    debugPrint(String.format("[PUT] Start; Key:%s, Value:%s", key, value));
     boolean writeLockOnTable = false;
     while (true) {
-      long tableLock = writeLockOnTable ? table.acquireWriteLock() : table.acquireReadLock();
+      long tableLock = 0;
+      if (isThreadSafe) {
+        tableLock = writeLockOnTable ? table.acquireWriteLock() : table.acquireReadLock();
+      }
       try {
         LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
-        debugPrint("[PUT] Acquiring the write lock. LeafNode: " + leafNode);
-        @Nullable
-        WriteLock writeLock = leafNode.acquireWriteLock();
+        long writeLockOnLeafNode = 0;
+        if (isThreadSafe) {
+          writeLockOnLeafNode = leafNode.acquireWriteLock();
+        }
         try {
-          debugPrint("[PUT] Acquired the write lock. LeafNode: " + leafNode);
           Optional<V> existingValue = leafNode.lookupAndPutValue(encodedKey, key, value);
-          debugPrint("[PUT] Write operation is done? " + existingValue);
           if (existingValue != null) {
             validateIfNeeded();
-            debugPrint("[PUT] Updated or inserted the value in the existing LeafNode");
             return existingValue.orElse(null);
           }
 
@@ -169,12 +165,9 @@ abstract class Wormhole<K, V> {
             continue;
           }
 
-          debugPrint("[PUT] Splitting");
-
           // Split the node and get a new right leaf node.
           LeafNode<K, V> newLeafNode = split(leafNode);
 
-          debugPrint("[PUT] Split!");
           if (EncodedKeyUtils.compare(encodedKeyType, encodedKey, newLeafNode.anchorKey) < 0) {
             leafNode.add(encodedKey, key, value);
           } else {
@@ -183,13 +176,14 @@ abstract class Wormhole<K, V> {
           validateIfNeeded();
           return null;
         } finally{
-          if (writeLock != null) {
-            writeLock.unlock();
+          if (isThreadSafe) {
+            leafNode.releaseLock(writeLockOnLeafNode);
           }
-          debugPrint("[PUT] Done");
         }
       } finally {
-        table.releaseLock(tableLock);
+        if (isThreadSafe) {
+          table.releaseLock(tableLock);
+        }
       }
     }
   }
@@ -202,11 +196,16 @@ abstract class Wormhole<K, V> {
    */
   public boolean delete(K key) {
     Object encodedKey = createEncodedKey(key);
-    long tableLock = table.acquireWriteLock();
+    long tableLock = 0;
+    if (isThreadSafe) {
+      tableLock = table.acquireWriteLock();
+    }
     try {
       LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
-      @Nullable
-      WriteLock writeLock = leafNode.acquireWriteLock();
+      long writeLockOnLeafNode = 0;
+      if (isThreadSafe) {
+        writeLockOnLeafNode = leafNode.acquireWriteLock();
+      }
       try {
         if (!leafNode.delete(encodedKey)) {
           return false;
@@ -220,13 +219,15 @@ abstract class Wormhole<K, V> {
           merge(leafNode, leafNode.getRight());
         }
       } finally {
-        if (writeLock != null) {
-          writeLock.unlock();
+        if (isThreadSafe) {
+          leafNode.releaseLock(writeLockOnLeafNode);
         }
       }
     }
     finally {
-      table.releaseLock(tableLock);
+      if (isThreadSafe) {
+        table.releaseLock(tableLock);
+      }
     }
     validateIfNeeded();
     return true;
@@ -241,25 +242,28 @@ abstract class Wormhole<K, V> {
   @Nullable
   public V get(K key) {
     Object encodedKey = createEncodedKey(key);
-    debugPrint(String.format("[GET] Started; Key:%s", key));
-    long tableLock = table.acquireReadLock();
+    long tableLock = 0;
+    if (isThreadSafe) {
+      tableLock = table.acquireReadLock();
+    }
     try {
       LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
-      debugPrint("[GET] Acquiring the read lock");
-      @Nullable
-      ReadLock readLock = leafNode.acquireReadLock();
-      debugPrint("[GET] Acquired the read lock");
+      long readLockOnLeafNode = 0;
+      if (isThreadSafe) {
+        readLockOnLeafNode = leafNode.acquireReadLock();
+      }
       try {
         return leafNode.lookupValue(encodedKey);
       } finally {
-        if (readLock != null) {
-          readLock.unlock();
+        if (isThreadSafe) {
+          leafNode.releaseLock(readLockOnLeafNode);
         }
-        debugPrint("[GET] Done");
       }
     }
     finally {
-      table.releaseLock(tableLock);
+      if (isThreadSafe) {
+        table.releaseLock(tableLock);
+      }
     }
   }
 
@@ -284,15 +288,24 @@ abstract class Wormhole<K, V> {
           };
     }
 
-    long tableLock = table.acquireReadLock();
+    long tableLock = 0;
+    if (isThreadSafe) {
+      tableLock = table.acquireReadLock();
+    }
     try {
-      List<ReadLock> readLocks = new ArrayList<>();
+      List<LeafNode<K, V>> leafNodes = null;
+      List<Long> readLocksOnLeafNodes = null;
       try {
         LeafNode<K, V> leafNode = searchTrieHashTable(encodedStartKey);
         while (leafNode != null) {
-          ReadLock readLock = leafNode.acquireReadLock();
-          if (readLock != null) {
-            readLocks.add(readLock);
+          if (isThreadSafe) {
+            if (leafNodes == null) {
+              leafNodes = new ArrayList<>();
+              readLocksOnLeafNodes = new ArrayList<>();
+            }
+            leafNodes.add(leafNode);
+            long readLock = leafNode.acquireReadLock();
+            readLocksOnLeafNodes.add(readLock);
           }
           leafNode.incSort();
           if (!leafNode.iterateKeyValues(
@@ -306,13 +319,17 @@ abstract class Wormhole<K, V> {
           encodedStartKey = null;
         }
       } finally {
-        for (ReadLock readLock : readLocks.reversed()) {
-          readLock.unlock();
+        if (leafNodes != null) {
+          for (int i = 0; i < leafNodes.size(); i++) {
+            leafNodes.get(i).releaseLock(readLocksOnLeafNodes.get(i));
+          }
         }
       }
     }
     finally {
-      table.releaseLock(tableLock);
+      if (isThreadSafe) {
+        table.releaseLock(tableLock);
+      }
     }
   }
 
@@ -425,7 +442,6 @@ abstract class Wormhole<K, V> {
         table.get(
             EncodedKeyUtils.append(encodedKeyType, nodeMetaInternal.anchorPrefix, siblingToken));
     if (childNode == null) {
-      debugPrint(String.format("Child node is not found. encodedKey:%s, nodeMetaInternal.anchorPrefix:%s, siblingToken:%s, current table:%s, nodeMetaInternal:%s", encodedKey, nodeMetaInternal.anchorPrefix, siblingToken, table, nodeMetaInternal));
       throw new AssertionError("Child node is not found");
     }
 

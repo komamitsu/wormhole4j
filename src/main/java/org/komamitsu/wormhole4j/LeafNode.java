@@ -17,12 +17,11 @@
 package org.komamitsu.wormhole4j;
 
 import java.util.*;
+import java.util.concurrent.locks.StampedLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-
-import static java.util.concurrent.locks.ReentrantReadWriteLock.*;
 
 class LeafNode<K, V> {
   private static final int TUPLE_SIZE = 3;
@@ -483,16 +482,12 @@ class LeafNode<K, V> {
   // TODO: Add annotation
   @Nullable
   Optional<V> lookupAndPutValue(Object encodedKey, K key, V newValue) {
-    Wormhole.debugPrint(String.format("lookupAndSetValue(Parent): Start. Value:%s", newValue));
     @Nullable
     Optional<V> result = pointSearchLeaf(
         encodedKey,
         (keyValueIndex, tagIndex) -> {
-          Wormhole.debugPrint(String.format("lookupAndSetValue(Parent): keyValueIndex:%d, tagIndex:%d", keyValueIndex, tagIndex));
           V oldValue = getValue(keyValueIndex);
-          Wormhole.debugPrint(String.format("lookupAndSetValue(Parent): old value:%s", oldValue));
           setValue(keyValueIndex, newValue);
-          Wormhole.debugPrint(String.format("lookupAndSetValue(Parent): set the new value:%s", newValue));
           return Optional.ofNullable(oldValue);
         });
     if (result != null) {
@@ -735,14 +730,16 @@ class LeafNode<K, V> {
     throw new IllegalStateException("Cannot split the leaf node. Leaf node: " + this);
   }
 
-  @Nullable
-  WriteLock acquireWriteLock() {
-    return null;
+  long acquireWriteLock() {
+    throw new UnsupportedOperationException();
   }
 
-  @Nullable
-  ReadLock acquireReadLock() {
-    return null;
+  long acquireReadLock() {
+    throw new UnsupportedOperationException();
+  }
+
+  void releaseLock(long stamp) {
+    throw new UnsupportedOperationException();
   }
 
   void validate() {

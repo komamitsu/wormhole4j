@@ -16,14 +16,12 @@
 
 package org.komamitsu.wormhole4j;
 
-import static java.util.concurrent.locks.ReentrantReadWriteLock.*;
-
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.StampedLock;
 import java.util.function.Function;
 import javax.annotation.Nullable;
 
 class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
-  private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+  private final StampedLock lock = new StampedLock();
 
   ThreadSafeLeafNode(
       EncodedKeyType encodedKeyType,
@@ -36,17 +34,17 @@ class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
   }
 
   @Override
-  WriteLock acquireWriteLock() {
-    WriteLock writeLock = lock.writeLock();
-    writeLock.lock();
-    return writeLock;
+  long acquireWriteLock() {
+    return lock.writeLock();
   }
 
   @Override
-  ReadLock acquireReadLock() {
-    ReadLock readLock = lock.readLock();
-    readLock.lock();
-    return readLock;
+  long acquireReadLock() {
+    return lock.readLock();
+  }
+
+  void releaseLock(long stamp) {
+    this.lock.unlock(stamp);
   }
 
   /*
