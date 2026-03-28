@@ -16,7 +16,8 @@
 
 package org.komamitsu.wormhole4j;
 
-import java.time.Instant;
+import static java.util.concurrent.locks.ReentrantReadWriteLock.*;
+
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
@@ -24,8 +25,6 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaInternal;
 import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
-
-import static java.util.concurrent.locks.ReentrantReadWriteLock.*;
 
 /**
  * Wormhole is an in-memory ordered index for key-value pairs.
@@ -175,7 +174,7 @@ abstract class Wormhole<K, V> {
           }
           validateIfNeeded();
           return null;
-        } finally{
+        } finally {
           if (isThreadSafe) {
             leafNode.releaseLock(writeLockOnLeafNode);
           }
@@ -223,8 +222,7 @@ abstract class Wormhole<K, V> {
           leafNode.releaseLock(writeLockOnLeafNode);
         }
       }
-    }
-    finally {
+    } finally {
       if (isThreadSafe) {
         table.releaseLock(tableLock);
       }
@@ -259,8 +257,7 @@ abstract class Wormhole<K, V> {
           leafNode.releaseLock(readLockOnLeafNode);
         }
       }
-    }
-    finally {
+    } finally {
       if (isThreadSafe) {
         table.releaseLock(tableLock);
       }
@@ -309,10 +306,7 @@ abstract class Wormhole<K, V> {
           }
           leafNode.incSort();
           if (!leafNode.iterateKeyValues(
-              encodedStartKey,
-              encodedEndKey,
-              isEndKeyExclusive,
-              actualFunction)) {
+              encodedStartKey, encodedEndKey, isEndKeyExclusive, actualFunction)) {
             return;
           }
           leafNode = leafNode.getRight();
@@ -325,8 +319,7 @@ abstract class Wormhole<K, V> {
           }
         }
       }
-    }
-    finally {
+    } finally {
       if (isThreadSafe) {
         table.releaseLock(tableLock);
       }
@@ -347,7 +340,7 @@ abstract class Wormhole<K, V> {
       @Nullable K endKey,
       boolean isEndKeyExclusive,
       BiFunction<K, V, Boolean> function) {
-      scan(startKey, endKey, isEndKeyExclusive, null, function);
+    scan(startKey, endKey, isEndKeyExclusive, null, function);
   }
 
   /**
@@ -397,8 +390,8 @@ abstract class Wormhole<K, V> {
 
   private void initialize() {
     Object key = createEmptyEncodedKey();
-    LeafNode<K, V> rootLeafNode = createLeafNode(
-        encodedKeyType, validAnchorKeyProvider, key, leafNodeSize, null, null);
+    LeafNode<K, V> rootLeafNode =
+        createLeafNode(encodedKeyType, validAnchorKeyProvider, key, leafNodeSize, null, null);
 
     // Add the root.
     table.put(key, new NodeMetaLeaf<>(key, rootLeafNode));
@@ -535,7 +528,7 @@ abstract class Wormhole<K, V> {
     return "Wormhole{" + "table=" + table + ", leafNodeSize=" + leafNodeSize + '}';
   }
 
-  static abstract class Builder<W extends Wormhole<K, V>, B extends Builder<W, B, K, V>, K, V> {
+  abstract static class Builder<W extends Wormhole<K, V>, B extends Builder<W, B, K, V>, K, V> {
     protected boolean isThreadSafe = false;
     protected boolean isDebugMode = false;
     protected int leafNodeSize = DEFAULT_LEAF_NODE_SIZE;

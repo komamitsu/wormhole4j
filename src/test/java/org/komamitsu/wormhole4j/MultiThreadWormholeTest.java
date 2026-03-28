@@ -16,22 +16,19 @@
 
 package org.komamitsu.wormhole4j;
 
-import org.junit.jupiter.api.Test;
+import static java.util.stream.Collectors.toList;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
 
 class MultiThreadWormholeTest {
   @Test
   void putNewKeysAfterSplit_ShouldReturnNull() {
     // Arrange
-    Wormhole<Integer, Integer> wormhole = new WormholeForIntKey.Builder<Integer>()
-        .setThreadSafe(true)
-        .setLeafNodeSize(4)
-        .build();
+    Wormhole<Integer, Integer> wormhole =
+        new WormholeForIntKey.Builder<Integer>().setThreadSafe(true).setLeafNodeSize(4).build();
 
     // Act Assert
     assertThat(wormhole.put(10, 100)).isNull();
@@ -42,13 +39,12 @@ class MultiThreadWormholeTest {
   }
 
   @Test
-  void conflict2Puts_ShouldReturnNullAndExistingValue() throws ExecutionException, InterruptedException {
+  void conflict2Puts_ShouldReturnNullAndExistingValue()
+      throws ExecutionException, InterruptedException {
     for (int i = 0; i < 10000; i++) {
       // Arrange
-      Wormhole<Integer, Integer> wormhole = new WormholeForIntKey.Builder<Integer>()
-          .setThreadSafe(true)
-          .setLeafNodeSize(4)
-          .build();
+      Wormhole<Integer, Integer> wormhole =
+          new WormholeForIntKey.Builder<Integer>().setThreadSafe(true).setLeafNodeSize(4).build();
       ExecutorService executorService = Executors.newFixedThreadPool(2);
       List<Future<Integer>> futures = new ArrayList<>();
 
@@ -65,7 +61,7 @@ class MultiThreadWormholeTest {
         }
       }
       assertThat(resultValues).hasSize(1);
-      assertThat(resultValues.getFirst()).isIn(10, 20);
+      assertThat(resultValues.get(0)).isIn(10, 20);
       executorService.shutdown();
 
       assertThat(wormhole.get(1)).isIn(10, 20);
@@ -73,13 +69,12 @@ class MultiThreadWormholeTest {
   }
 
   @Test
-  void concurrent2PutsAfterSplit_ShouldReturnProperValues_1() throws ExecutionException, InterruptedException {
+  void concurrent2PutsAfterSplit_ShouldReturnProperValues_1()
+      throws ExecutionException, InterruptedException {
     for (int i = 0; i < 10000; i++) {
       // Arrange
-      Wormhole<Integer, Integer> wormhole = new WormholeForIntKey.Builder<Integer>()
-          .setThreadSafe(true)
-          .setLeafNodeSize(4)
-          .build();
+      Wormhole<Integer, Integer> wormhole =
+          new WormholeForIntKey.Builder<Integer>().setThreadSafe(true).setLeafNodeSize(4).build();
       assertThat(wormhole.put(8, 80)).isNull();
       assertThat(wormhole.put(9, 90)).isNull();
       assertThat(wormhole.put(10, 100)).isNull();
@@ -90,14 +85,18 @@ class MultiThreadWormholeTest {
       CyclicBarrier barrier = new CyclicBarrier(2);
 
       // Act
-      futures.add(executorService.submit(() -> {
-        barrier.await();
-        return wormhole.put(9, 99);
-      }));
-      futures.add(executorService.submit(() -> {
-        barrier.await();
-        return wormhole.put(12, 120);
-      }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                return wormhole.put(9, 99);
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                return wormhole.put(12, 120);
+              }));
 
       // Assert
       List<Integer> resultValues = new ArrayList<>();
@@ -108,7 +107,7 @@ class MultiThreadWormholeTest {
         }
       }
       assertThat(resultValues).hasSize(1);
-      assertThat(resultValues.getFirst()).isEqualTo(90);
+      assertThat(resultValues.get(0)).isEqualTo(90);
       executorService.shutdown();
 
       assertThat(wormhole.get(8)).isEqualTo(80);
@@ -120,13 +119,12 @@ class MultiThreadWormholeTest {
   }
 
   @Test
-  void concurrent2PutsAfterSplit_ShouldReturnProperValues_2() throws ExecutionException, InterruptedException {
+  void concurrent2PutsAfterSplit_ShouldReturnProperValues_2()
+      throws ExecutionException, InterruptedException {
     for (int i = 0; i < 10000; i++) {
       // Arrange
-      Wormhole<Integer, Integer> wormhole = new WormholeForIntKey.Builder<Integer>()
-          .setThreadSafe(true)
-          .setLeafNodeSize(4)
-          .build();
+      Wormhole<Integer, Integer> wormhole =
+          new WormholeForIntKey.Builder<Integer>().setThreadSafe(true).setLeafNodeSize(4).build();
       assertThat(wormhole.put(10, 100)).isNull();
       assertThat(wormhole.put(11, 110)).isNull();
       assertThat(wormhole.put(12, 120)).isNull();
@@ -137,14 +135,18 @@ class MultiThreadWormholeTest {
       CyclicBarrier barrier = new CyclicBarrier(2);
 
       // Act
-      futures.add(executorService.submit(() -> {
-        barrier.await();
-        return wormhole.put(8, 80);
-      }));
-      futures.add(executorService.submit(() -> {
-        barrier.await();
-        return wormhole.put(11, 111);
-      }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                return wormhole.put(8, 80);
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                return wormhole.put(11, 111);
+              }));
 
       // Assert
       List<Integer> resultValues = new ArrayList<>();
@@ -155,7 +157,7 @@ class MultiThreadWormholeTest {
         }
       }
       assertThat(resultValues).hasSize(1);
-      assertThat(resultValues.getFirst()).isEqualTo(110);
+      assertThat(resultValues.get(0)).isEqualTo(110);
       executorService.shutdown();
 
       assertThat(wormhole.get(8)).isEqualTo(80);
@@ -167,13 +169,12 @@ class MultiThreadWormholeTest {
   }
 
   @Test
-  void concurrent3PutsAfterSplit_ShouldReturnProperValues_simplified() throws ExecutionException, InterruptedException {
+  void concurrent3PutsAfterSplit_ShouldReturnProperValues_simplified()
+      throws ExecutionException, InterruptedException {
     for (int i = 0; i < 10000; i++) {
       // Arrange
-      Wormhole<Integer, Integer> wormhole = new WormholeForIntKey.Builder<Integer>()
-          .setThreadSafe(true)
-          .setLeafNodeSize(4)
-          .build();
+      Wormhole<Integer, Integer> wormhole =
+          new WormholeForIntKey.Builder<Integer>().setThreadSafe(true).setLeafNodeSize(4).build();
       assertThat(wormhole.put(10, 100)).isNull();
       assertThat(wormhole.put(11, 110)).isNull();
       assertThat(wormhole.put(9, 90)).isNull();
@@ -185,29 +186,35 @@ class MultiThreadWormholeTest {
       CyclicBarrier barrier = new CyclicBarrier(3);
 
       // Act
-      futures.add(executorService.submit(() -> {
-        barrier.await();
-        List<Integer> existingValues = new ArrayList<>();
-        existingValues.add(wormhole.put(12, 120));
-        return existingValues;
-      }));
-      futures.add(executorService.submit(() -> {
-        barrier.await();
-        List<Integer> existingValues = new ArrayList<>();
-        existingValues.add(wormhole.put(13, 130));
-        return existingValues;
-      }));
-      futures.add(executorService.submit(() -> {
-        barrier.await();
-        List<Integer> existingValues = new ArrayList<>();
-        existingValues.add(wormhole.put(15, 150));
-        return existingValues;
-      }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(12, 120));
+                return existingValues;
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(13, 130));
+                return existingValues;
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(15, 150));
+                return existingValues;
+              }));
 
       // Assert
       List<Integer> resultValues = new ArrayList<>();
       for (Future<List<Integer>> future : futures) {
-        List<Integer> result = future.get().stream().filter(Objects::nonNull).toList();
+        List<Integer> result = future.get().stream().filter(Objects::nonNull).collect(toList());
         resultValues.addAll(result);
       }
       assertThat(resultValues).hasSize(0);
@@ -225,13 +232,12 @@ class MultiThreadWormholeTest {
   }
 
   @Test
-  void concurrent3PutsAfterSplit_ShouldReturnProperValues_1() throws ExecutionException, InterruptedException {
+  void concurrent3PutsAfterSplit_ShouldReturnProperValues_1()
+      throws ExecutionException, InterruptedException {
     for (int i = 0; i < 10000; i++) {
       // Arrange
-      Wormhole<Integer, Integer> wormhole = new WormholeForIntKey.Builder<Integer>()
-          .setThreadSafe(true)
-          .setLeafNodeSize(4)
-          .build();
+      Wormhole<Integer, Integer> wormhole =
+          new WormholeForIntKey.Builder<Integer>().setThreadSafe(true).setLeafNodeSize(4).build();
       assertThat(wormhole.put(10, 100)).isNull();
       assertThat(wormhole.put(11, 110)).isNull();
       assertThat(wormhole.put(9, 90)).isNull();
@@ -241,31 +247,37 @@ class MultiThreadWormholeTest {
       CyclicBarrier barrier = new CyclicBarrier(3);
 
       // Act
-      futures.add(executorService.submit(() -> {
-        barrier.await();
-        List<Integer> existingValues = new ArrayList<>();
-        existingValues.add(wormhole.put(7, 70));
-        existingValues.add(wormhole.put(12, 120));
-        return existingValues;
-      }));
-      futures.add(executorService.submit(() -> {
-        barrier.await();
-        List<Integer> existingValues = new ArrayList<>();
-        existingValues.add(wormhole.put(13, 130));
-        return existingValues;
-      }));
-      futures.add(executorService.submit(() -> {
-        barrier.await();
-        List<Integer> existingValues = new ArrayList<>();
-        existingValues.add(wormhole.put(14, 140));
-        existingValues.add(wormhole.put(15, 150));
-        return existingValues;
-      }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(7, 70));
+                existingValues.add(wormhole.put(12, 120));
+                return existingValues;
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(13, 130));
+                return existingValues;
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(14, 140));
+                existingValues.add(wormhole.put(15, 150));
+                return existingValues;
+              }));
 
       // Assert
       List<Integer> resultValues = new ArrayList<>();
       for (Future<List<Integer>> future : futures) {
-        List<Integer> result = future.get().stream().filter(Objects::nonNull).toList();
+        List<Integer> result = future.get().stream().filter(Objects::nonNull).collect(toList());
         resultValues.addAll(result);
       }
       assertThat(resultValues).hasSize(0);
@@ -283,13 +295,12 @@ class MultiThreadWormholeTest {
   }
 
   @Test
-  void concurrent3PutsAfterSplit_ShouldReturnProperValues_2() throws ExecutionException, InterruptedException {
+  void concurrent3PutsAfterSplit_ShouldReturnProperValues_2()
+      throws ExecutionException, InterruptedException {
     for (int i = 0; i < 10000; i++) {
       // Arrange
-      Wormhole<Integer, Integer> wormhole = new WormholeForIntKey.Builder<Integer>()
-          .setThreadSafe(true)
-          .setLeafNodeSize(4)
-          .build();
+      Wormhole<Integer, Integer> wormhole =
+          new WormholeForIntKey.Builder<Integer>().setThreadSafe(true).setLeafNodeSize(4).build();
       assertThat(wormhole.put(11, 110)).isNull();
       assertThat(wormhole.put(9, 90)).isNull();
       assertThat(wormhole.put(12, 120)).isNull();
@@ -300,29 +311,35 @@ class MultiThreadWormholeTest {
       CyclicBarrier barrier = new CyclicBarrier(3);
 
       // Act
-      futures.add(executorService.submit(() -> {
-        barrier.await();
-        List<Integer> existingValues = new ArrayList<>();
-        existingValues.add(wormhole.put(10, 100));
-        return existingValues;
-      }));
-      futures.add(executorService.submit(() -> {
-        barrier.await();
-        List<Integer> existingValues = new ArrayList<>();
-        existingValues.add(wormhole.put(13, 130));
-        return existingValues;
-      }));
-      futures.add(executorService.submit(() -> {
-        barrier.await();
-        List<Integer> existingValues = new ArrayList<>();
-        existingValues.add(wormhole.put(15, 150));
-        return existingValues;
-      }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(10, 100));
+                return existingValues;
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(13, 130));
+                return existingValues;
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(15, 150));
+                return existingValues;
+              }));
 
       // Assert
       List<Integer> resultValues = new ArrayList<>();
       for (Future<List<Integer>> future : futures) {
-        List<Integer> result = future.get().stream().filter(Objects::nonNull).toList();
+        List<Integer> result = future.get().stream().filter(Objects::nonNull).collect(toList());
         resultValues.addAll(result);
       }
       assertThat(resultValues).hasSize(0);
@@ -339,13 +356,12 @@ class MultiThreadWormholeTest {
   }
 
   @Test
-  void concurrent3PutsAfterSplit_ShouldReturnProperValues_3() throws ExecutionException, InterruptedException, TimeoutException {
+  void concurrent3PutsAfterSplit_ShouldReturnProperValues_3()
+      throws ExecutionException, InterruptedException, TimeoutException {
     for (int i = 0; i < 10000; i++) {
       // Arrange
-      Wormhole<Integer, Integer> wormhole = new WormholeForIntKey.Builder<Integer>()
-          .setThreadSafe(true)
-          .setLeafNodeSize(4)
-          .build();
+      Wormhole<Integer, Integer> wormhole =
+          new WormholeForIntKey.Builder<Integer>().setThreadSafe(true).setLeafNodeSize(4).build();
       assertThat(wormhole.put(11, 110)).isNull();
       assertThat(wormhole.put(10, 100)).isNull();
       assertThat(wormhole.put(8, 80)).isNull();
@@ -361,31 +377,38 @@ class MultiThreadWormholeTest {
       CyclicBarrier barrier = new CyclicBarrier(3);
 
       // Act
-      futures.add(executorService.submit(() -> {
-        barrier.await();
-        List<Integer> existingValues = new ArrayList<>();
-        existingValues.add(wormhole.put(5, 50));
-        return existingValues;
-      }));
-      futures.add(executorService.submit(() -> {
-        barrier.await();
-        List<Integer> existingValues = new ArrayList<>();
-        // existingValues.add(wormhole.put(7, 70));
-        Thread.sleep(0, 50);
-        wormhole.get(4);
-        return existingValues;
-      }));
-      futures.add(executorService.submit(() -> {
-        barrier.await();
-        List<Integer> existingValues = new ArrayList<>();
-        existingValues.add(wormhole.put(17, 170));
-        return existingValues;
-      }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(5, 50));
+                return existingValues;
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                // existingValues.add(wormhole.put(7, 70));
+                Thread.sleep(0, 50);
+                wormhole.get(4);
+                return existingValues;
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(17, 170));
+                return existingValues;
+              }));
 
       // Assert
       List<Integer> resultValues = new ArrayList<>();
       for (Future<List<Integer>> future : futures) {
-        List<Integer> result = future.get(10, TimeUnit.SECONDS).stream().filter(Objects::nonNull).toList();
+        List<Integer> result =
+            future.get(10, TimeUnit.SECONDS).stream().filter(Objects::nonNull).collect(toList());
         resultValues.addAll(result);
       }
       assertThat(resultValues).hasSize(0);

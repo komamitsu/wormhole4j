@@ -17,7 +17,6 @@
 package org.komamitsu.wormhole4j;
 
 import java.util.*;
-import java.util.concurrent.locks.StampedLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -483,13 +482,14 @@ class LeafNode<K, V> {
   @Nullable
   Optional<V> lookupAndPutValue(Object encodedKey, K key, V newValue) {
     @Nullable
-    Optional<V> result = pointSearchLeaf(
-        encodedKey,
-        (keyValueIndex, tagIndex) -> {
-          V oldValue = getValue(keyValueIndex);
-          setValue(keyValueIndex, newValue);
-          return Optional.ofNullable(oldValue);
-        });
+    Optional<V> result =
+        pointSearchLeaf(
+            encodedKey,
+            (keyValueIndex, tagIndex) -> {
+              V oldValue = getValue(keyValueIndex);
+              setValue(keyValueIndex, newValue);
+              return Optional.ofNullable(oldValue);
+            });
     if (result != null) {
       return result;
     }

@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -47,15 +46,17 @@ class WormholeForLongKeyTest {
 
   @BeforeEach
   void setUp() {
-    wormholeForIntValue = new WormholeForLongKey.Builder<Integer>()
-        .setLeafNodeSize(leafNodeSize)
-        .setDebugMode(true)
-        .build();
+    wormholeForIntValue =
+        new WormholeForLongKey.Builder<Integer>()
+            .setLeafNodeSize(leafNodeSize)
+            .setDebugMode(true)
+            .build();
 
-    wormholeForStrValue = new WormholeForLongKey.Builder<String>()
-        .setLeafNodeSize(leafNodeSize)
-        .setDebugMode(true)
-        .build();
+    wormholeForStrValue =
+        new WormholeForLongKey.Builder<String>()
+            .setLeafNodeSize(leafNodeSize)
+            .setDebugMode(true)
+            .build();
   }
 
   @Nested

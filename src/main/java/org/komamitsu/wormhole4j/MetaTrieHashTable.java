@@ -74,11 +74,14 @@ class MetaTrieHashTable<K, V> {
 
     @Override
     public String toString() {
-      return "NodeMetaLeaf{" +
-          "leafNode=" + leafNode +
-          ", anchorPrefix=" + anchorPrefix +
-          ", version=" + version +
-          '}';
+      return "NodeMetaLeaf{"
+          + "leafNode="
+          + leafNode
+          + ", anchorPrefix="
+          + anchorPrefix
+          + ", version="
+          + version
+          + '}';
     }
   }
 

@@ -16,15 +16,14 @@
 
 package org.komamitsu.wormhole4j.jmh;
 
-import org.komamitsu.wormhole4j.WormholeForStringKey;
-import org.openjdk.jmh.annotations.*;
-import org.openjdk.jmh.infra.Blackhole;
+import static org.komamitsu.wormhole4j.jmh.Constants.*;
+import static org.komamitsu.wormhole4j.jmh.Utils.*;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
-
-import static org.komamitsu.wormhole4j.jmh.Constants.*;
-import static org.komamitsu.wormhole4j.jmh.Utils.*;
+import org.komamitsu.wormhole4j.WormholeForStringKey;
+import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.infra.Blackhole;
 
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)

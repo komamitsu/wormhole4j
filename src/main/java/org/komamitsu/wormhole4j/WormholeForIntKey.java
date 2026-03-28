@@ -37,7 +37,8 @@ public class WormholeForIntKey<V> extends Wormhole<Integer, V> {
     return IntWrapper.EMPTY_INSTANCE;
   }
 
-  public static class Builder<V> extends Wormhole.Builder<WormholeForIntKey<V>, Builder<V>, Integer, V> {
+  public static class Builder<V>
+      extends Wormhole.Builder<WormholeForIntKey<V>, Builder<V>, Integer, V> {
     @Override
     protected Builder<V> self() {
       return this;

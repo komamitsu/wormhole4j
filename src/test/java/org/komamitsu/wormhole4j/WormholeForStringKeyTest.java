@@ -22,7 +22,6 @@ import static org.komamitsu.wormhole4j.TestHelpers.genRandomKey;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -48,15 +47,17 @@ class WormholeForStringKeyTest {
 
   @BeforeEach
   void setUp() {
-    wormholeForIntValue = new WormholeForStringKey.Builder<Integer>()
-        .setLeafNodeSize(leafNodeSize)
-        .setDebugMode(true)
-        .build();
+    wormholeForIntValue =
+        new WormholeForStringKey.Builder<Integer>()
+            .setLeafNodeSize(leafNodeSize)
+            .setDebugMode(true)
+            .build();
 
-    wormholeForStrValue = new WormholeForStringKey.Builder<String>()
-        .setLeafNodeSize(leafNodeSize)
-        .setDebugMode(true)
-        .build();
+    wormholeForStrValue =
+        new WormholeForStringKey.Builder<String>()
+            .setLeafNodeSize(leafNodeSize)
+            .setDebugMode(true)
+            .build();
   }
 
   @Nested

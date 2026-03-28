@@ -37,7 +37,8 @@ public class WormholeForLongKey<V> extends Wormhole<Long, V> {
     return LongWrapper.EMPTY_INSTANCE;
   }
 
-  public static class Builder<V> extends Wormhole.Builder<WormholeForLongKey<V>, Builder<V>, Long, V> {
+  public static class Builder<V>
+      extends Wormhole.Builder<WormholeForLongKey<V>, Builder<V>, Long, V> {
     @Override
     protected Builder<V> self() {
       return this;
