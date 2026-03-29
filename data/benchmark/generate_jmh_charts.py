@@ -4,14 +4,16 @@ Generate JMH benchmark chart images from a JMH result text file.
 Produces one chart per operation (Get, Put, Scan) in the style of the reference image.
 
 Usage:
-    python generate_jmh_charts.py <jmh_result.txt> [java_version] [--error-bars]
+    python generate_jmh_charts.py <jmh_result.txt> <java_version> [--error-bars]
 
 Options:
-    java_version   Label used in the chart title and output filenames (default: Java8)
+    java_version   Label used in chart titles and output filenames (e.g. Java8, Java21)
     --error-bars   Show error bars on the bars (disabled by default)
 
 Output:
-    bench-java8-get.png, bench-java8-put.png, bench-java8-scan.png
+    bench-<java_version>-get.png
+    bench-<java_version>-put.png
+    bench-<java_version>-scan.png
     (written to the same directory as the input file)
 """
 
@@ -35,28 +37,24 @@ def parse_jmh(path: str):
     Returns a nested dict:
         data[operation][impl][key_type] = (score, error)
 
-    operation : "Get" | "Put" | "Scan"
-    impl      : "AVL Tree" | "Red Black Tree" | "Wormhole" | "ThreadSafe Wormhole"
-    key_type  : "IntKey" | "LongKey" | "StringKey"
+    All keys are derived solely from the file content — no hardcoded
+    operation names, implementation names, or key types.
     """
-    # Regex to match lines like:
-    # BenchmarkAVLTreeForIntKey.benchmarkGet  thrpt  4  6957601.694 +- 1727243.632  ops/s
+    # Matches lines like:
+    # BenchmarkAVLTreeForIntKey.benchmarkGet  thrpt  4  6957601.694 ± 1727243.632  ops/s
     pattern = re.compile(
         r"^Benchmark(\w+?)For(\w+Key)\.(benchmark\w+)"
         r"\s+thrpt\s+\d+\s+([\d.]+)\s+[±]\s+([\d.]+)",
     )
 
-    impl_map = {
-        "AVLTree":             "AVL Tree",
-        "RedBlackTree":        "Red Black Tree",
-        "ThreadSafeWormhole":  "ThreadSafe Wormhole",
-        "Wormhole":            "Wormhole",
-    }
-    op_map = {
-        "benchmarkGet":  "Get",
-        "benchmarkPut":  "Put",
-        "benchmarkScan": "Scan",
-    }
+    # CamelCase → "Title Case" for display (e.g. "AVLTree" -> "AVL Tree")
+    def camel_to_display(name: str) -> str:
+        # Insert a space before each uppercase run that follows a lowercase letter
+        return re.sub(r"(?<=[a-z])(?=[A-Z])", " ", name)
+
+    # "benchmarkGet" -> "Get"
+    def op_label(raw: str) -> str:
+        return raw.removeprefix("benchmark").capitalize()
 
     data = defaultdict(lambda: defaultdict(dict))
 
@@ -66,36 +64,63 @@ def parse_jmh(path: str):
             if not m:
                 continue
             raw_impl, key_type, raw_op, score_s, error_s = m.groups()
-            impl = impl_map.get(raw_impl, raw_impl)
-            op   = op_map.get(raw_op, raw_op)
+            impl = camel_to_display(raw_impl)
+            op   = op_label(raw_op)
             data[op][impl][key_type] = (float(score_s), float(error_s))
 
     return data
+
+
+
 
 
 # ---------------------------------------------------------------------------
 # 2. Plotting
 # ---------------------------------------------------------------------------
 
-COLOURS = {
-    "AVL Tree":            "#1f77b4",
-    "Red Black Tree":      "#ff7f0e",
-    "Wormhole":            "#2ca02c",
-    "ThreadSafe Wormhole": "#d62728",
-}
+# Preferred colour cycle — extended automatically for unknown implementations
+_PALETTE = [
+    "#1f77b4",  # blue
+    "#ff7f0e",  # orange
+    "#2ca02c",  # green
+    "#d62728",  # red
+    "#9467bd",  # purple
+    "#8c564b",  # brown
+    "#e377c2",  # pink
+    "#7f7f7f",  # grey
+]
 
-KEY_TYPES  = ["IntKey", "LongKey", "StringKey"]
-IMPL_ORDER = ["AVL Tree", "Red Black Tree", "Wormhole", "ThreadSafe Wormhole"]
+# Known implementations kept in a stable display order; unknown ones are
+# appended alphabetically after them.
+_PREFERRED_ORDER = [
+    "AVL Tree",
+    "Red Black Tree",
+    "Wormhole",
+    "Thread Safe Wormhole",
+]
 
 
-def plot_operation(op, op_data, out_path, java_version="Java8", show_error_bars=False):
+def _impl_order(impls):
+    """Return impls sorted: preferred order first, then alphabetical."""
+    preferred = [i for i in _PREFERRED_ORDER if i in impls]
+    rest      = sorted(i for i in impls if i not in _PREFERRED_ORDER)
+    return preferred + rest
+
+
+def plot_operation(op, op_data, out_path, java_version, show_error_bars=False):
     """Draw one grouped-bar chart for a single operation and save it."""
-    impls = [i for i in IMPL_ORDER if i in op_data]
+    impls     = _impl_order(op_data.keys())
+    key_types = sorted(                        # sort for a consistent x-axis order
+        {kt for impl_data in op_data.values() for kt in impl_data},
+        key=lambda s: s.lower(),
+    )
+
+    colours = {impl: _PALETTE[i % len(_PALETTE)] for i, impl in enumerate(impls)}
 
     n_bars  = len(impls)
     bar_w   = 0.18
     group_w = n_bars * bar_w
-    x       = np.arange(len(KEY_TYPES))
+    x       = np.arange(len(key_types))
 
     fig, ax = plt.subplots(figsize=(8, 6))
     fig.patch.set_facecolor("white")
@@ -103,13 +128,13 @@ def plot_operation(op, op_data, out_path, java_version="Java8", show_error_bars=
 
     for idx, impl in enumerate(impls):
         offsets = x - group_w / 2 + idx * bar_w + bar_w / 2
-        scores  = [op_data[impl].get(kt, (0, 0))[0] / 1e6 for kt in KEY_TYPES]
-        errors  = [op_data[impl].get(kt, (0, 0))[1] / 1e6 for kt in KEY_TYPES]
+        scores  = [op_data[impl].get(kt, (0, 0))[0] / 1e6 for kt in key_types]
+        errors  = [op_data[impl].get(kt, (0, 0))[1] / 1e6 for kt in key_types]
         ax.bar(
             offsets, scores,
             width=bar_w,
             label=impl,
-            color=COLOURS.get(impl, "#999999"),
+            color=colours[impl],
             edgecolor="white",
             linewidth=0.5,
             yerr=errors if show_error_bars else None,
@@ -128,7 +153,7 @@ def plot_operation(op, op_data, out_path, java_version="Java8", show_error_bars=
     ax.set_xlabel("Key Type", fontsize=11)
     ax.set_ylabel("Throughput (Millions of ops/s)", fontsize=11)
     ax.set_xticks(x)
-    ax.set_xticklabels(KEY_TYPES, fontsize=10)
+    ax.set_xticklabels(key_types, fontsize=10)
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, _: f"{v:.1f}"))
 
     ax.legend(
@@ -165,9 +190,7 @@ def main():
     )
     parser.add_argument(
         "java_version",
-        nargs="?",
-        default="Java8",
-        help="Java version label used in titles and filenames (default: Java8)",
+        help="Java version label used in titles and filenames (e.g. Java8, Java21)",
     )
     parser.add_argument(
         "--error-bars",
@@ -177,17 +200,19 @@ def main():
     )
     args = parser.parse_args()
 
-    out_dir = os.path.dirname(os.path.abspath(args.jmh_file))
+    java_version = args.java_version
+    out_dir      = os.path.dirname(os.path.abspath(args.jmh_file))
 
-    print(f"Parsing: {args.jmh_file}")
-    print(f"Error bars: {'enabled' if args.error_bars else 'disabled'}")
+    print(f"Parsing:      {args.jmh_file}")
+    print(f"Java version: {java_version}")
+    print(f"Error bars:   {'enabled' if args.error_bars else 'disabled'}")
     data = parse_jmh(args.jmh_file)
 
     for op, op_data in data.items():
-        fname    = f"bench-{args.java_version.lower()}-{op.lower()}.png"
+        fname    = f"bench-{java_version.lower()}-{op.lower()}.png"
         out_path = os.path.join(out_dir, fname)
         print(f"Plotting {op} ...")
-        plot_operation(op, op_data, out_path, args.java_version, args.error_bars)
+        plot_operation(op, op_data, out_path, java_version, args.error_bars)
 
     print("Done.")
 
