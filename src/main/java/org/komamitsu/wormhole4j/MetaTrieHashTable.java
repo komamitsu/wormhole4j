@@ -297,7 +297,7 @@ class MetaTrieHashTable<K, V> {
   }
 
   private int calcMaxAnchorLength() {
-    int max = Integer.MIN_VALUE;
+    int max = 0;
     for (Object key : table.keySet()) {
       int keyLen = EncodedKeyUtils.length(encodedKeyType, key);
       if (max < keyLen) {

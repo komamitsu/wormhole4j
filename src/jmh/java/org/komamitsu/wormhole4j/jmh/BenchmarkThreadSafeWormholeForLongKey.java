@@ -64,7 +64,7 @@ public class BenchmarkThreadSafeWormholeForLongKey {
           return true;
         };
     iterateWithKeysRange(
-        SCAN_OPS_COUNT, keysState, (k1, k2) -> fullState.map.scanRange(k1, k2, true, function));
+        SCAN_OPS_COUNT, keysState, (k1, k2) -> fullState.map.scan(k1, k2, true, function));
     blackhole.consume(fullState.counter);
   }
 }

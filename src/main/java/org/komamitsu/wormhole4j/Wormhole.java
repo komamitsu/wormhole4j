@@ -153,6 +153,7 @@ abstract class Wormhole<K, V> {
       }
       try {
         if (!leafNode.delete(encodedKey)) {
+          validateIfNeeded();
           return false;
         }
 
@@ -163,6 +164,7 @@ abstract class Wormhole<K, V> {
             && leafNode.size() + leafNode.getRight().size() < leafNodeMergeSize) {
           merge(leafNode, leafNode.getRight());
         }
+        validateIfNeeded();
       } finally {
         if (isThreadSafe) {
           leafNode.releaseLock(writeLockOnLeafNode);
@@ -173,7 +175,6 @@ abstract class Wormhole<K, V> {
         table.releaseLock(tableLock);
       }
     }
-    validateIfNeeded();
     return true;
   }
 
@@ -210,7 +211,7 @@ abstract class Wormhole<K, V> {
     }
   }
 
-  private void scan(
+  private void scanInternal(
       @Nullable K startKey,
       @Nullable K endKey,
       boolean isEndKeyExclusive,
@@ -281,12 +282,12 @@ abstract class Wormhole<K, V> {
    * @param function a function applied to each key-value pair; if it returns {@code true}, the scan
    *     continues, otherwise the scan stops
    */
-  public void scanRange(
+  public void scan(
       @Nullable K startKey,
       @Nullable K endKey,
       boolean isEndKeyExclusive,
       BiFunction<K, V, Boolean> function) {
-    scan(startKey, endKey, isEndKeyExclusive, null, function);
+    scanInternal(startKey, endKey, isEndKeyExclusive, null, function);
   }
 
   /**
@@ -302,7 +303,7 @@ abstract class Wormhole<K, V> {
 
   private List<KeyValue<K, V>> scanWithCountInternal(@Nullable K startKey, int count) {
     List<KeyValue<K, V>> result = new ArrayList<>(count);
-    scan(
+    scanInternal(
         startKey,
         null, /* Not used */
         false,
