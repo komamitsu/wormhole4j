@@ -302,7 +302,8 @@ abstract class Wormhole<K, V> {
             }
             boolean writeLockOnLeafNode = false;
             while (true) {
-              long lockOnLeafNode = writeLockOnLeafNode ? leafNode.acquireWriteLock() : leafNode.acquireReadLock();
+              long lockOnLeafNode =
+                  writeLockOnLeafNode ? leafNode.acquireWriteLock() : leafNode.acquireReadLock();
               if (writeLockOnLeafNode || leafNode.isKeyRefsSorted()) {
                 readLocksOnLeafNodes.add(lockOnLeafNode);
                 leafNodes.add(leafNode);
