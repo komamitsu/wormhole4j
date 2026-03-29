@@ -300,9 +300,17 @@ abstract class Wormhole<K, V> {
               leafNodes = new ArrayList<>();
               readLocksOnLeafNodes = new ArrayList<>();
             }
-            leafNodes.add(leafNode);
-            long readLock = leafNode.acquireReadLock();
-            readLocksOnLeafNodes.add(readLock);
+            boolean writeLockOnLeafNode = false;
+            while (true) {
+              long lockOnLeafNode = writeLockOnLeafNode ? leafNode.acquireWriteLock() : leafNode.acquireReadLock();
+              if (writeLockOnLeafNode || leafNode.isKeyRefsSorted()) {
+                readLocksOnLeafNodes.add(lockOnLeafNode);
+                leafNodes.add(leafNode);
+                break;
+              }
+              leafNode.releaseLock(lockOnLeafNode);
+              writeLockOnLeafNode = true;
+            }
           }
           leafNode.incSort();
           if (!leafNode.iterateKeyValues(

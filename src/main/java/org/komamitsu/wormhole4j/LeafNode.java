@@ -343,7 +343,7 @@ class LeafNode<K, V> {
     }
   }
 
-  private boolean isKeyRefsSorted() {
+  boolean isKeyRefsSorted() {
     return keyRefsCount == numOfSortedKeyRefs;
   }
 

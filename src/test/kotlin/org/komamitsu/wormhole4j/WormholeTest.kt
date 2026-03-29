@@ -21,6 +21,8 @@ import java.util.TreeMap
 
 @Param(name = "key", gen = IntGen::class, conf = "1:20")
 @Param(name = "value", gen = IntGen::class, conf = "1:100")
+@Param(name = "key1", gen = IntGen::class, conf = "1:20")
+@Param(name = "key2", gen = IntGen::class, conf = "1:20")
 class WormholeTest {
     private val wormhole = WormholeForIntKey.Builder<Int>().setThreadSafe(true).setLeafNodeSize(4).build()
 
@@ -39,11 +41,22 @@ class WormholeTest {
         return wormhole.delete(key)
     }
 
+    @Operation(params = ["key1", "key2"])
+    fun scan(key1: Int, key2: Int): List<Int> {
+        val (startKey, endKey) = if (key1 < key2) Pair(key1, key2) else Pair(key2, key1)
+        val result = ArrayList<Int>()
+        wormhole.scanRange(startKey, endKey, true) { _, v ->
+            result.add(v)
+            true
+        }
+        return result
+    }
+
     @Test
     fun stressTest() = StressOptions()
         .sequentialSpecification(SequentialMap::class.java)
         .threads(3)
-        .invocationsPerIteration(20)
+        .invocationsPerIteration(40)
         .iterations(100)
         .check(this::class)
 
@@ -55,5 +68,10 @@ class WormholeTest {
         fun get(key: Int): Int? = map[key]
 
         fun delete(key: Int): Boolean = map.remove(key) != null
+
+        fun scan(key1: Int, key2: Int): List<Int> {
+            val (startKey, endKey) = if (key1 < key2) Pair(key1, key2) else Pair(key2, key1)
+            return map.subMap(startKey, endKey).toList().map { it.second }
+        }
     }
 }
