@@ -22,8 +22,8 @@ package org.komamitsu.wormhole4j;
  * @param <V> the type of values stored in this Wormhole
  */
 public class WormholeForLongKey<V> extends Wormhole<Long, V> {
-  private WormholeForLongKey(boolean threadSafe, int leafNodeSize, boolean debugMode) {
-    super(EncodedKeyType.LONG, threadSafe, leafNodeSize, debugMode);
+  private WormholeForLongKey(boolean isConcurrent, int leafNodeSize, boolean isDebugMode) {
+    super(EncodedKeyType.LONG, isConcurrent, leafNodeSize, isDebugMode);
   }
 
   @Override
@@ -46,7 +46,7 @@ public class WormholeForLongKey<V> extends Wormhole<Long, V> {
 
     @Override
     public WormholeForLongKey<V> build() {
-      return new WormholeForLongKey<>(isThreadSafe, leafNodeSize, isDebugMode);
+      return new WormholeForLongKey<>(isConcurrent, leafNodeSize, isDebugMode);
     }
   }
 }

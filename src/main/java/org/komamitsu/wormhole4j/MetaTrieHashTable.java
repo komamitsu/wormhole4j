@@ -25,33 +25,34 @@ class MetaTrieHashTable<K, V> {
   private int maxAnchorLength;
 
   private final Map<Object, NodeMeta> table = new HashMap<>();
-  private final boolean isThreadSafe;
+  private final boolean isConcurrent;
   private final StampedLock lock = new StampedLock();
 
-  MetaTrieHashTable(EncodedKeyType encodedKeyType, boolean isThreadSafe) {
+  MetaTrieHashTable(EncodedKeyType encodedKeyType, boolean isConcurrent) {
     this.encodedKeyType = encodedKeyType;
-    this.isThreadSafe = isThreadSafe;
+    this.isConcurrent = isConcurrent;
   }
 
   long acquireReadLock() {
-    if (!isThreadSafe) {
-      return 0;
+    if (isConcurrent) {
+      return lock.readLock();
     }
-    return lock.readLock();
+    throw new UnsupportedOperationException();
   }
 
   long acquireWriteLock() {
-    if (!isThreadSafe) {
-      return 0;
+    if (isConcurrent) {
+      return lock.writeLock();
     }
-    return lock.writeLock();
+    throw new UnsupportedOperationException();
   }
 
   void releaseLock(long stamp) {
-    if (!isThreadSafe) {
+    if (isConcurrent) {
+      this.lock.unlock(stamp);
       return;
     }
-    this.lock.unlock(stamp);
+    throw new UnsupportedOperationException();
   }
 
   abstract static class NodeMeta {

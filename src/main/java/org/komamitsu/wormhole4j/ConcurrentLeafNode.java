@@ -20,10 +20,10 @@ import java.util.concurrent.locks.StampedLock;
 import java.util.function.Function;
 import javax.annotation.Nullable;
 
-class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
+class ConcurrentLeafNode<K, V> extends LeafNode<K, V> {
   private final StampedLock lock = new StampedLock();
 
-  ThreadSafeLeafNode(
+  ConcurrentLeafNode(
       EncodedKeyType encodedKeyType,
       Function<Object, Object> validAnchorKeyProvider,
       Object anchorKey,
@@ -55,7 +55,7 @@ class ThreadSafeLeafNode<K, V> extends LeafNode<K, V> {
       int maxSize,
       @Nullable LeafNode<K, V> left,
       @Nullable LeafNode<K, V> right) {
-    return new ThreadSafeLeafNode<>(
+    return new ConcurrentLeafNode<>(
         encodedKeyType, validAnchorKeyProvider, anchorKey, maxSize, left, right);
   }
 }

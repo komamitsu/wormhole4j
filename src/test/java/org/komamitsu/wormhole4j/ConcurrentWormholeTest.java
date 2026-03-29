@@ -24,12 +24,12 @@ import java.util.concurrent.*;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
-class MultiThreadWormholeTest {
+class ConcurrentWormholeTest {
   @Test
   void putNewKeysAfterSplit_ShouldReturnNull() {
     // Arrange
     Wormhole<Integer, Integer> wormhole =
-        new WormholeForIntKey.Builder<Integer>().setThreadSafe(true).setLeafNodeSize(4).build();
+        new WormholeForIntKey.Builder<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
 
     // Act Assert
     assertThat(wormhole.put(10, 100)).isNull();
@@ -44,7 +44,7 @@ class MultiThreadWormholeTest {
       throws ExecutionException, InterruptedException {
     // Arrange
     Wormhole<Integer, Integer> wormhole =
-        new WormholeForIntKey.Builder<Integer>().setThreadSafe(true).setLeafNodeSize(4).build();
+        new WormholeForIntKey.Builder<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
     ExecutorService executorService = Executors.newFixedThreadPool(2);
     List<Future<Integer>> futures = new ArrayList<>();
 
@@ -72,7 +72,7 @@ class MultiThreadWormholeTest {
       throws ExecutionException, InterruptedException {
     // Arrange
     Wormhole<Integer, Integer> wormhole =
-        new WormholeForIntKey.Builder<Integer>().setThreadSafe(true).setLeafNodeSize(4).build();
+        new WormholeForIntKey.Builder<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
     assertThat(wormhole.put(8, 80)).isNull();
     assertThat(wormhole.put(9, 90)).isNull();
     assertThat(wormhole.put(10, 100)).isNull();
@@ -120,7 +120,7 @@ class MultiThreadWormholeTest {
       throws ExecutionException, InterruptedException {
     // Arrange
     Wormhole<Integer, Integer> wormhole =
-        new WormholeForIntKey.Builder<Integer>().setThreadSafe(true).setLeafNodeSize(4).build();
+        new WormholeForIntKey.Builder<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
     assertThat(wormhole.put(10, 100)).isNull();
     assertThat(wormhole.put(11, 110)).isNull();
     assertThat(wormhole.put(12, 120)).isNull();
@@ -168,7 +168,7 @@ class MultiThreadWormholeTest {
       throws ExecutionException, InterruptedException {
     // Arrange
     Wormhole<Integer, Integer> wormhole =
-        new WormholeForIntKey.Builder<Integer>().setThreadSafe(true).setLeafNodeSize(4).build();
+        new WormholeForIntKey.Builder<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
     assertThat(wormhole.put(10, 100)).isNull();
     assertThat(wormhole.put(11, 110)).isNull();
     assertThat(wormhole.put(9, 90)).isNull();
@@ -229,7 +229,7 @@ class MultiThreadWormholeTest {
       throws ExecutionException, InterruptedException {
     // Arrange
     Wormhole<Integer, Integer> wormhole =
-        new WormholeForIntKey.Builder<Integer>().setThreadSafe(true).setLeafNodeSize(4).build();
+        new WormholeForIntKey.Builder<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
     assertThat(wormhole.put(10, 100)).isNull();
     assertThat(wormhole.put(11, 110)).isNull();
     assertThat(wormhole.put(9, 90)).isNull();
@@ -290,7 +290,7 @@ class MultiThreadWormholeTest {
       throws ExecutionException, InterruptedException {
     // Arrange
     Wormhole<Integer, Integer> wormhole =
-        new WormholeForIntKey.Builder<Integer>().setThreadSafe(true).setLeafNodeSize(4).build();
+        new WormholeForIntKey.Builder<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
     assertThat(wormhole.put(11, 110)).isNull();
     assertThat(wormhole.put(9, 90)).isNull();
     assertThat(wormhole.put(12, 120)).isNull();
@@ -349,7 +349,7 @@ class MultiThreadWormholeTest {
       throws ExecutionException, InterruptedException, TimeoutException {
     // Arrange
     Wormhole<Integer, Integer> wormhole =
-        new WormholeForIntKey.Builder<Integer>().setThreadSafe(true).setLeafNodeSize(4).build();
+        new WormholeForIntKey.Builder<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
     assertThat(wormhole.put(11, 110)).isNull();
     assertThat(wormhole.put(10, 100)).isNull();
     assertThat(wormhole.put(8, 80)).isNull();

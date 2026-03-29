@@ -36,7 +36,7 @@ import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
 abstract class Wormhole<K, V> {
   private static final int DEFAULT_LEAF_NODE_SIZE = 128;
   private final EncodedKeyType encodedKeyType;
-  private final boolean isThreadSafe;
+  private final boolean isConcurrent;
   private final MetaTrieHashTable<K, V> table;
   private final int leafNodeSize;
   private final int leafNodeMergeSize;
@@ -47,17 +47,17 @@ abstract class Wormhole<K, V> {
    * Creates a Wormhole.
    *
    * @param encodedKeyType the encoded key type
-   * @param isThreadSafe whether thread-safe is enabled
+   * @param isConcurrent whether to allow concurrent access from multiple threads
    * @param leafNodeSize maximum number of entries in a leaf node
    * @param debugMode enables internal consistency checks if {@code true}
    */
   protected Wormhole(
-      EncodedKeyType encodedKeyType, boolean isThreadSafe, int leafNodeSize, boolean debugMode) {
+      EncodedKeyType encodedKeyType, boolean isConcurrent, int leafNodeSize, boolean debugMode) {
     this.encodedKeyType = encodedKeyType;
-    this.isThreadSafe = isThreadSafe;
+    this.isConcurrent = isConcurrent;
     this.leafNodeSize = leafNodeSize;
     this.leafNodeMergeSize = leafNodeSize * 3 / 4;
-    this.table = new MetaTrieHashTable<>(encodedKeyType, isThreadSafe);
+    this.table = new MetaTrieHashTable<>(encodedKeyType, isConcurrent);
     validAnchorKeyProvider = this::provideValidAnchorKey;
     validator = debugMode ? new Validator<>(this) : null;
     initialize();
@@ -88,13 +88,13 @@ abstract class Wormhole<K, V> {
     boolean writeLockOnTable = false;
     while (true) {
       long tableLock = 0;
-      if (isThreadSafe) {
+      if (isConcurrent) {
         tableLock = writeLockOnTable ? table.acquireWriteLock() : table.acquireReadLock();
       }
       try {
         LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
         long writeLockOnLeafNode = 0;
-        if (isThreadSafe) {
+        if (isConcurrent) {
           writeLockOnLeafNode = leafNode.acquireWriteLock();
         }
         try {
@@ -121,12 +121,12 @@ abstract class Wormhole<K, V> {
           validateIfNeeded();
           return null;
         } finally {
-          if (isThreadSafe) {
+          if (isConcurrent) {
             leafNode.releaseLock(writeLockOnLeafNode);
           }
         }
       } finally {
-        if (isThreadSafe) {
+        if (isConcurrent) {
           table.releaseLock(tableLock);
         }
       }
@@ -142,13 +142,13 @@ abstract class Wormhole<K, V> {
   public boolean delete(K key) {
     Object encodedKey = createEncodedKey(key);
     long tableLock = 0;
-    if (isThreadSafe) {
+    if (isConcurrent) {
       tableLock = table.acquireWriteLock();
     }
     try {
       LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
       long writeLockOnLeafNode = 0;
-      if (isThreadSafe) {
+      if (isConcurrent) {
         writeLockOnLeafNode = leafNode.acquireWriteLock();
       }
       try {
@@ -166,12 +166,12 @@ abstract class Wormhole<K, V> {
         }
         validateIfNeeded();
       } finally {
-        if (isThreadSafe) {
+        if (isConcurrent) {
           leafNode.releaseLock(writeLockOnLeafNode);
         }
       }
     } finally {
-      if (isThreadSafe) {
+      if (isConcurrent) {
         table.releaseLock(tableLock);
       }
     }
@@ -188,24 +188,24 @@ abstract class Wormhole<K, V> {
   public V get(K key) {
     Object encodedKey = createEncodedKey(key);
     long tableLock = 0;
-    if (isThreadSafe) {
+    if (isConcurrent) {
       tableLock = table.acquireReadLock();
     }
     try {
       LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
       long readLockOnLeafNode = 0;
-      if (isThreadSafe) {
+      if (isConcurrent) {
         readLockOnLeafNode = leafNode.acquireReadLock();
       }
       try {
         return leafNode.lookupValue(encodedKey);
       } finally {
-        if (isThreadSafe) {
+        if (isConcurrent) {
           leafNode.releaseLock(readLockOnLeafNode);
         }
       }
     } finally {
-      if (isThreadSafe) {
+      if (isConcurrent) {
         table.releaseLock(tableLock);
       }
     }
@@ -233,14 +233,14 @@ abstract class Wormhole<K, V> {
     }
 
     long tableLock = 0;
-    if (isThreadSafe) {
+    if (isConcurrent) {
       tableLock = table.acquireReadLock();
     }
     try {
       LeafNode<K, V> leafNode = searchTrieHashTable(encodedStartKey);
       while (leafNode != null) {
         long lockOnLeafNode = 0;
-        if (isThreadSafe) {
+        if (isConcurrent) {
           boolean writeLockOnLeafNode = false;
           while (true) {
             lockOnLeafNode =
@@ -259,7 +259,7 @@ abstract class Wormhole<K, V> {
             return;
           }
         } finally {
-          if (isThreadSafe) {
+          if (isConcurrent) {
             leafNode.releaseLock(lockOnLeafNode);
           }
         }
@@ -267,7 +267,7 @@ abstract class Wormhole<K, V> {
         encodedStartKey = null;
       }
     } finally {
-      if (isThreadSafe) {
+      if (isConcurrent) {
         table.releaseLock(tableLock);
       }
     }
@@ -323,9 +323,9 @@ abstract class Wormhole<K, V> {
       @Nullable LeafNode<K, V> leftNode,
       @Nullable LeafNode<K, V> rightNode) {
     LeafNode<K, V> leafNode;
-    if (isThreadSafe) {
+    if (isConcurrent) {
       leafNode =
-          new ThreadSafeLeafNode<>(
+          new ConcurrentLeafNode<>(
               encodedKeyType, validAnchorKeyProvider, anchorKey, maxSize, leftNode, rightNode);
     } else {
       leafNode =
@@ -476,14 +476,14 @@ abstract class Wormhole<K, V> {
   }
 
   abstract static class Builder<W extends Wormhole<K, V>, B extends Builder<W, B, K, V>, K, V> {
-    protected boolean isThreadSafe = false;
+    protected boolean isConcurrent = false;
     protected boolean isDebugMode = false;
     protected int leafNodeSize = DEFAULT_LEAF_NODE_SIZE;
 
     protected abstract B self();
 
-    public B setThreadSafe(boolean isThreadSafe) {
-      this.isThreadSafe = isThreadSafe;
+    public B setConcurrent(boolean isConcurrent) {
+      this.isConcurrent = isConcurrent;
       return self();
     }
 
