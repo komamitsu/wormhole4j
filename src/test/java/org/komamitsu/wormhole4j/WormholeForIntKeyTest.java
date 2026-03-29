@@ -145,9 +145,7 @@ class WormholeForIntKeyTest {
     void withManyLeafNodes_ShouldReturnThem() {
       // Arrange
       Validator<Integer, Integer> validator = new Validator<>(wormholeForIntValue);
-      // FIXME
-      // int recordCount = 50000;
-      int recordCount = 5000;
+      int recordCount = 50000;
 
       Map<Integer, Integer> expected = new LinkedHashMap<>(recordCount);
       for (int i = 0; i < recordCount; i++) {
@@ -584,9 +582,7 @@ class WormholeForIntKeyTest {
     void withManyLeafNodes_ShouldReturnThem() {
       // Arrange
       Validator<Integer, Integer> validator = new Validator<>(wormholeForIntValue);
-      // FIXME
-      // int recordCount = 50000;
-      int recordCount = 5000;
+      int recordCount = 50000;
       TreeMap<Integer, Integer> expected = new TreeMap<>();
       List<Integer> keys = new ArrayList<>(recordCount);
       for (int i = 0; i < recordCount; i++) {
@@ -792,9 +788,7 @@ class WormholeForIntKeyTest {
     void withManyLeafNodes_ShouldReturnIt() {
       // Arrange
       Validator<Integer, Integer> validator = new Validator<>(wormholeForIntValue);
-      // FIXME
-      // int recordCount = 30000;
-      int recordCount = 3000;
+      int recordCount = 30000;
       Map<Integer, Integer> expected = new HashMap<>(recordCount);
       for (int i = 0; i < recordCount; i++) {
         int key = ThreadLocalRandom.current().nextInt();

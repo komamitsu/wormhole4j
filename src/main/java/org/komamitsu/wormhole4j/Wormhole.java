@@ -16,8 +16,6 @@
 
 package org.komamitsu.wormhole4j;
 
-import static java.util.concurrent.locks.ReentrantReadWriteLock.*;
-
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
@@ -43,60 +41,8 @@ abstract class Wormhole<K, V> {
   private final int leafNodeSize;
   private final int leafNodeMergeSize;
   private final Function<Object, Object> validAnchorKeyProvider;
-  private final ThreadLocal<Collection<ThreadSafeLeafNode<K, V>>> leafNodeTracer =
-      ThreadLocal.withInitial(ArrayList::new);
   @Nullable private final Validator<K, V> validator;
 
-  /**
-   * Creates a Wormhole.
-   *
-   * @param encodedKeyType the encoded key type
-   */
-  protected Wormhole(EncodedKeyType encodedKeyType) {
-    this(encodedKeyType, true);
-  }
-
-  /**
-   * Creates a Wormhole.
-   *
-   * @param encodedKeyType the encoded key type
-   * @param isThreadSafe whether thread-safe is enabled
-   */
-  protected Wormhole(EncodedKeyType encodedKeyType, boolean isThreadSafe) {
-    this(encodedKeyType, isThreadSafe, DEFAULT_LEAF_NODE_SIZE);
-  }
-
-  /**
-   * Creates a Wormhole.
-   *
-   * @param encodedKeyType the encoded key type
-   * @param isThreadSafe whether thread-safe is enabled
-   * @param leafNodeSize maximum number of entries in a leaf node
-   */
-  protected Wormhole(EncodedKeyType encodedKeyType, boolean isThreadSafe, int leafNodeSize) {
-    this(encodedKeyType, isThreadSafe, leafNodeSize, false);
-  }
-
-  /**
-   * Creates a Wormhole.
-   *
-   * @param encodedKeyType the encoded key type
-   * @param leafNodeSize maximum number of entries in a leaf node
-   */
-  protected Wormhole(EncodedKeyType encodedKeyType, int leafNodeSize) {
-    this(encodedKeyType, false, leafNodeSize, false);
-  }
-
-  /**
-   * Creates a Wormhole.
-   *
-   * @param encodedKeyType the encoded key type
-   * @param leafNodeSize maximum number of entries in a leaf node
-   * @param debugMode enables internal consistency checks if {@code true}
-   */
-  protected Wormhole(EncodedKeyType encodedKeyType, int leafNodeSize, boolean debugMode) {
-    this(encodedKeyType, false, leafNodeSize, debugMode);
-  }
   /**
    * Creates a Wormhole.
    *
@@ -290,43 +236,34 @@ abstract class Wormhole<K, V> {
       tableLock = table.acquireReadLock();
     }
     try {
-      List<LeafNode<K, V>> leafNodes = null;
-      List<Long> readLocksOnLeafNodes = null;
-      try {
-        LeafNode<K, V> leafNode = searchTrieHashTable(encodedStartKey);
-        while (leafNode != null) {
-          if (isThreadSafe) {
-            if (leafNodes == null) {
-              leafNodes = new ArrayList<>();
-              readLocksOnLeafNodes = new ArrayList<>();
+      LeafNode<K, V> leafNode = searchTrieHashTable(encodedStartKey);
+      while (leafNode != null) {
+        long lockOnLeafNode = 0;
+        if (isThreadSafe) {
+          boolean writeLockOnLeafNode = false;
+          while (true) {
+            lockOnLeafNode =
+                writeLockOnLeafNode ? leafNode.acquireWriteLock() : leafNode.acquireReadLock();
+            if (writeLockOnLeafNode || leafNode.isKeyRefsSorted()) {
+              break;
             }
-            boolean writeLockOnLeafNode = false;
-            while (true) {
-              long lockOnLeafNode =
-                  writeLockOnLeafNode ? leafNode.acquireWriteLock() : leafNode.acquireReadLock();
-              if (writeLockOnLeafNode || leafNode.isKeyRefsSorted()) {
-                readLocksOnLeafNodes.add(lockOnLeafNode);
-                leafNodes.add(leafNode);
-                break;
-              }
-              leafNode.releaseLock(lockOnLeafNode);
-              writeLockOnLeafNode = true;
-            }
+            leafNode.releaseLock(lockOnLeafNode);
+            writeLockOnLeafNode = true;
           }
+        }
+        try {
           leafNode.incSort();
           if (!leafNode.iterateKeyValues(
               encodedStartKey, encodedEndKey, isEndKeyExclusive, actualFunction)) {
             return;
           }
-          leafNode = leafNode.getRight();
-          encodedStartKey = null;
-        }
-      } finally {
-        if (leafNodes != null) {
-          for (int i = 0; i < leafNodes.size(); i++) {
-            leafNodes.get(i).releaseLock(readLocksOnLeafNodes.get(i));
+        } finally {
+          if (isThreadSafe) {
+            leafNode.releaseLock(lockOnLeafNode);
           }
         }
+        leafNode = leafNode.getRight();
+        encodedStartKey = null;
       }
     } finally {
       if (isThreadSafe) {

@@ -17,7 +17,6 @@
 package org.komamitsu.wormhole4j;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.StampedLock;
 import javax.annotation.Nullable;
 
@@ -298,15 +297,14 @@ class MetaTrieHashTable<K, V> {
   }
 
   private int calcMaxAnchorLength() {
-    AtomicInteger max = new AtomicInteger();
-    table.forEach(
-        (key, value) -> {
-          int keyLen = EncodedKeyUtils.length(encodedKeyType, key);
-          if (max.get() < keyLen) {
-            max.set(keyLen);
-          }
-        });
-    return max.get();
+    int max = Integer.MIN_VALUE;
+    for (Object key : table.keySet()) {
+      int keyLen = EncodedKeyUtils.length(encodedKeyType, key);
+      if (max < keyLen) {
+        max = keyLen;
+      }
+    }
+    return max;
   }
 
   @Override

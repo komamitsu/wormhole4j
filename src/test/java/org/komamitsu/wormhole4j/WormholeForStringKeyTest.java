@@ -155,9 +155,7 @@ class WormholeForStringKeyTest {
       Validator<String, Integer> validator = new Validator<>(wormholeForIntValue);
       int minKeyLength = 4;
       int maxKeyLength = 16;
-      // FIXME
-      // int recordCount = 50000;
-      int recordCount = 5000;
+      int recordCount = 50000;
       Map<String, Integer> expected = new LinkedHashMap<>(recordCount);
       for (int i = 0; i < recordCount; i++) {
         String key = genRandomKey(minKeyLength, maxKeyLength);
@@ -788,9 +786,7 @@ class WormholeForStringKeyTest {
       Validator<String, Integer> validator = new Validator<>(wormholeForIntValue);
       int minKeyLength = 4;
       int maxKeyLength = 16;
-      // FIXME
-      // int recordCount = 50000;
-      int recordCount = 5000;
+      int recordCount = 50000;
       TreeMap<String, Integer> expected = new TreeMap<>();
       List<String> keys = new ArrayList<>(recordCount);
       for (int i = 0; i < recordCount; i++) {
@@ -1161,9 +1157,7 @@ class WormholeForStringKeyTest {
       Validator<String, Integer> validator = new Validator<>(wormholeForIntValue);
       int minKeyLength = 4;
       int maxKeyLength = 16;
-      // FIXME
-      // int recordCount = 30000;
-      int recordCount = 3000;
+      int recordCount = 30000;
       Map<String, Integer> expected = new HashMap<>(recordCount);
       for (int i = 0; i < recordCount; i++) {
         String key = genRandomKey(minKeyLength, maxKeyLength);
