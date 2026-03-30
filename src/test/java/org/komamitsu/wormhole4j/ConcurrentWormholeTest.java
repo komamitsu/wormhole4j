@@ -48,23 +48,29 @@ class ConcurrentWormholeTest {
     ExecutorService executorService = Executors.newFixedThreadPool(2);
     List<Future<Integer>> futures = new ArrayList<>();
 
-    // Act
-    futures.add(executorService.submit(() -> wormhole.put(1, 10)));
-    futures.add(executorService.submit(() -> wormhole.put(1, 20)));
+    try {
+      // Act
+      futures.add(executorService.submit(() -> wormhole.put(1, 10)));
+      futures.add(executorService.submit(() -> wormhole.put(1, 20)));
 
-    // Assert
-    List<Integer> resultValues = new ArrayList<>();
-    for (Future<Integer> future : futures) {
-      Integer resultValue = future.get();
-      if (resultValue != null) {
-        resultValues.add(resultValue);
+      // Assert
+      List<Integer> resultValues = new ArrayList<>();
+      for (Future<Integer> future : futures) {
+        Integer resultValue = future.get();
+        if (resultValue != null) {
+          resultValues.add(resultValue);
+        }
+      }
+      assertThat(resultValues).hasSize(1);
+      assertThat(resultValues.get(0)).isIn(10, 20);
+
+      assertThat(wormhole.get(1)).isIn(10, 20);
+    } finally {
+      executorService.shutdown();
+      if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+        executorService.shutdownNow();
       }
     }
-    assertThat(resultValues).hasSize(1);
-    assertThat(resultValues.get(0)).isIn(10, 20);
-    executorService.shutdown();
-
-    assertThat(wormhole.get(1)).isIn(10, 20);
   }
 
   @RepeatedTest(10000)
@@ -82,37 +88,43 @@ class ConcurrentWormholeTest {
     List<Future<Integer>> futures = new ArrayList<>();
     CyclicBarrier barrier = new CyclicBarrier(2);
 
-    // Act
-    futures.add(
-        executorService.submit(
-            () -> {
-              barrier.await();
-              return wormhole.put(9, 99);
-            }));
-    futures.add(
-        executorService.submit(
-            () -> {
-              barrier.await();
-              return wormhole.put(12, 120);
-            }));
+    try {
+      // Act
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                return wormhole.put(9, 99);
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                return wormhole.put(12, 120);
+              }));
 
-    // Assert
-    List<Integer> resultValues = new ArrayList<>();
-    for (Future<Integer> future : futures) {
-      Integer resultValue = future.get();
-      if (resultValue != null) {
-        resultValues.add(resultValue);
+      // Assert
+      List<Integer> resultValues = new ArrayList<>();
+      for (Future<Integer> future : futures) {
+        Integer resultValue = future.get();
+        if (resultValue != null) {
+          resultValues.add(resultValue);
+        }
+      }
+      assertThat(resultValues).hasSize(1);
+      assertThat(resultValues.get(0)).isEqualTo(90);
+
+      assertThat(wormhole.get(8)).isEqualTo(80);
+      assertThat(wormhole.get(9)).isEqualTo(99);
+      assertThat(wormhole.get(10)).isEqualTo(100);
+      assertThat(wormhole.get(11)).isEqualTo(110);
+      assertThat(wormhole.get(12)).isEqualTo(120);
+    } finally {
+      executorService.shutdown();
+      if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+        executorService.shutdownNow();
       }
     }
-    assertThat(resultValues).hasSize(1);
-    assertThat(resultValues.get(0)).isEqualTo(90);
-    executorService.shutdown();
-
-    assertThat(wormhole.get(8)).isEqualTo(80);
-    assertThat(wormhole.get(9)).isEqualTo(99);
-    assertThat(wormhole.get(10)).isEqualTo(100);
-    assertThat(wormhole.get(11)).isEqualTo(110);
-    assertThat(wormhole.get(12)).isEqualTo(120);
   }
 
   @RepeatedTest(10000)
@@ -130,37 +142,43 @@ class ConcurrentWormholeTest {
     List<Future<Integer>> futures = new ArrayList<>();
     CyclicBarrier barrier = new CyclicBarrier(2);
 
-    // Act
-    futures.add(
-        executorService.submit(
-            () -> {
-              barrier.await();
-              return wormhole.put(8, 80);
-            }));
-    futures.add(
-        executorService.submit(
-            () -> {
-              barrier.await();
-              return wormhole.put(11, 111);
-            }));
+    try {
+      // Act
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                return wormhole.put(8, 80);
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                return wormhole.put(11, 111);
+              }));
 
-    // Assert
-    List<Integer> resultValues = new ArrayList<>();
-    for (Future<Integer> future : futures) {
-      Integer resultValue = future.get();
-      if (resultValue != null) {
-        resultValues.add(resultValue);
+      // Assert
+      List<Integer> resultValues = new ArrayList<>();
+      for (Future<Integer> future : futures) {
+        Integer resultValue = future.get();
+        if (resultValue != null) {
+          resultValues.add(resultValue);
+        }
+      }
+      assertThat(resultValues).hasSize(1);
+      assertThat(resultValues.get(0)).isEqualTo(110);
+
+      assertThat(wormhole.get(8)).isEqualTo(80);
+      assertThat(wormhole.get(9)).isEqualTo(90);
+      assertThat(wormhole.get(10)).isEqualTo(100);
+      assertThat(wormhole.get(11)).isEqualTo(111);
+      assertThat(wormhole.get(12)).isEqualTo(120);
+    } finally {
+      executorService.shutdown();
+      if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+        executorService.shutdownNow();
       }
     }
-    assertThat(resultValues).hasSize(1);
-    assertThat(resultValues.get(0)).isEqualTo(110);
-    executorService.shutdown();
-
-    assertThat(wormhole.get(8)).isEqualTo(80);
-    assertThat(wormhole.get(9)).isEqualTo(90);
-    assertThat(wormhole.get(10)).isEqualTo(100);
-    assertThat(wormhole.get(11)).isEqualTo(111);
-    assertThat(wormhole.get(12)).isEqualTo(120);
   }
 
   @RepeatedTest(10000)
@@ -179,49 +197,55 @@ class ConcurrentWormholeTest {
     List<Future<List<Integer>>> futures = new ArrayList<>();
     CyclicBarrier barrier = new CyclicBarrier(3);
 
-    // Act
-    futures.add(
-        executorService.submit(
-            () -> {
-              barrier.await();
-              List<Integer> existingValues = new ArrayList<>();
-              existingValues.add(wormhole.put(12, 120));
-              return existingValues;
-            }));
-    futures.add(
-        executorService.submit(
-            () -> {
-              barrier.await();
-              List<Integer> existingValues = new ArrayList<>();
-              existingValues.add(wormhole.put(13, 130));
-              return existingValues;
-            }));
-    futures.add(
-        executorService.submit(
-            () -> {
-              barrier.await();
-              List<Integer> existingValues = new ArrayList<>();
-              existingValues.add(wormhole.put(15, 150));
-              return existingValues;
-            }));
+    try {
+      // Act
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(12, 120));
+                return existingValues;
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(13, 130));
+                return existingValues;
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(15, 150));
+                return existingValues;
+              }));
 
-    // Assert
-    List<Integer> resultValues = new ArrayList<>();
-    for (Future<List<Integer>> future : futures) {
-      List<Integer> result = future.get().stream().filter(Objects::nonNull).collect(toList());
-      resultValues.addAll(result);
+      // Assert
+      List<Integer> resultValues = new ArrayList<>();
+      for (Future<List<Integer>> future : futures) {
+        List<Integer> result = future.get().stream().filter(Objects::nonNull).collect(toList());
+        resultValues.addAll(result);
+      }
+      assertThat(resultValues).hasSize(0);
+
+      assertThat(wormhole.get(7)).isEqualTo(70);
+      assertThat(wormhole.get(9)).isEqualTo(90);
+      assertThat(wormhole.get(10)).isEqualTo(100);
+      assertThat(wormhole.get(11)).isEqualTo(110);
+      assertThat(wormhole.get(12)).isEqualTo(120);
+      assertThat(wormhole.get(13)).isEqualTo(130);
+      assertThat(wormhole.get(14)).isEqualTo(140);
+      assertThat(wormhole.get(15)).isEqualTo(150);
+    } finally {
+      executorService.shutdown();
+      if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+        executorService.shutdownNow();
+      }
     }
-    assertThat(resultValues).hasSize(0);
-    executorService.shutdown();
-
-    assertThat(wormhole.get(7)).isEqualTo(70);
-    assertThat(wormhole.get(9)).isEqualTo(90);
-    assertThat(wormhole.get(10)).isEqualTo(100);
-    assertThat(wormhole.get(11)).isEqualTo(110);
-    assertThat(wormhole.get(12)).isEqualTo(120);
-    assertThat(wormhole.get(13)).isEqualTo(130);
-    assertThat(wormhole.get(14)).isEqualTo(140);
-    assertThat(wormhole.get(15)).isEqualTo(150);
   }
 
   @RepeatedTest(10000)
@@ -238,51 +262,57 @@ class ConcurrentWormholeTest {
     List<Future<List<Integer>>> futures = new ArrayList<>();
     CyclicBarrier barrier = new CyclicBarrier(3);
 
-    // Act
-    futures.add(
-        executorService.submit(
-            () -> {
-              barrier.await();
-              List<Integer> existingValues = new ArrayList<>();
-              existingValues.add(wormhole.put(7, 70));
-              existingValues.add(wormhole.put(12, 120));
-              return existingValues;
-            }));
-    futures.add(
-        executorService.submit(
-            () -> {
-              barrier.await();
-              List<Integer> existingValues = new ArrayList<>();
-              existingValues.add(wormhole.put(13, 130));
-              return existingValues;
-            }));
-    futures.add(
-        executorService.submit(
-            () -> {
-              barrier.await();
-              List<Integer> existingValues = new ArrayList<>();
-              existingValues.add(wormhole.put(14, 140));
-              existingValues.add(wormhole.put(15, 150));
-              return existingValues;
-            }));
+    try {
+      // Act
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(7, 70));
+                existingValues.add(wormhole.put(12, 120));
+                return existingValues;
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(13, 130));
+                return existingValues;
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(14, 140));
+                existingValues.add(wormhole.put(15, 150));
+                return existingValues;
+              }));
 
-    // Assert
-    List<Integer> resultValues = new ArrayList<>();
-    for (Future<List<Integer>> future : futures) {
-      List<Integer> result = future.get().stream().filter(Objects::nonNull).collect(toList());
-      resultValues.addAll(result);
+      // Assert
+      List<Integer> resultValues = new ArrayList<>();
+      for (Future<List<Integer>> future : futures) {
+        List<Integer> result = future.get().stream().filter(Objects::nonNull).collect(toList());
+        resultValues.addAll(result);
+      }
+      assertThat(resultValues).hasSize(0);
+
+      assertThat(wormhole.get(7)).isEqualTo(70);
+      assertThat(wormhole.get(9)).isEqualTo(90);
+      assertThat(wormhole.get(10)).isEqualTo(100);
+      assertThat(wormhole.get(11)).isEqualTo(110);
+      assertThat(wormhole.get(12)).isEqualTo(120);
+      assertThat(wormhole.get(13)).isEqualTo(130);
+      assertThat(wormhole.get(14)).isEqualTo(140);
+      assertThat(wormhole.get(15)).isEqualTo(150);
+    } finally {
+      executorService.shutdown();
+      if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+        executorService.shutdownNow();
+      }
     }
-    assertThat(resultValues).hasSize(0);
-    executorService.shutdown();
-
-    assertThat(wormhole.get(7)).isEqualTo(70);
-    assertThat(wormhole.get(9)).isEqualTo(90);
-    assertThat(wormhole.get(10)).isEqualTo(100);
-    assertThat(wormhole.get(11)).isEqualTo(110);
-    assertThat(wormhole.get(12)).isEqualTo(120);
-    assertThat(wormhole.get(13)).isEqualTo(130);
-    assertThat(wormhole.get(14)).isEqualTo(140);
-    assertThat(wormhole.get(15)).isEqualTo(150);
   }
 
   @RepeatedTest(10000)
@@ -300,48 +330,54 @@ class ConcurrentWormholeTest {
     List<Future<List<Integer>>> futures = new ArrayList<>();
     CyclicBarrier barrier = new CyclicBarrier(3);
 
-    // Act
-    futures.add(
-        executorService.submit(
-            () -> {
-              barrier.await();
-              List<Integer> existingValues = new ArrayList<>();
-              existingValues.add(wormhole.put(10, 100));
-              return existingValues;
-            }));
-    futures.add(
-        executorService.submit(
-            () -> {
-              barrier.await();
-              List<Integer> existingValues = new ArrayList<>();
-              existingValues.add(wormhole.put(13, 130));
-              return existingValues;
-            }));
-    futures.add(
-        executorService.submit(
-            () -> {
-              barrier.await();
-              List<Integer> existingValues = new ArrayList<>();
-              existingValues.add(wormhole.put(15, 150));
-              return existingValues;
-            }));
+    try {
+      // Act
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(10, 100));
+                return existingValues;
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(13, 130));
+                return existingValues;
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(15, 150));
+                return existingValues;
+              }));
 
-    // Assert
-    List<Integer> resultValues = new ArrayList<>();
-    for (Future<List<Integer>> future : futures) {
-      List<Integer> result = future.get().stream().filter(Objects::nonNull).collect(toList());
-      resultValues.addAll(result);
+      // Assert
+      List<Integer> resultValues = new ArrayList<>();
+      for (Future<List<Integer>> future : futures) {
+        List<Integer> result = future.get().stream().filter(Objects::nonNull).collect(toList());
+        resultValues.addAll(result);
+      }
+      assertThat(resultValues).hasSize(0);
+
+      assertThat(wormhole.get(8)).isEqualTo(80);
+      assertThat(wormhole.get(9)).isEqualTo(90);
+      assertThat(wormhole.get(10)).isEqualTo(100);
+      assertThat(wormhole.get(11)).isEqualTo(110);
+      assertThat(wormhole.get(12)).isEqualTo(120);
+      assertThat(wormhole.get(13)).isEqualTo(130);
+      assertThat(wormhole.get(15)).isEqualTo(150);
+    } finally {
+      executorService.shutdown();
+      if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+        executorService.shutdownNow();
+      }
     }
-    assertThat(resultValues).hasSize(0);
-    executorService.shutdown();
-
-    assertThat(wormhole.get(8)).isEqualTo(80);
-    assertThat(wormhole.get(9)).isEqualTo(90);
-    assertThat(wormhole.get(10)).isEqualTo(100);
-    assertThat(wormhole.get(11)).isEqualTo(110);
-    assertThat(wormhole.get(12)).isEqualTo(120);
-    assertThat(wormhole.get(13)).isEqualTo(130);
-    assertThat(wormhole.get(15)).isEqualTo(150);
   }
 
   @RepeatedTest(10000)
@@ -364,53 +400,58 @@ class ConcurrentWormholeTest {
     List<Future<List<Integer>>> futures = new ArrayList<>();
     CyclicBarrier barrier = new CyclicBarrier(3);
 
-    // Act
-    futures.add(
-        executorService.submit(
-            () -> {
-              barrier.await();
-              List<Integer> existingValues = new ArrayList<>();
-              existingValues.add(wormhole.put(5, 50));
-              return existingValues;
-            }));
-    futures.add(
-        executorService.submit(
-            () -> {
-              barrier.await();
-              List<Integer> existingValues = new ArrayList<>();
-              // existingValues.add(wormhole.put(7, 70));
-              Thread.sleep(0, 50);
-              wormhole.get(4);
-              return existingValues;
-            }));
-    futures.add(
-        executorService.submit(
-            () -> {
-              barrier.await();
-              List<Integer> existingValues = new ArrayList<>();
-              existingValues.add(wormhole.put(17, 170));
-              return existingValues;
-            }));
+    try {
+      // Act
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(5, 50));
+                return existingValues;
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                Thread.sleep(0, 50);
+                wormhole.get(4);
+                return existingValues;
+              }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                barrier.await();
+                List<Integer> existingValues = new ArrayList<>();
+                existingValues.add(wormhole.put(17, 170));
+                return existingValues;
+              }));
 
-    // Assert
-    List<Integer> resultValues = new ArrayList<>();
-    for (Future<List<Integer>> future : futures) {
-      List<Integer> result =
-          future.get(10, TimeUnit.SECONDS).stream().filter(Objects::nonNull).collect(toList());
-      resultValues.addAll(result);
+      // Assert
+      List<Integer> resultValues = new ArrayList<>();
+      for (Future<List<Integer>> future : futures) {
+        List<Integer> result =
+            future.get(10, TimeUnit.SECONDS).stream().filter(Objects::nonNull).collect(toList());
+        resultValues.addAll(result);
+      }
+      assertThat(resultValues).hasSize(0);
+
+      assertThat(wormhole.get(5)).isEqualTo(50);
+      assertThat(wormhole.get(6)).isEqualTo(60);
+      assertThat(wormhole.get(7)).isEqualTo(70);
+      assertThat(wormhole.get(8)).isEqualTo(80);
+      assertThat(wormhole.get(9)).isEqualTo(90);
+      assertThat(wormhole.get(10)).isEqualTo(100);
+      assertThat(wormhole.get(11)).isEqualTo(110);
+      assertThat(wormhole.get(15)).isEqualTo(150);
+      assertThat(wormhole.get(16)).isEqualTo(160);
+      assertThat(wormhole.get(17)).isEqualTo(170);
+    } finally {
+      executorService.shutdown();
+      if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+        executorService.shutdownNow();
+      }
     }
-    assertThat(resultValues).hasSize(0);
-    executorService.shutdown();
-
-    assertThat(wormhole.get(5)).isEqualTo(50);
-    assertThat(wormhole.get(6)).isEqualTo(60);
-    assertThat(wormhole.get(7)).isEqualTo(70);
-    assertThat(wormhole.get(8)).isEqualTo(80);
-    assertThat(wormhole.get(9)).isEqualTo(90);
-    assertThat(wormhole.get(10)).isEqualTo(100);
-    assertThat(wormhole.get(11)).isEqualTo(110);
-    assertThat(wormhole.get(15)).isEqualTo(150);
-    assertThat(wormhole.get(16)).isEqualTo(160);
-    assertThat(wormhole.get(17)).isEqualTo(170);
   }
 }

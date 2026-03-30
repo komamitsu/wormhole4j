@@ -57,7 +57,6 @@ class MetaTrieHashTable<K, V> {
 
   abstract static class NodeMeta {
     final Object anchorPrefix;
-    long version;
 
     public NodeMeta(Object anchorPrefix) {
       this.anchorPrefix = anchorPrefix;
@@ -74,14 +73,7 @@ class MetaTrieHashTable<K, V> {
 
     @Override
     public String toString() {
-      return "NodeMetaLeaf{"
-          + "leafNode="
-          + leafNode
-          + ", anchorPrefix="
-          + anchorPrefix
-          + ", version="
-          + version
-          + '}';
+      return "NodeMetaLeaf{" + "leafNode=" + leafNode + ", anchorPrefix=" + anchorPrefix + '}';
     }
   }
 
@@ -143,8 +135,6 @@ class MetaTrieHashTable<K, V> {
           + rightMostLeafNode
           + ", bitmap="
           + bitmap
-          + ", version="
-          + version
           + '}';
     }
   }
