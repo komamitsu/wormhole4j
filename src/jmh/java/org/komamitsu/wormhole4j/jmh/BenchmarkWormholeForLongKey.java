@@ -36,7 +36,7 @@ public class BenchmarkWormholeForLongKey {
 
     @Setup(Level.Iteration)
     public void setup(LongKeysState data) {
-      map = new WormholeForLongKey<>();
+      map = new WormholeForLongKey.Builder<Integer>().build();
       for (long key : data.keys) {
         map.put(key, randomInt());
       }

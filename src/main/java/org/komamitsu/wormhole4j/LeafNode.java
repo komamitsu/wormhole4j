@@ -22,7 +22,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
-final class LeafNode<K, V> {
+class LeafNode<K, V> {
   private static final int TUPLE_SIZE = 3;
   private static final int ENCODED_KEY_OFFSET = 0;
   private static final int KEY_OFFSET = 1;
@@ -343,7 +343,7 @@ final class LeafNode<K, V> {
     }
   }
 
-  private boolean isKeyRefsSorted() {
+  boolean isKeyRefsSorted() {
     return keyRefsCount == numOfSortedKeyRefs;
   }
 
@@ -479,14 +479,24 @@ final class LeafNode<K, V> {
   }
 
   @Nullable
-  V lookupAndSetValue(Object encodedKey, V newValue) {
-    return pointSearchLeaf(
-        encodedKey,
-        (keyValueIndex, tagIndex) -> {
-          V oldValue = getValue(keyValueIndex);
-          setValue(keyValueIndex, newValue);
-          return oldValue;
-        });
+  Optional<V> lookupAndPutValue(Object encodedKey, K key, V newValue) {
+    @Nullable
+    Optional<V> result =
+        pointSearchLeaf(
+            encodedKey,
+            (keyValueIndex, tagIndex) -> {
+              V oldValue = getValue(keyValueIndex);
+              setValue(keyValueIndex, newValue);
+              return Optional.ofNullable(oldValue);
+            });
+    if (result != null) {
+      return result;
+    }
+    if (size() < maxSize) {
+      add(encodedKey, key, newValue);
+      return Optional.empty();
+    }
+    return null;
   }
 
   @Nullable
@@ -498,6 +508,16 @@ final class LeafNode<K, V> {
     if (!isKeyRefsSorted()) {
       sortKeyRefs();
     }
+  }
+
+  protected LeafNode<K, V> createLeafNode(
+      EncodedKeyType encodedKeyType,
+      Function<Object, Object> validAnchorKeyProvider,
+      Object anchorKey,
+      int maxSize,
+      @Nullable LeafNode<K, V> left,
+      @Nullable LeafNode<K, V> right) {
+    return new LeafNode<>(encodedKeyType, validAnchorKeyProvider, anchorKey, maxSize, left, right);
   }
 
   private Tuple<LeafNode<K, V>, List<Integer>> copyToNewLeafNode(
@@ -513,7 +533,7 @@ final class LeafNode<K, V> {
 
     // Copy entries to a new leaf node.
     LeafNode<K, V> newLeafNode =
-        new LeafNode<>(
+        createLeafNode(
             encodedKeyType, validAnchorKeyProvider, newAnchor, maxSize, this, this.right);
     List<Integer> keyValueIndexListOfNewLeafNode = new ArrayList<>(currentSize);
     for (int i = startKeyRefIndex; i < currentSize; i++) {
@@ -707,6 +727,18 @@ final class LeafNode<K, V> {
       return new Tuple<>(i, validatedAnchorKey);
     }
     throw new IllegalStateException("Cannot split the leaf node. Leaf node: " + this);
+  }
+
+  long acquireWriteLock() {
+    throw new UnsupportedOperationException();
+  }
+
+  long acquireReadLock() {
+    throw new UnsupportedOperationException();
+  }
+
+  void releaseLock(long stamp) {
+    throw new UnsupportedOperationException();
   }
 
   void validate() {

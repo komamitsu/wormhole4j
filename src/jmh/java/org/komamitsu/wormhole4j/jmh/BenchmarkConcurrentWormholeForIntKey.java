@@ -21,23 +21,23 @@ import static org.komamitsu.wormhole4j.jmh.Utils.*;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
-import org.komamitsu.wormhole4j.WormholeForStringKey;
+import org.komamitsu.wormhole4j.WormholeForIntKey;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
-public class BenchmarkWormholeForStringKey {
+public class BenchmarkConcurrentWormholeForIntKey {
 
   @State(Scope.Thread)
   public static class FullState {
-    WormholeForStringKey<Integer> map;
+    WormholeForIntKey<Integer> map;
     int counter;
 
     @Setup(Level.Iteration)
-    public void setup(StringKeysState data) {
-      map = new WormholeForStringKey.Builder<Integer>().build();
-      for (String key : data.keys) {
+    public void setup(IntKeysState data) {
+      map = new WormholeForIntKey.Builder<Integer>().setConcurrent(true).build();
+      for (int key : data.keys) {
         map.put(key, randomInt());
       }
     }
@@ -45,20 +45,20 @@ public class BenchmarkWormholeForStringKey {
 
   @Benchmark
   @OperationsPerInvocation(GET_OPS_COUNT)
-  public void benchmarkGet(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
+  public void benchmarkGet(IntKeysState keysState, FullState fullState, Blackhole blackhole) {
     iterateWithKey(GET_OPS_COUNT, keysState, key -> blackhole.consume(fullState.map.get(key)));
   }
 
   @Benchmark
   @OperationsPerInvocation(PUT_OPS_COUNT)
-  public void benchmarkPut(StringKeysState keysState, FullState fullState) {
+  public void benchmarkPut(IntKeysState keysState, FullState fullState) {
     iterateWithKey(PUT_OPS_COUNT, keysState, key -> fullState.map.put(key, 42));
   }
 
   @Benchmark
   @OperationsPerInvocation(SCAN_OPS_COUNT)
-  public void benchmarkScan(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
-    BiFunction<String, Integer, Boolean> function =
+  public void benchmarkScan(IntKeysState keysState, FullState fullState, Blackhole blackhole) {
+    BiFunction<Integer, Integer, Boolean> function =
         (k, v) -> {
           fullState.counter++;
           return true;

@@ -22,16 +22,8 @@ package org.komamitsu.wormhole4j;
  * @param <V> the type of values stored in this Wormhole
  */
 public class WormholeForStringKey<V> extends Wormhole<String, V> {
-  public WormholeForStringKey() {
-    super(EncodedKeyType.STRING);
-  }
-
-  public WormholeForStringKey(int leafNodeSize) {
-    super(EncodedKeyType.STRING, leafNodeSize);
-  }
-
-  public WormholeForStringKey(int leafNodeSize, boolean debugMode) {
-    super(EncodedKeyType.STRING, leafNodeSize, debugMode);
+  private WormholeForStringKey(boolean isConcurrent, int leafNodeSize, boolean isDebugMode) {
+    super(EncodedKeyType.STRING, isConcurrent, leafNodeSize, isDebugMode);
   }
 
   @Override
@@ -42,5 +34,18 @@ public class WormholeForStringKey<V> extends Wormhole<String, V> {
   @Override
   protected Object createEmptyEncodedKey() {
     return "";
+  }
+
+  public static class Builder<V>
+      extends Wormhole.Builder<WormholeForStringKey<V>, Builder<V>, String, V> {
+    @Override
+    protected Builder<V> self() {
+      return this;
+    }
+
+    @Override
+    public WormholeForStringKey<V> build() {
+      return new WormholeForStringKey<>(isConcurrent, leafNodeSize, isDebugMode);
+    }
   }
 }

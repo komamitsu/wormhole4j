@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Mitsunori Komatsu
+ * Copyright 2026 Mitsunori Komatsu
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-pluginManagement {
-    plugins {
-        kotlin("jvm") version "2.2.0"
-    }
-}
+package org.komamitsu.wormhole4j;
 
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
-}
+import java.lang.annotation.*;
 
-rootProject.name = "wormhole4j"
-
+/**
+ * Indicates that a method or field has visibility increased from private to package-private (or
+ * protected) solely for testing purposes.
+ */
+@Retention(RetentionPolicy.SOURCE)
+@Target({ElementType.METHOD, ElementType.FIELD, ElementType.CONSTRUCTOR, ElementType.TYPE})
+@Documented
+@interface VisibleForTesting {}

@@ -27,7 +27,7 @@ import org.openjdk.jmh.infra.Blackhole;
 
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
-public class BenchmarkWormholeForStringKey {
+public class BenchmarkConcurrentWormholeForStringKey {
 
   @State(Scope.Thread)
   public static class FullState {
@@ -36,7 +36,7 @@ public class BenchmarkWormholeForStringKey {
 
     @Setup(Level.Iteration)
     public void setup(StringKeysState data) {
-      map = new WormholeForStringKey.Builder<Integer>().build();
+      map = new WormholeForStringKey.Builder<Integer>().setConcurrent(true).build();
       for (String key : data.keys) {
         map.put(key, randomInt());
       }

@@ -36,40 +36,34 @@ import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
 abstract class Wormhole<K, V> {
   private static final int DEFAULT_LEAF_NODE_SIZE = 128;
   private final EncodedKeyType encodedKeyType;
+  private final boolean isConcurrent;
   private final MetaTrieHashTable<K, V> table;
   private final int leafNodeSize;
   private final int leafNodeMergeSize;
-  @Nullable private final Validator<K, V> validator;
   private final Function<Object, Object> validAnchorKeyProvider;
-
-  /** Creates a Wormhole with the default leaf node size. */
-  protected Wormhole(EncodedKeyType encodedKeyType) {
-    this(encodedKeyType, DEFAULT_LEAF_NODE_SIZE);
-  }
+  @Nullable private final Validator<K, V> validator;
 
   /**
-   * Creates a Wormhole with the specified leaf node size.
+   * Creates a Wormhole.
    *
-   * @param leafNodeSize maximum number of entries in a leaf node
-   */
-  protected Wormhole(EncodedKeyType encodedKeyType, int leafNodeSize) {
-    this(encodedKeyType, leafNodeSize, false);
-  }
-
-  /**
-   * Creates a Wormhole with the specified leaf node size and optional debug mode.
-   *
+   * @param encodedKeyType the encoded key type
+   * @param isConcurrent whether to allow concurrent access from multiple threads
    * @param leafNodeSize maximum number of entries in a leaf node
    * @param debugMode enables internal consistency checks if {@code true}
    */
-  protected Wormhole(EncodedKeyType encodedKeyType, int leafNodeSize, boolean debugMode) {
+  protected Wormhole(
+      EncodedKeyType encodedKeyType, boolean isConcurrent, int leafNodeSize, boolean debugMode) {
+    if (isConcurrent && debugMode) {
+      throw new IllegalArgumentException("Both 'isConcurrent' and 'debugMode' cannot be enabled");
+    }
     this.encodedKeyType = encodedKeyType;
+    this.isConcurrent = isConcurrent;
     this.leafNodeSize = leafNodeSize;
     this.leafNodeMergeSize = leafNodeSize * 3 / 4;
-    this.table = new MetaTrieHashTable<>(encodedKeyType);
+    this.table = new MetaTrieHashTable<>(encodedKeyType, isConcurrent);
     validAnchorKeyProvider = this::provideValidAnchorKey;
-    initialize();
     validator = debugMode ? new Validator<>(this) : null;
+    initialize();
   }
 
   private void validateIfNeeded() {
@@ -91,29 +85,54 @@ abstract class Wormhole<K, V> {
    * @return the previous value associated with the key, or {@code null} if there was no previous
    *     mapping
    */
+  @Nullable
   public V put(K key, V value) {
     Object encodedKey = createEncodedKey(key);
-    LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
-    V existingValue = leafNode.lookupAndSetValue(encodedKey, value);
-    if (existingValue != null) {
-      validateIfNeeded();
-      return existingValue;
-    }
-
-    if (leafNode.size() == leafNodeSize) {
-      // Split the node and get a new right leaf node.
-      LeafNode<K, V> newLeafNode = split(leafNode);
-      if (EncodedKeyUtils.compare(encodedKeyType, encodedKey, newLeafNode.anchorKey) < 0) {
-        leafNode.add(encodedKey, key, value);
-      } else {
-        newLeafNode.add(encodedKey, key, value);
+    boolean writeLockOnTable = false;
+    while (true) {
+      long tableLock = 0;
+      if (isConcurrent) {
+        tableLock = writeLockOnTable ? table.acquireWriteLock() : table.acquireReadLock();
       }
-    } else {
-      assert leafNode.size() < leafNodeSize;
-      leafNode.add(encodedKey, key, value);
+      try {
+        LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+        long writeLockOnLeafNode = 0;
+        if (isConcurrent) {
+          writeLockOnLeafNode = leafNode.acquireWriteLock();
+        }
+        try {
+          Optional<V> existingValue = leafNode.lookupAndPutValue(encodedKey, key, value);
+          if (existingValue != null) {
+            return existingValue.orElse(null);
+          }
+
+          // Retry with a write lock when the current lock is a read lock.
+          if (!writeLockOnTable) {
+            writeLockOnTable = true;
+            continue;
+          }
+
+          // Split the node and get a new right leaf node.
+          LeafNode<K, V> newLeafNode = split(leafNode);
+
+          if (EncodedKeyUtils.compare(encodedKeyType, encodedKey, newLeafNode.anchorKey) < 0) {
+            leafNode.add(encodedKey, key, value);
+          } else {
+            newLeafNode.add(encodedKey, key, value);
+          }
+          return null;
+        } finally {
+          if (isConcurrent) {
+            leafNode.releaseLock(writeLockOnLeafNode);
+          }
+        }
+      } finally {
+        if (isConcurrent) {
+          table.releaseLock(tableLock);
+        }
+        validateIfNeeded();
+      }
     }
-    validateIfNeeded();
-    return null;
   }
 
   /**
@@ -124,20 +143,39 @@ abstract class Wormhole<K, V> {
    */
   public boolean delete(K key) {
     Object encodedKey = createEncodedKey(key);
-    LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
-    if (!leafNode.delete(encodedKey)) {
-      return false;
+    long tableLock = 0;
+    if (isConcurrent) {
+      tableLock = table.acquireWriteLock();
     }
+    try {
+      LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+      long writeLockOnLeafNode = 0;
+      if (isConcurrent) {
+        writeLockOnLeafNode = leafNode.acquireWriteLock();
+      }
+      try {
+        if (!leafNode.delete(encodedKey)) {
+          return false;
+        }
 
-    if (leafNode.getLeft() != null
-        && leafNode.size() + leafNode.getLeft().size() < leafNodeMergeSize) {
-      merge(leafNode.getLeft(), leafNode);
-    } else if (leafNode.getRight() != null
-        && leafNode.size() + leafNode.getRight().size() < leafNodeMergeSize) {
-      merge(leafNode, leafNode.getRight());
+        if (leafNode.getLeft() != null
+            && leafNode.size() + leafNode.getLeft().size() < leafNodeMergeSize) {
+          merge(leafNode.getLeft(), leafNode);
+        } else if (leafNode.getRight() != null
+            && leafNode.size() + leafNode.getRight().size() < leafNodeMergeSize) {
+          merge(leafNode, leafNode.getRight());
+        }
+      } finally {
+        if (isConcurrent) {
+          leafNode.releaseLock(writeLockOnLeafNode);
+        }
+      }
+    } finally {
+      if (isConcurrent) {
+        table.releaseLock(tableLock);
+      }
+      validateIfNeeded();
     }
-
-    validateIfNeeded();
     return true;
   }
 
@@ -150,8 +188,28 @@ abstract class Wormhole<K, V> {
   @Nullable
   public V get(K key) {
     Object encodedKey = createEncodedKey(key);
-    LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
-    return leafNode.lookupValue(encodedKey);
+    long tableLock = 0;
+    if (isConcurrent) {
+      tableLock = table.acquireReadLock();
+    }
+    try {
+      LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+      long readLockOnLeafNode = 0;
+      if (isConcurrent) {
+        readLockOnLeafNode = leafNode.acquireReadLock();
+      }
+      try {
+        return leafNode.lookupValue(encodedKey);
+      } finally {
+        if (isConcurrent) {
+          leafNode.releaseLock(readLockOnLeafNode);
+        }
+      }
+    } finally {
+      if (isConcurrent) {
+        table.releaseLock(tableLock);
+      }
+    }
   }
 
   private void scanInternal(
@@ -175,20 +233,50 @@ abstract class Wormhole<K, V> {
           };
     }
 
-    LeafNode<K, V> leafNode = searchTrieHashTable(encodedStartKey);
-    while (leafNode != null) {
-      leafNode.incSort();
-      if (!leafNode.iterateKeyValues(
-          encodedStartKey, encodedEndKey, isEndKeyExclusive, actualFunction)) {
-        return;
+    long tableLock = 0;
+    if (isConcurrent) {
+      tableLock = table.acquireReadLock();
+    }
+    try {
+      LeafNode<K, V> leafNode = searchTrieHashTable(encodedStartKey);
+      while (leafNode != null) {
+        long lockOnLeafNode = 0;
+        if (isConcurrent) {
+          boolean writeLockOnLeafNode = false;
+          while (true) {
+            lockOnLeafNode =
+                writeLockOnLeafNode ? leafNode.acquireWriteLock() : leafNode.acquireReadLock();
+            if (writeLockOnLeafNode || leafNode.isKeyRefsSorted()) {
+              break;
+            }
+            leafNode.releaseLock(lockOnLeafNode);
+            writeLockOnLeafNode = true;
+          }
+        }
+        try {
+          leafNode.incSort();
+          if (!leafNode.iterateKeyValues(
+              encodedStartKey, encodedEndKey, isEndKeyExclusive, actualFunction)) {
+            return;
+          }
+        } finally {
+          if (isConcurrent) {
+            leafNode.releaseLock(lockOnLeafNode);
+          }
+        }
+        leafNode = leafNode.getRight();
+        encodedStartKey = null;
       }
-      leafNode = leafNode.getRight();
-      encodedStartKey = null;
+    } finally {
+      if (isConcurrent) {
+        table.releaseLock(tableLock);
+      }
+      validateIfNeeded();
     }
   }
 
   /**
-   * Scans the keys.
+   * Scans the key range.
    *
    * @param startKey the start key (inclusive)
    * @param endKey the end key
@@ -212,6 +300,10 @@ abstract class Wormhole<K, V> {
    * @return a list of key-value pairs
    */
   public List<KeyValue<K, V>> scanWithCount(@Nullable K startKey, int count) {
+    return scanWithCountInternal(startKey, count);
+  }
+
+  private List<KeyValue<K, V>> scanWithCountInternal(@Nullable K startKey, int count) {
     List<KeyValue<K, V>> result = new ArrayList<>(count);
     scanInternal(
         startKey,
@@ -225,16 +317,37 @@ abstract class Wormhole<K, V> {
     return result;
   }
 
+  private LeafNode<K, V> createLeafNode(
+      EncodedKeyType encodedKeyType,
+      Function<Object, Object> validAnchorKeyProvider,
+      Object anchorKey,
+      int maxSize,
+      @Nullable LeafNode<K, V> leftNode,
+      @Nullable LeafNode<K, V> rightNode) {
+    LeafNode<K, V> leafNode;
+    if (isConcurrent) {
+      leafNode =
+          new ConcurrentLeafNode<>(
+              encodedKeyType, validAnchorKeyProvider, anchorKey, maxSize, leftNode, rightNode);
+    } else {
+      leafNode =
+          new LeafNode<>(
+              encodedKeyType, validAnchorKeyProvider, anchorKey, maxSize, leftNode, rightNode);
+    }
+    return leafNode;
+  }
+
   private void initialize() {
     Object key = createEmptyEncodedKey();
     LeafNode<K, V> rootLeafNode =
-        new LeafNode<>(encodedKeyType, validAnchorKeyProvider, key, leafNodeSize, null, null);
+        createLeafNode(encodedKeyType, validAnchorKeyProvider, key, leafNodeSize, null, null);
+
     // Add the root.
-    table.put(key, new MetaTrieHashTable.NodeMetaLeaf<>(key, rootLeafNode));
+    table.put(key, new NodeMetaLeaf<>(key, rootLeafNode));
   }
 
   private LeafNode<K, V> searchTrieHashTable(Object encodedKey) {
-    MetaTrieHashTable.NodeMeta<K, V> nodeMeta =
+    MetaTrieHashTable.NodeMeta nodeMeta =
         table.searchLongestPrefixMatch(encodedKeyType, encodedKey);
     if (nodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf) {
       return ((MetaTrieHashTable.NodeMetaLeaf<K, V>) nodeMeta).leafNode;
@@ -267,7 +380,7 @@ abstract class Wormhole<K, V> {
       return nodeMetaInternal.getLeftMostLeafNode();
     }
 
-    MetaTrieHashTable.NodeMeta<K, V> childNode =
+    MetaTrieHashTable.NodeMeta childNode =
         table.get(
             EncodedKeyUtils.append(encodedKeyType, nodeMetaInternal.anchorPrefix, siblingToken));
     if (childNode == null) {
@@ -295,7 +408,7 @@ abstract class Wormhole<K, V> {
 
   @Nullable
   private Object provideValidAnchorKey(Object anchorKey) {
-    MetaTrieHashTable.NodeMeta<K, V> existingNodeMeta = table.get(anchorKey);
+    MetaTrieHashTable.NodeMeta existingNodeMeta = table.get(anchorKey);
     if (existingNodeMeta == null) {
       return anchorKey;
     }
@@ -317,7 +430,7 @@ abstract class Wormhole<K, V> {
         prefixlen >= 0;
         prefixlen--) {
       Object prefix = EncodedKeyUtils.slice(encodedKeyType, victim.anchorKey, prefixlen);
-      MetaTrieHashTable.NodeMeta<K, V> nodeMeta = table.get(prefix);
+      MetaTrieHashTable.NodeMeta nodeMeta = table.get(prefix);
       NodeMetaInternal<K, V> nodeMetaInternal = null;
       MetaTrieHashTable.NodeMetaLeaf<K, V> nodeMetaLeaf = null;
       if (nodeMeta instanceof NodeMetaInternal) {
@@ -362,6 +475,31 @@ abstract class Wormhole<K, V> {
   @Override
   public String toString() {
     return "Wormhole{" + "table=" + table + ", leafNodeSize=" + leafNodeSize + '}';
+  }
+
+  abstract static class Builder<W extends Wormhole<K, V>, B extends Builder<W, B, K, V>, K, V> {
+    protected boolean isConcurrent = false;
+    protected boolean isDebugMode = false;
+    protected int leafNodeSize = DEFAULT_LEAF_NODE_SIZE;
+
+    protected abstract B self();
+
+    public B setConcurrent(boolean isConcurrent) {
+      this.isConcurrent = isConcurrent;
+      return self();
+    }
+
+    public B setDebugMode(boolean isDebugMode) {
+      this.isDebugMode = isDebugMode;
+      return self();
+    }
+
+    public B setLeafNodeSize(int leafNodeSize) {
+      this.leafNodeSize = leafNodeSize;
+      return self();
+    }
+
+    abstract W build();
   }
 
   static class Validator<K, T> {
@@ -415,9 +553,10 @@ abstract class Wormhole<K, V> {
     }
 
     private void validateHashTable() {
-      for (Map.Entry<Object, MetaTrieHashTable.NodeMeta<K, T>> entry : wormhole.table.entrySet()) {
+      for (Map.Entry<Object, MetaTrieHashTable.NodeMeta> entry :
+          wormhole.table.entrySetForValidate()) {
         Object key = entry.getKey();
-        MetaTrieHashTable.NodeMeta<K, T> nodeMeta = entry.getValue();
+        MetaTrieHashTable.NodeMeta nodeMeta = entry.getValue();
         if (!nodeMeta.anchorPrefix.equals(key)) {
           throw new AssertionError(
               String.format(
@@ -426,13 +565,13 @@ abstract class Wormhole<K, V> {
         }
       }
 
-      Collection<MetaTrieHashTable.NodeMeta<K, T>> nodeMetas =
-          new HashSet<>(wormhole.table.values());
+      Collection<MetaTrieHashTable.NodeMeta> nodeMetas =
+          new HashSet<>(wormhole.table.valuesForValidate());
       LinkedList<Object> anchorKeyQueue = new LinkedList<>();
       anchorKeyQueue.addLast(wormhole.createEmptyEncodedKey());
       while (!anchorKeyQueue.isEmpty()) {
         Object anchorKey = anchorKeyQueue.removeFirst();
-        MetaTrieHashTable.NodeMeta<K, T> nodeMeta = wormhole.table.get(anchorKey);
+        MetaTrieHashTable.NodeMeta nodeMeta = wormhole.table.getForValidate(anchorKey);
         if (!(nodeMeta instanceof NodeMetaInternal)) {
           if (!nodeMetas.remove(nodeMeta)) {
             throw new AssertionError(
@@ -506,7 +645,8 @@ abstract class Wormhole<K, V> {
 
       LeafNode<K, T> leftMostLeafNode;
       LeafNode<K, T> rightMostLeafNode;
-      MetaTrieHashTable.NodeMeta<K, T> rootNodeMeta = table.get(wormhole.createEmptyEncodedKey());
+      MetaTrieHashTable.NodeMeta rootNodeMeta =
+          table.getForValidate(wormhole.createEmptyEncodedKey());
       if (rootNodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf) {
         MetaTrieHashTable.NodeMetaLeaf<K, T> nodeMetaLeaf =
             (MetaTrieHashTable.NodeMetaLeaf<K, T>) rootNodeMeta;

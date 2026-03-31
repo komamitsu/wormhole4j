@@ -1,4 +1,9 @@
 pre-commit:
   commands:
     lint:
-      run: ./gradlew spotlessApply
+      run: |
+        ./gradlew spotlessApply
+        if ! git diff --exit-code; then
+          echo "Spotless made changes to your code. Please review and commit again."
+          exit 1
+        fi
