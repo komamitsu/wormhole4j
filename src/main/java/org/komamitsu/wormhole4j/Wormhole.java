@@ -53,6 +53,9 @@ abstract class Wormhole<K, V> {
    */
   protected Wormhole(
       EncodedKeyType encodedKeyType, boolean isConcurrent, int leafNodeSize, boolean debugMode) {
+    if (isConcurrent && debugMode) {
+      throw new IllegalArgumentException("Both 'isConcurrent' and 'debugMode' cannot be enabled");
+    }
     this.encodedKeyType = encodedKeyType;
     this.isConcurrent = isConcurrent;
     this.leafNodeSize = leafNodeSize;
@@ -100,7 +103,6 @@ abstract class Wormhole<K, V> {
         try {
           Optional<V> existingValue = leafNode.lookupAndPutValue(encodedKey, key, value);
           if (existingValue != null) {
-            validateIfNeeded();
             return existingValue.orElse(null);
           }
 
@@ -118,7 +120,6 @@ abstract class Wormhole<K, V> {
           } else {
             newLeafNode.add(encodedKey, key, value);
           }
-          validateIfNeeded();
           return null;
         } finally {
           if (isConcurrent) {
@@ -129,6 +130,7 @@ abstract class Wormhole<K, V> {
         if (isConcurrent) {
           table.releaseLock(tableLock);
         }
+        validateIfNeeded();
       }
     }
   }
@@ -153,7 +155,6 @@ abstract class Wormhole<K, V> {
       }
       try {
         if (!leafNode.delete(encodedKey)) {
-          validateIfNeeded();
           return false;
         }
 
@@ -164,7 +165,6 @@ abstract class Wormhole<K, V> {
             && leafNode.size() + leafNode.getRight().size() < leafNodeMergeSize) {
           merge(leafNode, leafNode.getRight());
         }
-        validateIfNeeded();
       } finally {
         if (isConcurrent) {
           leafNode.releaseLock(writeLockOnLeafNode);
@@ -174,6 +174,7 @@ abstract class Wormhole<K, V> {
       if (isConcurrent) {
         table.releaseLock(tableLock);
       }
+      validateIfNeeded();
     }
     return true;
   }
@@ -270,6 +271,7 @@ abstract class Wormhole<K, V> {
       if (isConcurrent) {
         table.releaseLock(tableLock);
       }
+      validateIfNeeded();
     }
   }
 

@@ -17,6 +17,7 @@
 package org.komamitsu.wormhole4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.komamitsu.wormhole4j.TestHelpers.genRandomKey;
 
 import java.util.*;
@@ -58,6 +59,18 @@ class WormholeForStringKeyTest {
             .setLeafNodeSize(leafNodeSize)
             .setDebugMode(true)
             .build();
+  }
+
+  @Test
+  void givenConcurrentAndDebugModeEnabled_ShouldThrowException() {
+    assertThatThrownBy(
+            () -> {
+              new WormholeForStringKey.Builder<Integer>()
+                  .setConcurrent(true)
+                  .setDebugMode(true)
+                  .build();
+            })
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Nested
