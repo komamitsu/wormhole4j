@@ -32,6 +32,7 @@ public class WormholeForLongKey {
   @State(Scope.Thread)
   public static class FullState {
     org.komamitsu.wormhole4j.WormholeForLongKey<Integer> map;
+    // This is a dummy variable for Blackhole.consume().
     int counter;
 
     @Setup(Level.Iteration)
@@ -60,7 +61,10 @@ public class WormholeForLongKey {
   public void benchmarkScan(LongKeysState keysState, FullState fullState, Blackhole blackhole) {
     BiFunction<Long, Integer, Boolean> function =
         (k, v) -> {
-          fullState.counter++;
+          // Calling blackhole.consume(value) for each record affects the performance significantly.
+          if (k == null) {
+            fullState.counter++;
+          }
           return true;
         };
     iterateWithKeysRange(

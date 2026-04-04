@@ -31,7 +31,8 @@ public class WormholeForStringKey {
 
   @State(Scope.Thread)
   public static class FullState {
-    org.komamitsu.wormhole4j.WormholeForStringKey<Integer> map;
+     org.komamitsu.wormhole4j.WormholeForStringKey<Integer> map;
+    // This is a dummy variable for Blackhole.consume().
     int counter;
 
     @Setup(Level.Iteration)
@@ -60,7 +61,10 @@ public class WormholeForStringKey {
   public void benchmarkScan(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
     BiFunction<String, Integer, Boolean> function =
         (k, v) -> {
-          fullState.counter++;
+          // Calling blackhole.consume(value) for each record affects the performance significantly.
+          if (k == null) {
+            fullState.counter++;
+          }
           return true;
         };
     iterateWithKeysRange(

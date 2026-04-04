@@ -32,6 +32,7 @@ public class RedBlackTreeForStringKey {
   @State(Scope.Thread)
   public static class FullState {
     TreeMap<String, Integer> map;
+    // This is a dummy variable for Blackhole.consume().
     int counter;
 
     @Setup(Level.Iteration)
@@ -61,7 +62,12 @@ public class RedBlackTreeForStringKey {
     iterateWithKeysRange(
         SCAN_OPS_COUNT,
         keysState,
-        (k1, k2) -> fullState.map.subMap(k1, k2).forEach((key, value) -> fullState.counter++));
+        (k1, k2) -> fullState.map.subMap(k1, k2).forEach((key, value) -> {
+          // Calling blackhole.consume(value) for each record affects the performance significantly.
+          if (key == null) {
+            fullState.counter++;
+          }
+        }));
     blackhole.consume(fullState.counter);
   }
 }
