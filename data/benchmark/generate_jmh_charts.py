@@ -1,20 +1,33 @@
 #!/usr/bin/env python3
 """
 Generate JMH benchmark chart images from a JMH result text file.
-Produces one chart per operation (Get, Put, Scan) in the style of the reference image.
+Supports both single-thread and multi-thread JMH result formats.
+
+Single-thread format:
+    AVLTreeForIntKey.benchmarkGet  thrpt ...
+    → one chart per operation (Get / Put / Scan)
+      x-axis: key type,  bars: implementation
+
+Multi-thread format:
+    ConcurrentWormholeForIntKey.PutAndGet:putAndGetBenchmarkGet  thrpt ...
+    → one chart per workload+operation pair (e.g. PutAndGet/Get, PutAndScan/Put)
+      x-axis: key type,  bars: implementation
+    Group-level aggregate lines (no colon) are skipped.
 
 Usage:
     python generate_jmh_charts.py <jmh_result.txt> <java_version> [--error-bars]
 
 Options:
     java_version   Label used in chart titles and output filenames (e.g. Java8, Java21)
-    --error-bars   Show error bars on the bars (disabled by default)
+    --error-bars   Show error bars on each bar (disabled by default)
 
-Output:
-    bench-<java_version>-get.png
-    bench-<java_version>-put.png
-    bench-<java_version>-scan.png
-    (written to the same directory as the input file)
+Output (single-thread):
+    bench-<java_version>-get.png  etc.
+
+Output (multi-thread):
+    bench-<java_version>-putandget-get.png  etc.
+
+Files are written to the same directory as the input file.
 """
 
 import argparse
@@ -27,58 +40,115 @@ import numpy as np
 
 
 # ---------------------------------------------------------------------------
-# 1. Parsing
+# 1. Helpers
 # ---------------------------------------------------------------------------
+
+def camel_to_display(name: str) -> str:
+    """Insert spaces at CamelCase boundaries.
+
+    Handles both:
+      - lowercase→Uppercase: "RedBlack" -> "Red Black"
+      - ACRONYM→Word:        "AVLTree"  -> "AVL Tree"
+    """
+    s = re.sub(r"(?<=[A-Z])(?=[A-Z][a-z])", " ", name)
+    s = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", s)
+    return s
+
+
+def op_label(raw: str) -> str:
+    """Extract a short operation label from a method name.
+
+    Examples:
+        "benchmarkGet"          -> "Get"
+        "putAndGetBenchmarkGet" -> "Get"
+    """
+    m = re.search(r"[Bb]enchmark([A-Z]\w*)$", raw)
+    if m:
+        return m.group(1)
+    return raw.capitalize()
+
+
+def _impl_from_class(class_name: str) -> str:
+    """'ConcurrentWormholeForIntKey' -> 'Concurrent Wormhole'"""
+    bare = re.sub(r"For\w+Key$", "", class_name)
+    return camel_to_display(bare)
+
+
+def _key_type_from_class(class_name: str) -> str | None:
+    """'ConcurrentWormholeForIntKey' -> 'IntKey'"""
+    m = re.search(r"For(\w+Key)$", class_name)
+    return m.group(1) if m else None
+
+
+# ---------------------------------------------------------------------------
+# 2. Parsing
+# ---------------------------------------------------------------------------
+
+# Single-thread: AVLTreeForIntKey.benchmarkGet
+_SINGLE_THREAD_RE = re.compile(
+    r"^(\w+For\w+Key)\.(benchmark\w+)"
+    r"\s+thrpt\s+\d+\s+([\d.]+)\s+[±]\s+([\d.]+)",
+)
+
+# Multi-thread: ConcurrentWormholeForIntKey.PutAndGet:putAndGetBenchmarkGet
+# The colon is required — lines without it are group aggregates and are skipped.
+_MULTI_THREAD_RE = re.compile(
+    r"^(\w+For\w+Key)\.(\w+):(\w+Benchmark\w+)"
+    r"\s+thrpt\s+\d+\s+([\d.]+)\s+[±]\s+([\d.]+)",
+    re.IGNORECASE,
+)
+
 
 def parse_jmh(path: str):
     """
-    Parse a JMH throughput result file.
+    Parse a JMH throughput result file (single-thread or multi-thread).
 
     Returns a nested dict:
-        data[operation][impl][key_type] = (score, error)
 
-    All keys are derived solely from the file content — no hardcoded
-    operation names, implementation names, or key types.
+      Single-thread:
+        data[workload=None][operation][impl][key_type] = (score, error)
+
+      Multi-thread:
+        data[workload][operation][impl][key_type] = (score, error)
+
+    workload is the JMH @Group name (e.g. "PutAndGet"), or None for
+    single-thread benchmarks that have no group structure.
     """
-    # Matches lines like:
-    # BenchmarkAVLTreeForIntKey.benchmarkGet  thrpt  4  6957601.694 ± 1727243.632  ops/s
-    pattern = re.compile(
-        r"^Benchmark(\w+?)For(\w+Key)\.(benchmark\w+)"
-        r"\s+thrpt\s+\d+\s+([\d.]+)\s+[±]\s+([\d.]+)",
-    )
-
-    # CamelCase → "Title Case" for display (e.g. "AVLTree" -> "AVL Tree")
-    def camel_to_display(name: str) -> str:
-        # Insert a space before each uppercase run that follows a lowercase letter
-        return re.sub(r"(?<=[a-z])(?=[A-Z])", " ", name)
-
-    # "benchmarkGet" -> "Get"
-    def op_label(raw: str) -> str:
-        return raw.removeprefix("benchmark").capitalize()
-
-    data = defaultdict(lambda: defaultdict(dict))
+    data = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
 
     with open(path) as fh:
         for line in fh:
-            m = pattern.match(line.strip())
-            if not m:
+            line = line.strip()
+
+            # Try multi-thread first (more specific pattern)
+            m = _MULTI_THREAD_RE.match(line)
+            if m:
+                class_name, workload, raw_op, score_s, error_s = m.groups()
+                key_type = _key_type_from_class(class_name)
+                if key_type is None:
+                    continue
+                impl = _impl_from_class(class_name)
+                op   = op_label(raw_op)
+                data[workload][op][impl][key_type] = (float(score_s), float(error_s))
                 continue
-            raw_impl, key_type, raw_op, score_s, error_s = m.groups()
-            impl = camel_to_display(raw_impl)
-            op   = op_label(raw_op)
-            data[op][impl][key_type] = (float(score_s), float(error_s))
+
+            m = _SINGLE_THREAD_RE.match(line)
+            if m:
+                class_name, raw_op, score_s, error_s = m.groups()
+                key_type = _key_type_from_class(class_name)
+                if key_type is None:
+                    continue
+                impl = _impl_from_class(class_name)
+                op   = op_label(raw_op)
+                data[None][op][impl][key_type] = (float(score_s), float(error_s))
 
     return data
 
 
-
-
-
 # ---------------------------------------------------------------------------
-# 2. Plotting
+# 3. Plotting
 # ---------------------------------------------------------------------------
 
-# Preferred colour cycle — extended automatically for unknown implementations
 _PALETTE = [
     "#1f77b4",  # blue
     "#ff7f0e",  # orange
@@ -90,27 +160,26 @@ _PALETTE = [
     "#7f7f7f",  # grey
 ]
 
-# Known implementations kept in a stable display order; unknown ones are
-# appended alphabetically after them.
 _PREFERRED_ORDER = [
     "AVL Tree",
     "Red Black Tree",
     "Wormhole",
     "Thread Safe Wormhole",
+    "Concurrent Skip List Map",
+    "Concurrent Wormhole",
 ]
 
 
 def _impl_order(impls):
-    """Return impls sorted: preferred order first, then alphabetical."""
     preferred = [i for i in _PREFERRED_ORDER if i in impls]
     rest      = sorted(i for i in impls if i not in _PREFERRED_ORDER)
     return preferred + rest
 
 
-def plot_operation(op, op_data, out_path, java_version, show_error_bars=False):
-    """Draw one grouped-bar chart for a single operation and save it."""
+def plot_operation(op, op_data, out_path, title, show_error_bars=False):
+    """Draw one grouped-bar chart and save it."""
     impls     = _impl_order(op_data.keys())
-    key_types = sorted(                        # sort for a consistent x-axis order
+    key_types = sorted(
         {kt for impl_data in op_data.values() for kt in impl_data},
         key=lambda s: s.lower(),
     )
@@ -146,10 +215,7 @@ def plot_operation(op, op_data, out_path, java_version, show_error_bars=False):
     ax.yaxis.grid(True, linestyle="--", color="#cccccc", linewidth=0.8)
     ax.xaxis.grid(False)
 
-    ax.set_title(
-        f"Performance Comparison on {java_version} for {op} Operation",
-        fontsize=13, fontweight="normal", pad=12,
-    )
+    ax.set_title(title, fontsize=13, fontweight="normal", pad=12)
     ax.set_xlabel("Key Type", fontsize=11)
     ax.set_ylabel("Throughput (Millions of ops/s)", fontsize=11)
     ax.set_xticks(x)
@@ -157,7 +223,7 @@ def plot_operation(op, op_data, out_path, java_version, show_error_bars=False):
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, _: f"{v:.1f}"))
 
     ax.legend(
-        title="Tree Implementation",
+        title="Implementation",
         title_fontsize=9,
         fontsize=9,
         loc="upper right",
@@ -177,7 +243,7 @@ def plot_operation(op, op_data, out_path, java_version, show_error_bars=False):
 
 
 # ---------------------------------------------------------------------------
-# 3. Main
+# 4. Main
 # ---------------------------------------------------------------------------
 
 def main():
@@ -206,13 +272,24 @@ def main():
     print(f"Parsing:      {args.jmh_file}")
     print(f"Java version: {java_version}")
     print(f"Error bars:   {'enabled' if args.error_bars else 'disabled'}")
+
     data = parse_jmh(args.jmh_file)
 
-    for op, op_data in data.items():
-        fname    = f"bench-{java_version.lower()}-{op.lower()}.png"
-        out_path = os.path.join(out_dir, fname)
-        print(f"Plotting {op} ...")
-        plot_operation(op, op_data, out_path, java_version, args.error_bars)
+    for workload, ops in data.items():
+        for op, op_data in ops.items():
+            if workload is None:
+                # Single-thread: bench-java8-get.png
+                fname = f"bench-{java_version.lower()}-{op.lower()}.png"
+                title = f"Performance Comparison on {java_version} for {op} Operation"
+            else:
+                # Multi-thread: bench-java21-putandget-get.png
+                fname = f"bench-{java_version.lower()}-{workload.lower()}-{op.lower()}.png"
+                title = (f"Performance Comparison on {java_version} "
+                         f"for {op} Operation (Workload: {workload})")
+
+            out_path = os.path.join(out_dir, fname)
+            print(f"Plotting {op} ...")
+            plot_operation(op, op_data, out_path, title, args.error_bars)
 
     print("Done.")
 
