@@ -32,7 +32,7 @@ public class LongKeysState extends KeysState<Long> {
   }
 
   @Override
-  protected Long getRandomValue() {
+  protected Long createRandomValue() {
     return randomLong();
   }
 }

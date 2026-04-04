@@ -32,7 +32,7 @@ public class IntKeysState extends KeysState<Integer> {
   }
 
   @Override
-  protected Integer getRandomValue() {
+  protected Integer createRandomValue() {
     return randomInt();
   }
 }

@@ -31,7 +31,7 @@ public class StringKeysState extends KeysState<String> {
   }
 
   @Override
-  protected String getRandomValue() {
+  protected String createRandomValue() {
     return randomString();
   }
 }

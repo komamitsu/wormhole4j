@@ -22,17 +22,35 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BiConsumer;
 
 abstract class KeysState<T extends Comparable<T>> {
   List<T> keys = new ArrayList<>(RECORD_COUNT);
   List<T> startKeys = new ArrayList<>(SCAN_OPS_COUNT);
   List<T> endKeys = new ArrayList<>(SCAN_OPS_COUNT);
 
-  protected abstract T getRandomValue();
+  protected abstract T createRandomValue();
+
+  private int getRandomKeyIndex() {
+    return ThreadLocalRandom.current().nextInt(keys.size());
+  }
+
+  private int getRandomScanKeyIndex() {
+    return ThreadLocalRandom.current().nextInt(startKeys.size());
+  }
+
+  T getRandomKey() {
+    return keys.get(getRandomKeyIndex());
+  }
+
+  void withRandomKeyRange(BiConsumer<T, T> task) {
+    int keyIndex = getRandomScanKeyIndex();
+    task.accept(startKeys.get(keyIndex), endKeys.get(keyIndex));
+  }
 
   protected void setupInternal() {
     for (int i = 0; i < RECORD_COUNT; i++) {
-      keys.add(getRandomValue());
+      keys.add(createRandomValue());
     }
     List<T> sortedKeys = new ArrayList<>(RECORD_COUNT);
     sortedKeys.addAll(keys);
