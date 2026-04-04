@@ -14,30 +14,30 @@
  * limitations under the License.
  */
 
-package org.komamitsu.wormhole4j.jmh;
+package org.komamitsu.wormhole4j.jmh.benchmark.singlethread;
 
 import static org.komamitsu.wormhole4j.jmh.Constants.*;
 import static org.komamitsu.wormhole4j.jmh.Utils.*;
 
+import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import org.komamitsu.wormhole4j.WormholeForStringKey;
+import org.komamitsu.wormhole4j.jmh.state.IntKeysState;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
-public class BenchmarkWormholeForStringKey {
+public class RedBlackTreeForIntKey {
 
   @State(Scope.Thread)
   public static class FullState {
-    WormholeForStringKey<Integer> map;
+    TreeMap<Integer, Integer> map;
     int counter;
 
     @Setup(Level.Iteration)
-    public void setup(StringKeysState data) {
-      map = new WormholeForStringKey.Builder<Integer>().build();
-      for (String key : data.keys) {
+    public void setup(IntKeysState data) {
+      map = new TreeMap<>();
+      for (int key : data.keys) {
         map.put(key, randomInt());
       }
     }
@@ -45,26 +45,23 @@ public class BenchmarkWormholeForStringKey {
 
   @Benchmark
   @OperationsPerInvocation(GET_OPS_COUNT)
-  public void benchmarkGet(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
+  public void benchmarkGet(IntKeysState keysState, FullState fullState, Blackhole blackhole) {
     iterateWithKey(GET_OPS_COUNT, keysState, key -> blackhole.consume(fullState.map.get(key)));
   }
 
   @Benchmark
   @OperationsPerInvocation(PUT_OPS_COUNT)
-  public void benchmarkPut(StringKeysState keysState, FullState fullState) {
+  public void benchmarkPut(IntKeysState keysState, FullState fullState) {
     iterateWithKey(PUT_OPS_COUNT, keysState, key -> fullState.map.put(key, 42));
   }
 
   @Benchmark
   @OperationsPerInvocation(SCAN_OPS_COUNT)
-  public void benchmarkScan(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
-    BiFunction<String, Integer, Boolean> function =
-        (k, v) -> {
-          fullState.counter++;
-          return true;
-        };
+  public void benchmarkScan(IntKeysState keysState, FullState fullState, Blackhole blackhole) {
     iterateWithKeysRange(
-        SCAN_OPS_COUNT, keysState, (k1, k2) -> fullState.map.scan(k1, k2, true, function));
+        SCAN_OPS_COUNT,
+        keysState,
+        (k1, k2) -> fullState.map.subMap(k1, k2).forEach((key, value) -> fullState.counter++));
     blackhole.consume(fullState.counter);
   }
 }

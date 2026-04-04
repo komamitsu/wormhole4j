@@ -14,29 +14,31 @@
  * limitations under the License.
  */
 
-package org.komamitsu.wormhole4j.jmh;
+package org.komamitsu.wormhole4j.jmh.benchmark.singlethread;
 
 import static org.komamitsu.wormhole4j.jmh.Constants.*;
 import static org.komamitsu.wormhole4j.jmh.Utils.*;
 
-import java.util.TreeMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectSortedMap;
 import java.util.concurrent.TimeUnit;
+import org.komamitsu.wormhole4j.jmh.state.StringKeysState;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
-public class BenchmarkRedBlackTreeForIntKey {
+public class AVLTreeForStringKey {
 
   @State(Scope.Thread)
   public static class FullState {
-    TreeMap<Integer, Integer> map;
+    Object2ObjectSortedMap<String, Integer> map;
     int counter;
 
     @Setup(Level.Iteration)
-    public void setup(IntKeysState data) {
-      map = new TreeMap<>();
-      for (int key : data.keys) {
+    public void setup(StringKeysState data) {
+      map = new Object2ObjectAVLTreeMap<>();
+      for (String key : data.keys) {
         map.put(key, randomInt());
       }
     }
@@ -44,19 +46,19 @@ public class BenchmarkRedBlackTreeForIntKey {
 
   @Benchmark
   @OperationsPerInvocation(GET_OPS_COUNT)
-  public void benchmarkGet(IntKeysState keysState, FullState fullState, Blackhole blackhole) {
+  public void benchmarkGet(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
     iterateWithKey(GET_OPS_COUNT, keysState, key -> blackhole.consume(fullState.map.get(key)));
   }
 
   @Benchmark
   @OperationsPerInvocation(PUT_OPS_COUNT)
-  public void benchmarkPut(IntKeysState keysState, FullState fullState) {
+  public void benchmarkPut(StringKeysState keysState, FullState fullState) {
     iterateWithKey(PUT_OPS_COUNT, keysState, key -> fullState.map.put(key, 42));
   }
 
   @Benchmark
   @OperationsPerInvocation(SCAN_OPS_COUNT)
-  public void benchmarkScan(IntKeysState keysState, FullState fullState, Blackhole blackhole) {
+  public void benchmarkScan(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
     iterateWithKeysRange(
         SCAN_OPS_COUNT,
         keysState,

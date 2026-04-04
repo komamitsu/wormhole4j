@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.komamitsu.wormhole4j.jmh;
+package org.komamitsu.wormhole4j.jmh.state;
 
 import static org.komamitsu.wormhole4j.jmh.Constants.*;
 
@@ -24,10 +24,10 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
 
-abstract class KeysState<T extends Comparable<T>> {
-  List<T> keys = new ArrayList<>(RECORD_COUNT);
-  List<T> startKeys = new ArrayList<>(SCAN_OPS_COUNT);
-  List<T> endKeys = new ArrayList<>(SCAN_OPS_COUNT);
+public abstract class KeysState<T extends Comparable<T>> {
+  public List<T> keys = new ArrayList<>(RECORD_COUNT);
+  public List<T> startKeys = new ArrayList<>(SCAN_OPS_COUNT);
+  public List<T> endKeys = new ArrayList<>(SCAN_OPS_COUNT);
 
   protected abstract T createRandomValue();
 
@@ -39,11 +39,11 @@ abstract class KeysState<T extends Comparable<T>> {
     return ThreadLocalRandom.current().nextInt(startKeys.size());
   }
 
-  T getRandomKey() {
+  public T getRandomKey() {
     return keys.get(getRandomKeyIndex());
   }
 
-  void withRandomKeyRange(BiConsumer<T, T> task) {
+  public void withRandomKeyRange(BiConsumer<T, T> task) {
     int keyIndex = getRandomScanKeyIndex();
     task.accept(startKeys.get(keyIndex), endKeys.get(keyIndex));
   }

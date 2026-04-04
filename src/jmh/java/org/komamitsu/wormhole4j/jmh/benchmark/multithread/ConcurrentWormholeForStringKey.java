@@ -14,30 +14,30 @@
  * limitations under the License.
  */
 
-package org.komamitsu.wormhole4j.jmh;
-
-import static org.komamitsu.wormhole4j.jmh.Utils.randomInt;
+package org.komamitsu.wormhole4j.jmh.benchmark.multithread;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import org.komamitsu.wormhole4j.WormholeForStringKey;
+import org.komamitsu.wormhole4j.jmh.Utils;
+import org.komamitsu.wormhole4j.jmh.state.StringKeysState;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
-public class MultiThreadBenchmarkConcurrentWormholeForStringKey {
+public class ConcurrentWormholeForStringKey {
 
   @State(Scope.Group)
   public static class FullState {
     WormholeForStringKey<Integer> map;
     int counter;
 
-    @Setup(Level.Trial)
+    @Setup(Level.Iteration)
     public void setup(StringKeysState data) {
       map = new WormholeForStringKey.Builder<Integer>().setConcurrent(true).build();
       for (String key : data.keys) {
-        map.put(key, randomInt());
+        map.put(key, Utils.randomInt());
       }
     }
   }

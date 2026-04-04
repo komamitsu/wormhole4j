@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.komamitsu.wormhole4j.jmh;
+package org.komamitsu.wormhole4j.jmh.state;
 
 import static org.komamitsu.wormhole4j.jmh.Utils.*;
 
@@ -24,15 +24,15 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 
 @State(Scope.Benchmark)
-public class LongKeysState extends KeysState<Long> {
+public class StringKeysState extends KeysState<String> {
 
-  @Setup(Level.Trial)
+  @Setup(Level.Iteration)
   public void setup() {
     super.setupInternal();
   }
 
   @Override
-  protected Long createRandomValue() {
-    return randomLong();
+  protected String createRandomValue() {
+    return randomString();
   }
 }

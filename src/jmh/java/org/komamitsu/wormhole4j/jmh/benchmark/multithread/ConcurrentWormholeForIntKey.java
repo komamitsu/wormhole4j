@@ -14,27 +14,29 @@
  * limitations under the License.
  */
 
-package org.komamitsu.wormhole4j.jmh;
+package org.komamitsu.wormhole4j.jmh.benchmark.multithread;
 
 import static org.komamitsu.wormhole4j.jmh.Utils.*;
 
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import org.komamitsu.wormhole4j.WormholeForIntKey;
+import org.komamitsu.wormhole4j.jmh.state.IntKeysState;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
-public class MultiThreadBenchmarkConcurrentSkipListMapForIntKey {
+public class ConcurrentWormholeForIntKey {
 
   @State(Scope.Group)
   public static class FullState {
-    ConcurrentSkipListMap<Integer, Integer> map;
+    WormholeForIntKey<Integer> map;
     int counter;
 
-    @Setup(Level.Trial)
+    @Setup(Level.Iteration)
     public void setup(IntKeysState data) {
-      map = new ConcurrentSkipListMap<>();
+      map = new WormholeForIntKey.Builder<Integer>().setConcurrent(true).build();
       for (int key : data.keys) {
         map.put(key, randomInt());
       }
@@ -44,7 +46,8 @@ public class MultiThreadBenchmarkConcurrentSkipListMapForIntKey {
   @Group("PutAndGet")
   @GroupThreads(8)
   @Benchmark
-  public void putAndGetBenchmarkPut(IntKeysState keysState, FullState fullState) {
+  public void putAndGetBenchmarkPut(
+      IntKeysState keysState, ConcurrentSkipListMapForIntKey.FullState fullState) {
     fullState.map.put(keysState.getRandomKey(), 42);
   }
 
@@ -68,9 +71,13 @@ public class MultiThreadBenchmarkConcurrentSkipListMapForIntKey {
   @Benchmark
   public void putAndScanBenchmarkScan(
       IntKeysState keysState, FullState fullState, Blackhole blackhole) {
+    BiFunction<Integer, Integer, Boolean> function =
+        (k, v) -> {
+          fullState.counter++;
+          return true;
+        };
     keysState.withRandomKeyRange(
-        (startKey, endKey) ->
-            fullState.map.subMap(startKey, endKey).forEach((key, value) -> fullState.counter++));
+        (startKey, endKey) -> fullState.map.scan(startKey, endKey, true, function));
     blackhole.consume(fullState.counter);
   }
 }

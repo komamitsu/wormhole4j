@@ -14,30 +14,30 @@
  * limitations under the License.
  */
 
-package org.komamitsu.wormhole4j.jmh;
+package org.komamitsu.wormhole4j.jmh.benchmark.singlethread;
 
 import static org.komamitsu.wormhole4j.jmh.Constants.*;
 import static org.komamitsu.wormhole4j.jmh.Utils.*;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectSortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import org.komamitsu.wormhole4j.jmh.state.LongKeysState;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
-public class BenchmarkAVLTreeForIntKey {
+public class RedBlackTreeForLongKey {
 
   @State(Scope.Thread)
   public static class FullState {
-    Object2ObjectSortedMap<Integer, Integer> map;
+    TreeMap<Long, Integer> map;
     int counter;
 
     @Setup(Level.Iteration)
-    public void setup(IntKeysState data) {
-      map = new Object2ObjectAVLTreeMap<>();
-      for (int key : data.keys) {
+    public void setup(LongKeysState data) {
+      map = new TreeMap<>();
+      for (long key : data.keys) {
         map.put(key, randomInt());
       }
     }
@@ -45,19 +45,19 @@ public class BenchmarkAVLTreeForIntKey {
 
   @Benchmark
   @OperationsPerInvocation(GET_OPS_COUNT)
-  public void benchmarkGet(IntKeysState keysState, FullState fullState, Blackhole blackhole) {
+  public void benchmarkGet(LongKeysState keysState, FullState fullState, Blackhole blackhole) {
     iterateWithKey(GET_OPS_COUNT, keysState, key -> blackhole.consume(fullState.map.get(key)));
   }
 
   @Benchmark
   @OperationsPerInvocation(PUT_OPS_COUNT)
-  public void benchmarkPut(IntKeysState keysState, FullState fullState) {
+  public void benchmarkPut(LongKeysState keysState, FullState fullState) {
     iterateWithKey(PUT_OPS_COUNT, keysState, key -> fullState.map.put(key, 42));
   }
 
   @Benchmark
   @OperationsPerInvocation(SCAN_OPS_COUNT)
-  public void benchmarkScan(IntKeysState keysState, FullState fullState, Blackhole blackhole) {
+  public void benchmarkScan(LongKeysState keysState, FullState fullState, Blackhole blackhole) {
     iterateWithKeysRange(
         SCAN_OPS_COUNT,
         keysState,

@@ -14,29 +14,29 @@
  * limitations under the License.
  */
 
-package org.komamitsu.wormhole4j.jmh;
-
-import static org.komamitsu.wormhole4j.jmh.Utils.randomInt;
+package org.komamitsu.wormhole4j.jmh.benchmark.multithread;
 
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
+import org.komamitsu.wormhole4j.jmh.Utils;
+import org.komamitsu.wormhole4j.jmh.state.StringKeysState;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
-public class MultiThreadBenchmarkConcurrentSkipListMapForStringKey {
+public class ConcurrentSkipListMapForStringKey {
 
   @State(Scope.Group)
   public static class FullState {
     ConcurrentSkipListMap<String, Integer> map;
     int counter;
 
-    @Setup(Level.Trial)
+    @Setup(Level.Iteration)
     public void setup(StringKeysState data) {
       map = new ConcurrentSkipListMap<>();
       for (String key : data.keys) {
-        map.put(key, randomInt());
+        map.put(key, Utils.randomInt());
       }
     }
   }

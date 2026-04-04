@@ -14,29 +14,29 @@
  * limitations under the License.
  */
 
-package org.komamitsu.wormhole4j.jmh;
+package org.komamitsu.wormhole4j.jmh.benchmark.singlethread;
 
 import static org.komamitsu.wormhole4j.jmh.Constants.*;
 import static org.komamitsu.wormhole4j.jmh.Utils.*;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectSortedMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import org.komamitsu.wormhole4j.jmh.state.LongKeysState;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
-public class BenchmarkAVLTreeForLongKey {
+public class WormholeForLongKey {
 
   @State(Scope.Thread)
   public static class FullState {
-    Object2ObjectSortedMap<Long, Integer> map;
+    org.komamitsu.wormhole4j.WormholeForLongKey<Integer> map;
     int counter;
 
     @Setup(Level.Iteration)
     public void setup(LongKeysState data) {
-      map = new Object2ObjectAVLTreeMap<>();
+      map = new org.komamitsu.wormhole4j.WormholeForLongKey.Builder<Integer>().build();
       for (long key : data.keys) {
         map.put(key, randomInt());
       }
@@ -58,10 +58,13 @@ public class BenchmarkAVLTreeForLongKey {
   @Benchmark
   @OperationsPerInvocation(SCAN_OPS_COUNT)
   public void benchmarkScan(LongKeysState keysState, FullState fullState, Blackhole blackhole) {
+    BiFunction<Long, Integer, Boolean> function =
+        (k, v) -> {
+          fullState.counter++;
+          return true;
+        };
     iterateWithKeysRange(
-        SCAN_OPS_COUNT,
-        keysState,
-        (k1, k2) -> fullState.map.subMap(k1, k2).forEach((key, value) -> fullState.counter++));
+        SCAN_OPS_COUNT, keysState, (k1, k2) -> fullState.map.scan(k1, k2, true, function));
     blackhole.consume(fullState.counter);
   }
 }

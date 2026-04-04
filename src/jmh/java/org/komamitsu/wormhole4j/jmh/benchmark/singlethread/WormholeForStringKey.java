@@ -14,30 +14,30 @@
  * limitations under the License.
  */
 
-package org.komamitsu.wormhole4j.jmh;
+package org.komamitsu.wormhole4j.jmh.benchmark.singlethread;
 
 import static org.komamitsu.wormhole4j.jmh.Constants.*;
 import static org.komamitsu.wormhole4j.jmh.Utils.*;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
-import org.komamitsu.wormhole4j.WormholeForLongKey;
+import org.komamitsu.wormhole4j.jmh.state.StringKeysState;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
-public class BenchmarkWormholeForLongKey {
+public class WormholeForStringKey {
 
   @State(Scope.Thread)
   public static class FullState {
-    WormholeForLongKey<Integer> map;
+    org.komamitsu.wormhole4j.WormholeForStringKey<Integer> map;
     int counter;
 
     @Setup(Level.Iteration)
-    public void setup(LongKeysState data) {
-      map = new WormholeForLongKey.Builder<Integer>().build();
-      for (long key : data.keys) {
+    public void setup(StringKeysState data) {
+      map = new org.komamitsu.wormhole4j.WormholeForStringKey.Builder<Integer>().build();
+      for (String key : data.keys) {
         map.put(key, randomInt());
       }
     }
@@ -45,20 +45,20 @@ public class BenchmarkWormholeForLongKey {
 
   @Benchmark
   @OperationsPerInvocation(GET_OPS_COUNT)
-  public void benchmarkGet(LongKeysState keysState, FullState fullState, Blackhole blackhole) {
+  public void benchmarkGet(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
     iterateWithKey(GET_OPS_COUNT, keysState, key -> blackhole.consume(fullState.map.get(key)));
   }
 
   @Benchmark
   @OperationsPerInvocation(PUT_OPS_COUNT)
-  public void benchmarkPut(LongKeysState keysState, FullState fullState) {
+  public void benchmarkPut(StringKeysState keysState, FullState fullState) {
     iterateWithKey(PUT_OPS_COUNT, keysState, key -> fullState.map.put(key, 42));
   }
 
   @Benchmark
   @OperationsPerInvocation(SCAN_OPS_COUNT)
-  public void benchmarkScan(LongKeysState keysState, FullState fullState, Blackhole blackhole) {
-    BiFunction<Long, Integer, Boolean> function =
+  public void benchmarkScan(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
+    BiFunction<String, Integer, Boolean> function =
         (k, v) -> {
           fullState.counter++;
           return true;

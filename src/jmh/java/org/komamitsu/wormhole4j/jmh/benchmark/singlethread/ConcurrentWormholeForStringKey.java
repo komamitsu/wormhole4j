@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.komamitsu.wormhole4j.jmh;
+package org.komamitsu.wormhole4j.jmh.benchmark.singlethread;
 
 import static org.komamitsu.wormhole4j.jmh.Constants.*;
 import static org.komamitsu.wormhole4j.jmh.Utils.*;
@@ -22,12 +22,13 @@ import static org.komamitsu.wormhole4j.jmh.Utils.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import org.komamitsu.wormhole4j.WormholeForStringKey;
+import org.komamitsu.wormhole4j.jmh.state.StringKeysState;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
-public class BenchmarkConcurrentWormholeForStringKey {
+public class ConcurrentWormholeForStringKey {
 
   @State(Scope.Thread)
   public static class FullState {
