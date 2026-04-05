@@ -27,3 +27,9 @@ jobs:
     - name: Test the project
       if: ${{ matrix.java_version != '8' }}
       run: ./gradlew test
+    - name: Upload test results
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-reports
+        path: build/reports/tests/test/
