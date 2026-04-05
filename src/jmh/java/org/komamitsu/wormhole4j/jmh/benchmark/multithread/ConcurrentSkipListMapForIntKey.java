@@ -68,8 +68,8 @@ public class ConcurrentSkipListMapForIntKey {
   @Benchmark
   public void putAndScanBenchmarkScan(
       IntKeysState keysState, FullState fullState, Blackhole blackhole) {
-    keysState.withRandomKeyRange((startKey, endKey) ->
-            fullState.map.subMap(startKey, endKey)
-                .forEach((key, value) -> blackhole.consume(key)));
+    keysState.withRandomKeyRange(
+        (startKey, endKey) ->
+            fullState.map.subMap(startKey, endKey).forEach((key, value) -> blackhole.consume(key)));
   }
 }

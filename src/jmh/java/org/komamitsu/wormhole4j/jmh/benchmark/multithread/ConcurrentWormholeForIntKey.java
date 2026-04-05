@@ -74,7 +74,7 @@ public class ConcurrentWormholeForIntKey {
           blackhole.consume(k);
           return true;
         };
-    keysState.withRandomKeyRange((startKey, endKey) ->
-        fullState.map.scan(startKey, endKey, true, function));
+    keysState.withRandomKeyRange(
+        (startKey, endKey) -> fullState.map.scan(startKey, endKey, true, function));
   }
 }
