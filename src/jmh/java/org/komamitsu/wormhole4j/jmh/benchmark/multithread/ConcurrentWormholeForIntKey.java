@@ -32,8 +32,6 @@ public class ConcurrentWormholeForIntKey {
   @State(Scope.Group)
   public static class FullState {
     WormholeForIntKey<Integer> map;
-    // This is a dummy variable for Blackhole.consume().
-    int counter;
 
     @Setup(Level.Trial)
     public void setup(IntKeysState data) {
@@ -73,14 +71,10 @@ public class ConcurrentWormholeForIntKey {
       IntKeysState keysState, FullState fullState, Blackhole blackhole) {
     BiFunction<Integer, Integer, Boolean> function =
         (k, v) -> {
-          // Calling blackhole.consume(value) for each record affects the performance significantly.
-          if (k == null) {
-            fullState.counter++;
-          }
+          blackhole.consume(k);
           return true;
         };
-    keysState.withRandomKeyRange(
-        (startKey, endKey) -> fullState.map.scan(startKey, endKey, true, function));
-    blackhole.consume(fullState.counter);
+    keysState.withRandomKeyRange((startKey, endKey) ->
+        fullState.map.scan(startKey, endKey, true, function));
   }
 }

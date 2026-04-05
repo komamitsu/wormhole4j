@@ -70,8 +70,8 @@ jmh {
     iterations = 4
     fork = 1
     failOnError = true
-    includes = listOf(".*\\.singlethread\\..*")
-    // includes = listOf(".*\\.multithread\\..*")
+    // includes = listOf(".*\\.singlethread\\..*")
+    includes = listOf(".*\\.multithread\\..*")
     // jvmArgs = listOf("-XX:StartFlightRecording=disk=false,dumponexit=true,filename=profile.jfr", "-XX:FlightRecorderOptions=stackdepth=128")
     // jvmArgs = listOf("-agentpath:/path/to/libasyncProfiler.so=start,event=cpu,interval=100us,file=profile.html")
 }
