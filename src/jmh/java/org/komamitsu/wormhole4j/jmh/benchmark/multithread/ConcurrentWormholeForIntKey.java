@@ -35,7 +35,7 @@ public class ConcurrentWormholeForIntKey {
     // This is a dummy variable for Blackhole.consume().
     int counter;
 
-    @Setup(Level.Iteration)
+    @Setup(Level.Trial)
     public void setup(IntKeysState data) {
       map = new WormholeForIntKey.Builder<Integer>().setConcurrent(true).build();
       for (int key : data.keys) {
@@ -47,8 +47,7 @@ public class ConcurrentWormholeForIntKey {
   @Group("PutAndGet")
   @GroupThreads(8)
   @Benchmark
-  public void putAndGetBenchmarkPut(
-      IntKeysState keysState, FullState fullState) {
+  public void putAndGetBenchmarkPut(IntKeysState keysState, FullState fullState) {
     fullState.map.put(keysState.getRandomKey(), 42);
   }
 

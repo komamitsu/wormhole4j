@@ -34,7 +34,7 @@ public class ConcurrentSkipListMapForIntKey {
     // This is a dummy variable for Blackhole.consume().
     int counter;
 
-    @Setup(Level.Iteration)
+    @Setup(Level.Trial)
     public void setup(IntKeysState data) {
       map = new ConcurrentSkipListMap<>();
       for (int key : data.keys) {
@@ -70,13 +70,19 @@ public class ConcurrentSkipListMapForIntKey {
   @Benchmark
   public void putAndScanBenchmarkScan(
       IntKeysState keysState, FullState fullState, Blackhole blackhole) {
-    keysState.withRandomKeyRange((startKey, endKey) ->
-        fullState.map.subMap(startKey, endKey).forEach((key, value) -> {
-          if (key == null) {
-            // Calling blackhole.consume(value) for each record affects the performance significantly.
-            fullState.counter++;
-          }
-        }));
+    keysState.withRandomKeyRange(
+        (startKey, endKey) ->
+            fullState
+                .map
+                .subMap(startKey, endKey)
+                .forEach(
+                    (key, value) -> {
+                      if (key == null) {
+                        // Calling blackhole.consume(value) for each record affects the performance
+                        // significantly.
+                        fullState.counter++;
+                      }
+                    }));
     blackhole.consume(fullState.counter);
   }
 }

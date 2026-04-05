@@ -63,12 +63,18 @@ public class AVLTreeForLongKey {
     iterateWithKeysRange(
         SCAN_OPS_COUNT,
         keysState,
-        (k1, k2) -> fullState.map.subMap(k1, k2).forEach((key, value) -> {
-          // Calling blackhole.consume(value) for each record affects the performance significantly.
-          if (key == null) {
-            fullState.counter++;
-          }
-        }));
+        (k1, k2) ->
+            fullState
+                .map
+                .subMap(k1, k2)
+                .forEach(
+                    (key, value) -> {
+                      // Calling blackhole.consume(value) for each record affects the performance
+                      // significantly.
+                      if (key == null) {
+                        fullState.counter++;
+                      }
+                    }));
     blackhole.consume(fullState.counter);
   }
 }

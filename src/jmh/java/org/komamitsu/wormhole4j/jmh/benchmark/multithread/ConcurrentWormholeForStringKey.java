@@ -34,7 +34,7 @@ public class ConcurrentWormholeForStringKey {
     // This is a dummy variable for Blackhole.consume().
     int counter;
 
-    @Setup(Level.Iteration)
+    @Setup(Level.Trial)
     public void setup(StringKeysState data) {
       map = new WormholeForStringKey.Builder<Integer>().setConcurrent(true).build();
       for (String key : data.keys) {

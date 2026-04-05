@@ -31,7 +31,7 @@ public class WormholeForStringKey {
 
   @State(Scope.Thread)
   public static class FullState {
-     org.komamitsu.wormhole4j.WormholeForStringKey<Integer> map;
+    org.komamitsu.wormhole4j.WormholeForStringKey<Integer> map;
     // This is a dummy variable for Blackhole.consume().
     int counter;
 

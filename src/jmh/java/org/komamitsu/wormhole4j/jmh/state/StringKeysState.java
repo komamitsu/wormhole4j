@@ -26,7 +26,7 @@ import org.openjdk.jmh.annotations.State;
 @State(Scope.Benchmark)
 public class StringKeysState extends KeysState<String> {
 
-  @Setup(Level.Iteration)
+  @Setup(Level.Trial)
   public void setup() {
     super.setupInternal();
   }
