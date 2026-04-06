@@ -16,7 +16,6 @@
 
 package org.komamitsu.wormhole4j.jmh.benchmark.singlethread;
 
-import static org.komamitsu.wormhole4j.jmh.Constants.*;
 import static org.komamitsu.wormhole4j.jmh.Utils.*;
 
 import java.util.concurrent.TimeUnit;
@@ -32,10 +31,8 @@ public class WormholeForIntKey {
   @State(Scope.Thread)
   public static class FullState {
     org.komamitsu.wormhole4j.WormholeForIntKey<Integer> map;
-    // This is a dummy variable for Blackhole.consume().
-    int counter;
 
-    @Setup(Level.Iteration)
+    @Setup(Level.Trial)
     public void setup(IntKeysState data) {
       map = new org.komamitsu.wormhole4j.WormholeForIntKey.Builder<Integer>().build();
       for (int key : data.keys) {
@@ -45,30 +42,23 @@ public class WormholeForIntKey {
   }
 
   @Benchmark
-  @OperationsPerInvocation(GET_OPS_COUNT)
   public void benchmarkGet(IntKeysState keysState, FullState fullState, Blackhole blackhole) {
-    iterateWithKey(GET_OPS_COUNT, keysState, key -> blackhole.consume(fullState.map.get(key)));
+    blackhole.consume(fullState.map.get(keysState.getRandomKey()));
   }
 
   @Benchmark
-  @OperationsPerInvocation(PUT_OPS_COUNT)
   public void benchmarkPut(IntKeysState keysState, FullState fullState) {
-    iterateWithKey(PUT_OPS_COUNT, keysState, key -> fullState.map.put(key, 42));
+    fullState.map.put(keysState.getRandomKey(), 42);
   }
 
   @Benchmark
-  @OperationsPerInvocation(SCAN_OPS_COUNT)
   public void benchmarkScan(IntKeysState keysState, FullState fullState, Blackhole blackhole) {
     BiFunction<Integer, Integer, Boolean> function =
         (k, v) -> {
-          // Calling blackhole.consume(value) for each record affects the performance significantly.
-          if (k == null) {
-            fullState.counter++;
-          }
+          blackhole.consume(k);
           return true;
         };
-    iterateWithKeysRange(
-        SCAN_OPS_COUNT, keysState, (k1, k2) -> fullState.map.scan(k1, k2, true, function));
-    blackhole.consume(fullState.counter);
+    keysState.withRandomKeyRange(
+        (startKey, endKey) -> fullState.map.scan(startKey, endKey, true, function));
   }
 }
