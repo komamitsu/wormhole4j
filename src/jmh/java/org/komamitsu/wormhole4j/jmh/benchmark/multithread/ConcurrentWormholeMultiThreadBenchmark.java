@@ -65,7 +65,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
   }
 
   public static class ForIntKey extends ConcurrentWormholeMultiThreadBenchmark<Integer> {
-    @State(Scope.Thread)
+    @State(Scope.Benchmark)
     public static class FullState
         extends ConcurrentWormholeMultiThreadBenchmark.FullState<Integer> {
       @Setup(Level.Trial)
@@ -107,7 +107,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
   }
 
   public static class ForLongKey extends ConcurrentWormholeMultiThreadBenchmark<Long> {
-    @State(Scope.Thread)
+    @State(Scope.Benchmark)
     public static class FullState extends ConcurrentWormholeMultiThreadBenchmark.FullState<Long> {
       @Setup(Level.Trial)
       public void setup(LongKeysState keysState) {
@@ -148,7 +148,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
   }
 
   public static class ForStringKey extends ConcurrentWormholeMultiThreadBenchmark<String> {
-    @State(Scope.Thread)
+    @State(Scope.Benchmark)
     public static class FullState extends ConcurrentWormholeMultiThreadBenchmark.FullState<String> {
       @Setup(Level.Trial)
       public void setup(StringKeysState keysState) {

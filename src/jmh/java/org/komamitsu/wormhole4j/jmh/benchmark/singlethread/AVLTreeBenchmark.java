@@ -58,7 +58,7 @@ public abstract class AVLTreeBenchmark<K extends Comparable<K>> {
   }
 
   public static class ForIntKey extends AVLTreeBenchmark<Integer> {
-    @State(Scope.Thread)
+    @State(Scope.Benchmark)
     public static class FullState extends AVLTreeBenchmark.FullState<Integer> {
       @Setup(Level.Trial)
       public void setup(IntKeysState keysState) {
@@ -83,7 +83,7 @@ public abstract class AVLTreeBenchmark<K extends Comparable<K>> {
   }
 
   public static class ForLongKey extends AVLTreeBenchmark<Long> {
-    @State(Scope.Thread)
+    @State(Scope.Benchmark)
     public static class FullState extends AVLTreeBenchmark.FullState<Long> {
       @Setup(Level.Trial)
       public void setup(LongKeysState keysState) {
@@ -108,7 +108,7 @@ public abstract class AVLTreeBenchmark<K extends Comparable<K>> {
   }
 
   public static class ForStringKey extends AVLTreeBenchmark<String> {
-    @State(Scope.Thread)
+    @State(Scope.Benchmark)
     public static class FullState extends AVLTreeBenchmark.FullState<String> {
       @Setup(Level.Trial)
       public void setup(StringKeysState keysState) {

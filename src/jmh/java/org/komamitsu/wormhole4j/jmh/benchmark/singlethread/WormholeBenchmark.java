@@ -65,7 +65,7 @@ public abstract class WormholeBenchmark<K extends Comparable<K>> {
   }
 
   public static class ForIntKey extends WormholeBenchmark<Integer> {
-    @State(Scope.Thread)
+    @State(Scope.Benchmark)
     public static class FullState extends WormholeBenchmark.FullState<Integer> {
       @Setup(Level.Trial)
       public void setup(IntKeysState keysState) {
@@ -90,7 +90,7 @@ public abstract class WormholeBenchmark<K extends Comparable<K>> {
   }
 
   public static class ForLongKey extends WormholeBenchmark<Long> {
-    @State(Scope.Thread)
+    @State(Scope.Benchmark)
     public static class FullState extends WormholeBenchmark.FullState<Long> {
       @Setup(Level.Trial)
       public void setup(LongKeysState keysState) {
@@ -115,7 +115,7 @@ public abstract class WormholeBenchmark<K extends Comparable<K>> {
   }
 
   public static class ForStringKey extends WormholeBenchmark<String> {
-    @State(Scope.Thread)
+    @State(Scope.Benchmark)
     public static class FullState extends WormholeBenchmark.FullState<String> {
       @Setup(Level.Trial)
       public void setup(StringKeysState keysState) {

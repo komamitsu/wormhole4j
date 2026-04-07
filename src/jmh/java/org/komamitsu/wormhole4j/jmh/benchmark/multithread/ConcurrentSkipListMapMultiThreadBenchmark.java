@@ -57,7 +57,7 @@ public abstract class ConcurrentSkipListMapMultiThreadBenchmark<K extends Compar
   }
 
   public static class ForIntKey extends ConcurrentSkipListMapMultiThreadBenchmark<Integer> {
-    @State(Scope.Thread)
+    @State(Scope.Benchmark)
     public static class FullState
         extends ConcurrentSkipListMapMultiThreadBenchmark.FullState<Integer> {
       @Setup(Level.Trial)
@@ -98,7 +98,7 @@ public abstract class ConcurrentSkipListMapMultiThreadBenchmark<K extends Compar
   }
 
   public static class ForLongKey extends ConcurrentSkipListMapMultiThreadBenchmark<Long> {
-    @State(Scope.Thread)
+    @State(Scope.Benchmark)
     public static class FullState
         extends ConcurrentSkipListMapMultiThreadBenchmark.FullState<Long> {
       @Setup(Level.Trial)
@@ -139,7 +139,7 @@ public abstract class ConcurrentSkipListMapMultiThreadBenchmark<K extends Compar
   }
 
   public static class ForStringKey extends ConcurrentSkipListMapMultiThreadBenchmark<String> {
-    @State(Scope.Thread)
+    @State(Scope.Benchmark)
     public static class FullState
         extends ConcurrentSkipListMapMultiThreadBenchmark.FullState<String> {
       @Setup(Level.Trial)

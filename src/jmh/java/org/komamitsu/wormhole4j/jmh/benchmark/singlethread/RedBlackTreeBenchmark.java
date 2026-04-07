@@ -57,7 +57,7 @@ public abstract class RedBlackTreeBenchmark<K extends Comparable<K>> {
   }
 
   public static class ForIntKey extends RedBlackTreeBenchmark<Integer> {
-    @State(Scope.Thread)
+    @State(Scope.Benchmark)
     public static class FullState extends RedBlackTreeBenchmark.FullState<Integer> {
       @Setup(Level.Trial)
       public void setup(IntKeysState keysState) {
@@ -82,7 +82,7 @@ public abstract class RedBlackTreeBenchmark<K extends Comparable<K>> {
   }
 
   public static class ForLongKey extends RedBlackTreeBenchmark<Long> {
-    @State(Scope.Thread)
+    @State(Scope.Benchmark)
     public static class FullState extends RedBlackTreeBenchmark.FullState<Long> {
       @Setup(Level.Trial)
       public void setup(LongKeysState keysState) {
@@ -107,7 +107,7 @@ public abstract class RedBlackTreeBenchmark<K extends Comparable<K>> {
   }
 
   public static class ForStringKey extends RedBlackTreeBenchmark<String> {
-    @State(Scope.Thread)
+    @State(Scope.Benchmark)
     public static class FullState extends RedBlackTreeBenchmark.FullState<String> {
       @Setup(Level.Trial)
       public void setup(StringKeysState keysState) {
