@@ -43,8 +43,19 @@ class ConcurrentLeafNode<K, V> extends LeafNode<K, V> {
     return lock.readLock();
   }
 
+  @Override
   void releaseLock(long stamp) {
     this.lock.unlock(stamp);
+  }
+
+  @Override
+  long tryReadLock() {
+    return lock.tryReadLock();
+  }
+
+  @Override
+  boolean validateLock(long stamp) {
+    return lock.validate(stamp);
   }
 
   @Override

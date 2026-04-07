@@ -49,8 +49,22 @@ class MetaTrieHashTable<K, V> {
 
   void releaseLock(long stamp) {
     if (isConcurrent) {
-      this.lock.unlock(stamp);
+      lock.unlock(stamp);
       return;
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  long tryReadLock() {
+    if (isConcurrent) {
+      return lock.tryReadLock();
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  boolean validateLock(long stamp) {
+    if (isConcurrent) {
+      return lock.validate(stamp);
     }
     throw new UnsupportedOperationException();
   }
