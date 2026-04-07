@@ -33,3 +33,4 @@ jobs:
       with:
         name: test-reports-${{ matrix.java_version }}
         path: build/reports/tests/test/
+        if-no-files-found: ignore
