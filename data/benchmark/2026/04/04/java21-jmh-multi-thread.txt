@@ -1,0 +1,25 @@
+Benchmark                                                              Mode  Cnt         Score          Error  Units
+ConcurrentSkipListMapForIntKey.PutAndGet                              thrpt    4  12038745.021 ± 10565686.053  ops/s
+ConcurrentSkipListMapForIntKey.PutAndGet:putAndGetBenchmarkGet        thrpt    4   6309094.074 ±  5595153.339  ops/s
+ConcurrentSkipListMapForIntKey.PutAndGet:putAndGetBenchmarkPut        thrpt    4   5729650.947 ±  4975122.744  ops/s
+ConcurrentSkipListMapForIntKey.PutAndScan                             thrpt    4   6132772.671 ±  7038953.474  ops/s
+ConcurrentSkipListMapForIntKey.PutAndScan:putAndScanBenchmarkPut      thrpt    4   6067051.387 ±  7012569.777  ops/s
+ConcurrentSkipListMapForIntKey.PutAndScan:putAndScanBenchmarkScan     thrpt    4     65721.284 ±    45656.268  ops/s
+ConcurrentSkipListMapForStringKey.PutAndGet                           thrpt    4   7499488.490 ±  3723713.514  ops/s
+ConcurrentSkipListMapForStringKey.PutAndGet:putAndGetBenchmarkGet     thrpt    4   3993210.050 ±  2056727.503  ops/s
+ConcurrentSkipListMapForStringKey.PutAndGet:putAndGetBenchmarkPut     thrpt    4   3506278.439 ±  1668947.394  ops/s
+ConcurrentSkipListMapForStringKey.PutAndScan                          thrpt    4   3312951.895 ±  2426965.974  ops/s
+ConcurrentSkipListMapForStringKey.PutAndScan:putAndScanBenchmarkPut   thrpt    4   3262096.334 ±  2373335.077  ops/s
+ConcurrentSkipListMapForStringKey.PutAndScan:putAndScanBenchmarkScan  thrpt    4     50855.561 ±    56803.090  ops/s
+ConcurrentWormholeForIntKey.PutAndGet                                 thrpt    4  15574172.291 ±  9489233.118  ops/s
+ConcurrentWormholeForIntKey.PutAndGet:putAndGetBenchmarkGet           thrpt    4   8865987.500 ±  4250630.072  ops/s
+ConcurrentWormholeForIntKey.PutAndGet:putAndGetBenchmarkPut           thrpt    4   6708184.792 ±  5708713.041  ops/s
+ConcurrentWormholeForIntKey.PutAndScan                                thrpt    4   9340438.728 ±  1660686.009  ops/s
+ConcurrentWormholeForIntKey.PutAndScan:putAndScanBenchmarkPut         thrpt    4   9263433.196 ±  1645296.544  ops/s
+ConcurrentWormholeForIntKey.PutAndScan:putAndScanBenchmarkScan        thrpt    4     77005.533 ±    34972.751  ops/s
+ConcurrentWormholeForStringKey.PutAndGet                              thrpt    4   8733782.352 ±  2832698.261  ops/s
+ConcurrentWormholeForStringKey.PutAndGet:putAndGetBenchmarkGet        thrpt    4   4371732.749 ±  1351714.283  ops/s
+ConcurrentWormholeForStringKey.PutAndGet:putAndGetBenchmarkPut        thrpt    4   4362049.603 ±  1503705.952  ops/s
+ConcurrentWormholeForStringKey.PutAndScan                             thrpt    4   8836045.323 ±  4776254.953  ops/s
+ConcurrentWormholeForStringKey.PutAndScan:putAndScanBenchmarkPut      thrpt    4   8760941.332 ±  4737545.907  ops/s
+ConcurrentWormholeForStringKey.PutAndScan:putAndScanBenchmarkScan     thrpt    4     75103.991 ±    38974.613  ops/s

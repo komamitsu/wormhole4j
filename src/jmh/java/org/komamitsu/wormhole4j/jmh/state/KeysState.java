@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.komamitsu.wormhole4j.jmh;
+package org.komamitsu.wormhole4j.jmh.state;
 
 import static org.komamitsu.wormhole4j.jmh.Constants.*;
 
@@ -22,17 +22,38 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BiConsumer;
 
-abstract class KeysState<T extends Comparable<T>> {
-  List<T> keys = new ArrayList<>(RECORD_COUNT);
-  List<T> startKeys = new ArrayList<>(SCAN_OPS_COUNT);
-  List<T> endKeys = new ArrayList<>(SCAN_OPS_COUNT);
+public abstract class KeysState<T extends Comparable<T>> {
+  public List<T> keys;
+  public List<T> startKeys;
+  public List<T> endKeys;
 
-  protected abstract T getRandomValue();
+  protected abstract T createRandomValue();
+
+  private int getRandomKeyIndex() {
+    return ThreadLocalRandom.current().nextInt(keys.size());
+  }
+
+  private int getRandomScanKeyIndex() {
+    return ThreadLocalRandom.current().nextInt(startKeys.size());
+  }
+
+  public T getRandomKey() {
+    return keys.get(getRandomKeyIndex());
+  }
+
+  public void withRandomKeyRange(BiConsumer<T, T> task) {
+    int keyIndex = getRandomScanKeyIndex();
+    task.accept(startKeys.get(keyIndex), endKeys.get(keyIndex));
+  }
 
   protected void setupInternal() {
+    keys = new ArrayList<>(RECORD_COUNT);
+    startKeys = new ArrayList<>(SCAN_OPS_COUNT);
+    endKeys = new ArrayList<>(SCAN_OPS_COUNT);
     for (int i = 0; i < RECORD_COUNT; i++) {
-      keys.add(getRandomValue());
+      keys.add(createRandomValue());
     }
     List<T> sortedKeys = new ArrayList<>(RECORD_COUNT);
     sortedKeys.addAll(keys);

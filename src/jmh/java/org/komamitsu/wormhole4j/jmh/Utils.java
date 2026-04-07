@@ -22,23 +22,20 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import org.komamitsu.wormhole4j.jmh.state.KeysState;
 
-final class Utils {
+public final class Utils {
   private Utils() {}
 
-  static int randomInt() {
+  public static int randomInt() {
     return ThreadLocalRandom.current().nextInt();
   }
 
-  static int randomInt(int limit) {
-    return ThreadLocalRandom.current().nextInt(limit);
-  }
-
-  static long randomLong() {
+  public static long randomLong() {
     return ThreadLocalRandom.current().nextLong();
   }
 
-  static String randomString() {
+  public static String randomString() {
     int keyLength = ThreadLocalRandom.current().nextInt(MIN_STRING_KEY_LEN, MAX_STRING_KEY_LEN);
     StringBuilder sb = new StringBuilder(keyLength);
     for (int j = 0; j < keyLength; j++) {
@@ -48,7 +45,7 @@ final class Utils {
     return sb.toString();
   }
 
-  static <T extends Comparable<T>> void iterateWithKey(
+  public static <T extends Comparable<T>> void iterateWithKey(
       int count, KeysState<T> keysState, Consumer<T> task) {
     List<T> keys = keysState.keys;
     for (int i = 0; i < count; i++) {
@@ -56,7 +53,7 @@ final class Utils {
     }
   }
 
-  static <T extends Comparable<T>> void iterateWithKeysRange(
+  public static <T extends Comparable<T>> void iterateWithKeysRange(
       int count, KeysState<T> keysState, BiConsumer<T, T> task) {
     int scanSize = keysState.startKeys.size();
     for (int i = 0; i < count; i++) {

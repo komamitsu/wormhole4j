@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.komamitsu.wormhole4j.jmh;
+package org.komamitsu.wormhole4j.jmh.state;
 
 import static org.komamitsu.wormhole4j.jmh.Utils.*;
 
@@ -32,7 +32,7 @@ public class LongKeysState extends KeysState<Long> {
   }
 
   @Override
-  protected Long getRandomValue() {
+  protected Long createRandomValue() {
     return randomLong();
   }
 }
