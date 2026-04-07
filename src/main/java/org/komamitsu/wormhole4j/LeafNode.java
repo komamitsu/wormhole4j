@@ -741,7 +741,7 @@ class LeafNode<K, V> {
     throw new UnsupportedOperationException();
   }
 
-  long tryReadLock() {
+  long tryOptimisticRead() {
     throw new UnsupportedOperationException();
   }
 

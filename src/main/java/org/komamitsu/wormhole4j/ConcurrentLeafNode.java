@@ -49,8 +49,8 @@ class ConcurrentLeafNode<K, V> extends LeafNode<K, V> {
   }
 
   @Override
-  long tryReadLock() {
-    return lock.tryReadLock();
+  long tryOptimisticRead() {
+    return lock.tryOptimisticRead();
   }
 
   @Override
