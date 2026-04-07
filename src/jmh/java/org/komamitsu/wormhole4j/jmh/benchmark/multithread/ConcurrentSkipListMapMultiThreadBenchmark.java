@@ -19,6 +19,7 @@ package org.komamitsu.wormhole4j.jmh.benchmark.multithread;
 import static org.komamitsu.wormhole4j.jmh.Utils.randomInt;
 
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import org.komamitsu.wormhole4j.jmh.state.IntKeysState;
 import org.komamitsu.wormhole4j.jmh.state.KeysState;
@@ -47,7 +48,7 @@ public abstract class ConcurrentSkipListMapMultiThreadBenchmark<K extends Compar
   }
 
   protected void execPut(KeysState<K> keysState, FullState<K> fullState) {
-    fullState.map.put(keysState.getRandomKey(), 42);
+    fullState.map.put(keysState.getRandomKey(), ThreadLocalRandom.current().nextInt());
   }
 
   protected void execScan(KeysState<K> keysState, FullState<K> fullState, Blackhole blackhole) {

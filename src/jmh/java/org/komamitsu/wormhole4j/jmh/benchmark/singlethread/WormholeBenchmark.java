@@ -18,6 +18,7 @@ package org.komamitsu.wormhole4j.jmh.benchmark.singlethread;
 
 import static org.komamitsu.wormhole4j.jmh.Utils.randomInt;
 
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import org.komamitsu.wormhole4j.Wormhole;
@@ -51,7 +52,7 @@ public abstract class WormholeBenchmark<K extends Comparable<K>> {
   }
 
   protected void execPut(KeysState<K> keysState, FullState<K> fullState) {
-    fullState.map.put(keysState.getRandomKey(), 42);
+    fullState.map.put(keysState.getRandomKey(), ThreadLocalRandom.current().nextInt());
   }
 
   protected void execScan(KeysState<K> keysState, FullState<K> fullState, Blackhole blackhole) {
