@@ -33,7 +33,7 @@ import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
  * @param <K> the type of keys stored in this index
  * @param <V> the type of values stored in this index
  */
-abstract class Wormhole<K, V> {
+public abstract class Wormhole<K, V> {
   private static final int DEFAULT_LEAF_NODE_SIZE = 128;
   private final EncodedKeyType encodedKeyType;
   private final boolean isConcurrent;
