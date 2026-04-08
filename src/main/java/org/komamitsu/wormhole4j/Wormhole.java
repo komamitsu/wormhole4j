@@ -188,7 +188,8 @@ public abstract class Wormhole<K, V> {
   @Nullable
   public V get(K key) {
     Object encodedKey = createEncodedKey(key);
-    while (true) {
+    // With optimistic lock.
+    for (int i = 0; i < 2; i++) {
       long tableLock = 0;
       if (isConcurrent) {
         tableLock = table.tryOptimisticRead();
@@ -211,6 +212,22 @@ public abstract class Wormhole<K, V> {
         }
       }
       return value;
+    }
+
+    // With pessimistic lock.
+    long tableLock = table.acquireReadLock();
+    try {
+      LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+      long readLockOnLeafNode = leafNode.acquireReadLock();
+      try {
+        return leafNode.lookupValue(encodedKey);
+      }
+      finally {
+        leafNode.releaseLock(readLockOnLeafNode);
+      }
+    }
+    finally {
+      table.releaseLock(tableLock);
     }
   }
 
