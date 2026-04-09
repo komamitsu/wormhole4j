@@ -61,16 +61,9 @@ class MetaTrieHashTable<K, V> {
     throw new UnsupportedOperationException();
   }
 
-  long tryOptimisticRead() {
+  long tryReadLock() {
     if (isConcurrent) {
-      return lock.tryOptimisticRead();
-    }
-    throw new UnsupportedOperationException();
-  }
-
-  boolean validateLock(long stamp) {
-    if (isConcurrent) {
-      return lock.validate(stamp);
+      return lock.tryReadLock();
     }
     throw new UnsupportedOperationException();
   }

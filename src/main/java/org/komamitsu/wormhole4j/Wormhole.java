@@ -188,46 +188,48 @@ public abstract class Wormhole<K, V> {
   @Nullable
   public V get(K key) {
     Object encodedKey = createEncodedKey(key);
-    // With optimistic lock.
-    for (int i = 0; i < 2; i++) {
+    boolean shouldTryReadLock = true;
+    int attempts = 0;
+    while (true) {
+      if (attempts++ > 4) {
+        shouldTryReadLock = false;
+      }
       long tableLock = 0;
       if (isConcurrent) {
-        tableLock = table.tryOptimisticRead();
-        if (tableLock == 0) {
-          continue;
+        if (shouldTryReadLock) {
+          tableLock = table.tryReadLock();
+          if (tableLock == 0) {
+            continue;
+          }
+        } else {
+          tableLock = table.acquireReadLock();
         }
       }
-      LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
-      long readLockOnLeafNode = 0;
-      if (isConcurrent) {
-        readLockOnLeafNode = leafNode.tryOptimisticRead();
-        if (readLockOnLeafNode == 0) {
-          continue;
-        }
-      }
-      V value = leafNode.lookupValue(encodedKey);
-      if (isConcurrent) {
-        if (!leafNode.validateLock(readLockOnLeafNode) || !table.validateLock(tableLock)) {
-          continue;
-        }
-      }
-      return value;
-    }
-
-    // With pessimistic lock.
-    long tableLock = table.acquireReadLock();
-    try {
-      LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
-      long readLockOnLeafNode = leafNode.acquireReadLock();
       try {
-        return leafNode.lookupValue(encodedKey);
+        LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+        long readLockOnLeafNode = 0;
+        if (isConcurrent) {
+          if (shouldTryReadLock) {
+            readLockOnLeafNode = leafNode.tryReadLock();
+            if (readLockOnLeafNode == 0) {
+              continue;
+            }
+          } else {
+            readLockOnLeafNode = leafNode.acquireReadLock();
+          }
+        }
+        try {
+          return leafNode.lookupValue(encodedKey);
+        } finally {
+          if (isConcurrent) {
+            leafNode.releaseLock(readLockOnLeafNode);
+          }
+        }
+      } finally {
+        if (isConcurrent) {
+          table.releaseLock(tableLock);
+        }
       }
-      finally {
-        leafNode.releaseLock(readLockOnLeafNode);
-      }
-    }
-    finally {
-      table.releaseLock(tableLock);
     }
   }
 
