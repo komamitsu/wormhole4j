@@ -188,26 +188,47 @@ public abstract class Wormhole<K, V> {
   @Nullable
   public V get(K key) {
     Object encodedKey = createEncodedKey(key);
-    long tableLock = 0;
-    if (isConcurrent) {
-      tableLock = table.acquireReadLock();
-    }
-    try {
-      LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
-      long readLockOnLeafNode = 0;
-      if (isConcurrent) {
-        readLockOnLeafNode = leafNode.acquireReadLock();
+    boolean shouldTryReadLock = true;
+    int attempts = 0;
+    while (true) {
+      if (attempts++ > 4) {
+        shouldTryReadLock = false;
       }
-      try {
-        return leafNode.lookupValue(encodedKey);
-      } finally {
-        if (isConcurrent) {
-          leafNode.releaseLock(readLockOnLeafNode);
+      long tableLock = 0;
+      if (isConcurrent) {
+        if (shouldTryReadLock) {
+          tableLock = table.tryReadLock();
+          if (tableLock == 0) {
+            continue;
+          }
+        } else {
+          tableLock = table.acquireReadLock();
         }
       }
-    } finally {
-      if (isConcurrent) {
-        table.releaseLock(tableLock);
+      try {
+        LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+        long readLockOnLeafNode = 0;
+        if (isConcurrent) {
+          if (shouldTryReadLock) {
+            readLockOnLeafNode = leafNode.tryReadLock();
+            if (readLockOnLeafNode == 0) {
+              continue;
+            }
+          } else {
+            readLockOnLeafNode = leafNode.acquireReadLock();
+          }
+        }
+        try {
+          return leafNode.lookupValue(encodedKey);
+        } finally {
+          if (isConcurrent) {
+            leafNode.releaseLock(readLockOnLeafNode);
+          }
+        }
+      } finally {
+        if (isConcurrent) {
+          table.releaseLock(tableLock);
+        }
       }
     }
   }

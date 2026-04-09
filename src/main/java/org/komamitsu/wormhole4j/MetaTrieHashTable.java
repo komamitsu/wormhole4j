@@ -17,6 +17,7 @@
 package org.komamitsu.wormhole4j;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.StampedLock;
 import javax.annotation.Nullable;
 
@@ -24,13 +25,18 @@ class MetaTrieHashTable<K, V> {
   private final EncodedKeyType encodedKeyType;
   private int maxAnchorLength;
 
-  private final Map<Object, NodeMeta> table = new HashMap<>();
+  private final Map<Object, NodeMeta> table;
   private final boolean isConcurrent;
   private final StampedLock lock = new StampedLock();
 
   MetaTrieHashTable(EncodedKeyType encodedKeyType, boolean isConcurrent) {
     this.encodedKeyType = encodedKeyType;
     this.isConcurrent = isConcurrent;
+    if (isConcurrent) {
+      table = new ConcurrentHashMap<>();
+    } else {
+      table = new HashMap<>();
+    }
   }
 
   long acquireReadLock() {
@@ -49,8 +55,15 @@ class MetaTrieHashTable<K, V> {
 
   void releaseLock(long stamp) {
     if (isConcurrent) {
-      this.lock.unlock(stamp);
+      lock.unlock(stamp);
       return;
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  long tryReadLock() {
+    if (isConcurrent) {
+      return lock.tryReadLock();
     }
     throw new UnsupportedOperationException();
   }

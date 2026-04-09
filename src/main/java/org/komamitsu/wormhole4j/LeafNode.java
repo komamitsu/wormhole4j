@@ -741,6 +741,10 @@ class LeafNode<K, V> {
     throw new UnsupportedOperationException();
   }
 
+  long tryReadLock() {
+    throw new UnsupportedOperationException();
+  }
+
   void validate() {
     Object normalizedAnchorKey = anchorKey;
     Object normalizedRightAnchorKey = null;
