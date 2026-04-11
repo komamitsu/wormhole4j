@@ -142,14 +142,15 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
     LeafNode<K, V> leafNode = searchTrieHashTable(encodedStartKey);
     while (leafNode != null) {
       leafNode.incSort();
-      validateIfNeeded();
       if (!leafNode.iterateKeyValues(
           encodedStartKey, encodedEndKey, isEndKeyExclusive, actualFunction)) {
+        validateIfNeeded();
         return;
       }
       leafNode = leafNode.getRight();
       encodedStartKey = null;
     }
+    validateIfNeeded();
   }
 
   @Nullable
