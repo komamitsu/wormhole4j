@@ -37,7 +37,7 @@ public class WormholeForStringKey<V> extends Wormhole<String, V> {
   }
 
   public static class Builder<V>
-      extends Wormhole.Builder<WormholeForStringKey<V>, Builder<V>, String, V> {
+      extends WormholeBuilder<WormholeForStringKey<V>, Builder<V>, String, V> {
     @Override
     protected Builder<V> self() {
       return this;

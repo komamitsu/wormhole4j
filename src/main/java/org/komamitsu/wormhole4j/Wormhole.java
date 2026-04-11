@@ -34,7 +34,7 @@ import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
  * @param <V> the type of values stored in this index
  */
 public abstract class Wormhole<K, V> {
-  private static final int DEFAULT_LEAF_NODE_SIZE = 128;
+  static final int DEFAULT_LEAF_NODE_SIZE = 128;
   private final EncodedKeyType encodedKeyType;
   private final boolean isConcurrent;
   private final MetaTrieHashTable<K, V> table;
@@ -112,14 +112,8 @@ public abstract class Wormhole<K, V> {
             continue;
           }
 
-          // Split the node and get a new right leaf node.
-          LeafNode<K, V> newLeafNode = split(leafNode);
-
-          if (EncodedKeyUtils.compare(encodedKeyType, encodedKey, newLeafNode.anchorKey) < 0) {
-            leafNode.add(encodedKey, key, value);
-          } else {
-            newLeafNode.add(encodedKey, key, value);
-          }
+          // Split the node and insert the value to a new leaf node.
+          splitAndInsert(leafNode, encodedKey, key, value);
           return null;
         } finally {
           if (isConcurrent) {
@@ -158,13 +152,7 @@ public abstract class Wormhole<K, V> {
           return false;
         }
 
-        if (leafNode.getLeft() != null
-            && leafNode.size() + leafNode.getLeft().size() < leafNodeMergeSize) {
-          merge(leafNode.getLeft(), leafNode);
-        } else if (leafNode.getRight() != null
-            && leafNode.size() + leafNode.getRight().size() < leafNodeMergeSize) {
-          merge(leafNode, leafNode.getRight());
-        }
+        mergeIfNeeded(leafNode);
       } finally {
         if (isConcurrent) {
           leafNode.releaseLock(writeLockOnLeafNode);
@@ -212,6 +200,21 @@ public abstract class Wormhole<K, V> {
     }
   }
 
+  private BiFunction<K, V, Boolean> prepareScanFunction(
+      @Nullable Integer count, BiFunction<K, V, Boolean> origFunction) {
+    if (count == null) {
+      return origFunction;
+    }
+
+    AtomicInteger counter = new AtomicInteger();
+    return (k, v) -> {
+      if (counter.getAndIncrement() >= count) {
+        return false;
+      }
+      return origFunction.apply(k, v);
+    };
+  }
+
   private void scanInternal(
       @Nullable K startKey,
       @Nullable K endKey,
@@ -221,17 +224,7 @@ public abstract class Wormhole<K, V> {
     Object encodedStartKey =
         startKey == null ? createEmptyEncodedKey() : createEncodedKey(startKey);
     Object encodedEndKey = endKey == null ? null : createEncodedKey(endKey);
-    BiFunction<K, V, Boolean> actualFunction = function;
-    if (count != null) {
-      AtomicInteger counter = new AtomicInteger();
-      actualFunction =
-          (k, v) -> {
-            if (counter.getAndIncrement() >= count) {
-              return false;
-            }
-            return function.apply(k, v);
-          };
-    }
+    BiFunction<K, V, Boolean> actualFunction = prepareScanFunction(count, function);
 
     long tableLock = 0;
     if (isConcurrent) {
@@ -415,12 +408,31 @@ public abstract class Wormhole<K, V> {
     return null;
   }
 
+  private void splitAndInsert(LeafNode<K, V> leafNode, Object encodedKey, K key, V value) {
+    LeafNode<K, V> newLeafNode = split(leafNode);
+    if (EncodedKeyUtils.compare(encodedKeyType, encodedKey, newLeafNode.anchorKey) < 0) {
+      leafNode.add(encodedKey, key, value);
+    } else {
+      newLeafNode.add(encodedKey, key, value);
+    }
+  }
+
   private LeafNode<K, V> split(LeafNode<K, V> leafNode) {
     Tuple<Object, LeafNode<K, V>> newLeafNodeAndAnchor = leafNode.splitToNewLeafNode();
     Object newAnchor = newLeafNodeAndAnchor.first;
     LeafNode<K, V> newLeafNode = newLeafNodeAndAnchor.second;
     table.handleSplitNodes(newAnchor, newLeafNode);
     return newLeafNode;
+  }
+
+  private void mergeIfNeeded(LeafNode<K, V> leafNode) {
+    if (leafNode.getLeft() != null
+        && leafNode.size() + leafNode.getLeft().size() < leafNodeMergeSize) {
+      merge(leafNode.getLeft(), leafNode);
+    } else if (leafNode.getRight() != null
+        && leafNode.size() + leafNode.getRight().size() < leafNodeMergeSize) {
+      merge(leafNode, leafNode.getRight());
+    }
   }
 
   private void merge(LeafNode<K, V> left, LeafNode<K, V> victim) {
@@ -475,31 +487,6 @@ public abstract class Wormhole<K, V> {
   @Override
   public String toString() {
     return "Wormhole{" + "table=" + table + ", leafNodeSize=" + leafNodeSize + '}';
-  }
-
-  abstract static class Builder<W extends Wormhole<K, V>, B extends Builder<W, B, K, V>, K, V> {
-    protected boolean isConcurrent = false;
-    protected boolean isDebugMode = false;
-    protected int leafNodeSize = DEFAULT_LEAF_NODE_SIZE;
-
-    protected abstract B self();
-
-    public B setConcurrent(boolean isConcurrent) {
-      this.isConcurrent = isConcurrent;
-      return self();
-    }
-
-    public B setDebugMode(boolean isDebugMode) {
-      this.isDebugMode = isDebugMode;
-      return self();
-    }
-
-    public B setLeafNodeSize(int leafNodeSize) {
-      this.leafNodeSize = leafNodeSize;
-      return self();
-    }
-
-    abstract W build();
   }
 
   static class Validator<K, T> {
