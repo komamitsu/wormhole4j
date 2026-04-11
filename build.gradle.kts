@@ -70,7 +70,6 @@ jmh {
     iterations = 4
     fork = 1
     failOnError = true
-    includes = listOf(".*\\.multithread\\..*Wormhole.*IntKey")
     // includes = listOf(".*\\.singlethread\\..*")
     // includes = listOf(".*\\.multithread\\..*")
     // jvmArgs = listOf("-XX:StartFlightRecording=disk=false,dumponexit=true,filename=profile.jfr", "-XX:FlightRecorderOptions=stackdepth=128")
