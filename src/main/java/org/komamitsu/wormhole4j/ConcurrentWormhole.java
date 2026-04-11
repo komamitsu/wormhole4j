@@ -25,8 +25,7 @@ import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
 /**
  * Wormhole is an in-memory ordered index for key-value pairs.
  *
- * <p>This implementation supports fast lookups, inserts, deletes, and range scans. Keys are {@link
- * String} only.
+ * <p>This implementation supports fast lookups, inserts, deletes, and range scans.
  *
  * @param <K> the type of keys stored in this index
  * @param <V> the type of values stored in this index
@@ -41,7 +40,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
    * @param leafNodeSize maximum number of entries in a leaf node
    */
   protected ConcurrentWormhole(EncodedKeyType encodedKeyType, int leafNodeSize) {
-    super(encodedKeyType, leafNodeSize, false);
+    super(encodedKeyType, leafNodeSize);
     this.metaTable = new MetaTrieHashTable<>(encodedKeyType, true);
     initialize();
   }
@@ -83,7 +82,6 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
         try {
           Optional<V> existingValue = leafNode.lookupAndPutValue(encodedKey, key, value);
           if (existingValue != null) {
-            validateIfNeeded();
             return existingValue.orElse(null);
           }
 
@@ -101,7 +99,6 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
         }
       } finally {
         metaTable.releaseLock(tableLock);
-        validateIfNeeded();
       }
     }
   }
@@ -121,7 +118,6 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
       long writeLockOnLeafNode = leafNode.acquireWriteLock();
       try {
         if (!leafNode.delete(encodedKey)) {
-          validateIfNeeded();
           return false;
         }
 
@@ -131,7 +127,6 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
       }
     } finally {
       metaTable.releaseLock(tableLock);
-      validateIfNeeded();
     }
     return true;
   }
@@ -191,7 +186,6 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
           leafNode.incSort();
           if (!leafNode.iterateKeyValues(
               encodedStartKey, encodedEndKey, isEndKeyExclusive, actualFunction)) {
-            validateIfNeeded();
             return;
           }
         } finally {
@@ -202,7 +196,6 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
       }
     } finally {
       metaTable.releaseLock(tableLock);
-      validateIfNeeded();
     }
   }
 

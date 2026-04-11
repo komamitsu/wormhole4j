@@ -28,8 +28,7 @@ public class WormholeForLongKey<V> extends SimpleWormhole<Long, V> {
 
   @Override
   protected Object createEncodedKey(Long key) {
-    assert key != null;
-    return new LongWrapper(key ^ 0x8000000000000000L);
+    return createEncodedLongKey(key);
   }
 
   @Override

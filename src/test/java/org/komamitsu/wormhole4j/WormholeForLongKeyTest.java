@@ -29,7 +29,6 @@ import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.params.Parameter;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.komamitsu.wormhole4j.Wormhole.Validator;
 
 @ParameterizedClass
 @ValueSource(ints = {3, 8, 128})
@@ -157,7 +156,7 @@ class WormholeForLongKeyTest {
     @EnabledIf("isLeafNodeLargeEnough")
     void withManyLeafNodes_ShouldReturnThem() {
       // Arrange
-      Validator<Long, Integer> validator = new Validator<>(wormholeForIntValue);
+      WormholeValidator<Long, Integer> validator = new WormholeValidator<>(wormholeForIntValue);
       int recordCount = 30000;
       Map<Long, Integer> expected = new LinkedHashMap<>(recordCount);
       for (int i = 0; i < recordCount; i++) {
@@ -585,7 +584,7 @@ class WormholeForLongKeyTest {
     @EnabledIf("isLeafNodeLargeEnough")
     void withManyLeafNodes_ShouldReturnThem() {
       // Arrange
-      Validator<Long, Integer> validator = new Validator<>(wormholeForIntValue);
+      WormholeValidator<Long, Integer> validator = new WormholeValidator<>(wormholeForIntValue);
       int recordCount = 30000;
       TreeMap<Long, Integer> expected = new TreeMap<>();
       List<Long> keys = new ArrayList<>(recordCount);
@@ -790,7 +789,7 @@ class WormholeForLongKeyTest {
     @EnabledIf("isLeafNodeLargeEnough")
     void withManyLeafNodes_ShouldReturnIt() {
       // Arrange
-      Validator<Long, Integer> validator = new Validator<>(wormholeForIntValue);
+      WormholeValidator<Long, Integer> validator = new WormholeValidator<>(wormholeForIntValue);
       int recordCount = 30000;
       Map<Long, Integer> expected = new HashMap<>(recordCount);
       for (int i = 0; i < recordCount; i++) {

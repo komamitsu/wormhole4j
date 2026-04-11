@@ -28,8 +28,7 @@ public class WormholeForIntKey<V> extends SimpleWormhole<Integer, V> {
 
   @Override
   protected Object createEncodedKey(Integer key) {
-    assert key != null;
-    return new IntWrapper(key ^ 0x80000000);
+    return createEncodedIntKey(key);
   }
 
   @Override

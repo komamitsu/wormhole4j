@@ -25,14 +25,14 @@ import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
 /**
  * Wormhole is an in-memory ordered index for key-value pairs.
  *
- * <p>This implementation supports fast lookups, inserts, deletes, and range scans. Keys are {@link
- * String} only.
+ * <p>This implementation supports fast lookups, inserts, deletes, and range scans.
  *
  * @param <K> the type of keys stored in this index
  * @param <V> the type of values stored in this index
  */
 abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
   private final MetaTrieHashTable<K, V> metaTable;
+  @Nullable private final WormholeValidator<K, V> validator;
 
   /**
    * Creates a Wormhole.
@@ -42,8 +42,9 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
    * @param debugMode enables internal consistency checks if {@code true}
    */
   protected SimpleWormhole(EncodedKeyType encodedKeyType, int leafNodeSize, boolean debugMode) {
-    super(encodedKeyType, leafNodeSize, debugMode);
+    super(encodedKeyType, leafNodeSize);
     this.metaTable = new MetaTrieHashTable<>(encodedKeyType, false);
+    validator = debugMode ? new WormholeValidator<>(this) : null;
     initialize();
   }
 
@@ -60,6 +61,13 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
   @Override
   protected MetaTrieHashTable<K, V> getMetaTable() {
     return metaTable;
+  }
+
+  private void validateIfNeeded() {
+    if (validator == null) {
+      return;
+    }
+    validator.validate();
   }
 
   /**
@@ -134,9 +142,9 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
     LeafNode<K, V> leafNode = searchTrieHashTable(encodedStartKey);
     while (leafNode != null) {
       leafNode.incSort();
+      validateIfNeeded();
       if (!leafNode.iterateKeyValues(
           encodedStartKey, encodedEndKey, isEndKeyExclusive, actualFunction)) {
-        validateIfNeeded();
         return;
       }
       leafNode = leafNode.getRight();

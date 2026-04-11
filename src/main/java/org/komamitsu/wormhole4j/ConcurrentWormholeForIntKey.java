@@ -17,7 +17,7 @@
 package org.komamitsu.wormhole4j;
 
 /**
- * A Wormhole implementation for integer keys.
+ * A concurrent Wormhole implementation for integer keys.
  *
  * @param <V> the type of values stored in this Wormhole
  */
@@ -28,8 +28,7 @@ public class ConcurrentWormholeForIntKey<V> extends ConcurrentWormhole<Integer, 
 
   @Override
   protected Object createEncodedKey(Integer key) {
-    assert key != null;
-    return new IntWrapper(key ^ 0x80000000);
+    return createEncodedIntKey(key);
   }
 
   @Override

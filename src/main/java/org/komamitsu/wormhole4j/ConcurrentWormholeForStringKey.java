@@ -17,7 +17,7 @@
 package org.komamitsu.wormhole4j;
 
 /**
- * A Wormhole implementation for string keys.
+ * A concurrent Wormhole implementation for string keys.
  *
  * @param <V> the type of values stored in this Wormhole
  */
