@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Mitsunori Komatsu
+ * Copyright 2026 Mitsunori Komatsu
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,32 +21,18 @@ package org.komamitsu.wormhole4j;
  *
  * @param <V> the type of values stored in this Wormhole
  */
-public class WormholeForIntKey<V> extends Wormhole<Integer, V> {
-  private WormholeForIntKey(boolean isConcurrent, int leafNodeSize, boolean isDebugMode) {
-    super(EncodedKeyType.INTEGER, isConcurrent, leafNodeSize, isDebugMode);
+public class WormholeForIntKey<V> extends SimpleWormhole<Integer, V> {
+  WormholeForIntKey(int leafNodeSize, boolean isDebugMode) {
+    super(EncodedKeyType.INTEGER, leafNodeSize, isDebugMode);
   }
 
   @Override
   protected Object createEncodedKey(Integer key) {
-    assert key != null;
-    return new IntWrapper(key ^ 0x80000000);
+    return createEncodedIntKey(key);
   }
 
   @Override
   protected Object createEmptyEncodedKey() {
     return IntWrapper.EMPTY_INSTANCE;
-  }
-
-  public static class Builder<V>
-      extends Wormhole.Builder<WormholeForIntKey<V>, Builder<V>, Integer, V> {
-    @Override
-    protected Builder<V> self() {
-      return this;
-    }
-
-    @Override
-    public WormholeForIntKey<V> build() {
-      return new WormholeForIntKey<>(isConcurrent, leafNodeSize, isDebugMode);
-    }
   }
 }

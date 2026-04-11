@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Mitsunori Komatsu
+ * Copyright 2026 Mitsunori Komatsu
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.params.Parameter;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.komamitsu.wormhole4j.Wormhole.Validator;
 
 @ParameterizedClass
 @ValueSource(ints = {3, 8, 128})
@@ -42,19 +41,19 @@ class WormholeForIntKeyTest {
     }
   }
 
-  private WormholeForIntKey<Integer> wormholeForIntValue;
-  private WormholeForIntKey<String> wormholeForStrValue;
+  private Wormhole<Integer, Integer> wormholeForIntValue;
+  private Wormhole<Integer, String> wormholeForStrValue;
 
   @BeforeEach
   void setUp() {
     wormholeForIntValue =
-        new WormholeForIntKey.Builder<Integer>()
+        new WormholeBuilder.ForIntKey<Integer>()
             .setLeafNodeSize(leafNodeSize)
             .setDebugMode(true)
             .build();
 
     wormholeForStrValue =
-        new WormholeForIntKey.Builder<String>()
+        new WormholeBuilder.ForIntKey<String>()
             .setLeafNodeSize(leafNodeSize)
             .setDebugMode(true)
             .build();
@@ -64,7 +63,7 @@ class WormholeForIntKeyTest {
   void givenConcurrentAndDebugModeEnabled_ShouldThrowException() {
     assertThatThrownBy(
             () -> {
-              new WormholeForIntKey.Builder<Integer>()
+              new WormholeBuilder.ForIntKey<Integer>()
                   .setConcurrent(true)
                   .setDebugMode(true)
                   .build();
@@ -157,7 +156,7 @@ class WormholeForIntKeyTest {
     @EnabledIf("isLeafNodeLargeEnough")
     void withManyLeafNodes_ShouldReturnThem() {
       // Arrange
-      Validator<Integer, Integer> validator = new Validator<>(wormholeForIntValue);
+      WormholeValidator<Integer, Integer> validator = new WormholeValidator<>(wormholeForIntValue);
       int recordCount = 30000;
 
       Map<Integer, Integer> expected = new LinkedHashMap<>(recordCount);
@@ -593,7 +592,7 @@ class WormholeForIntKeyTest {
     @EnabledIf("isLeafNodeLargeEnough")
     void withManyLeafNodes_ShouldReturnThem() {
       // Arrange
-      Validator<Integer, Integer> validator = new Validator<>(wormholeForIntValue);
+      WormholeValidator<Integer, Integer> validator = new WormholeValidator<>(wormholeForIntValue);
       int recordCount = 30000;
       TreeMap<Integer, Integer> expected = new TreeMap<>();
       List<Integer> keys = new ArrayList<>(recordCount);
@@ -799,7 +798,7 @@ class WormholeForIntKeyTest {
     @EnabledIf("isLeafNodeLargeEnough")
     void withManyLeafNodes_ShouldReturnIt() {
       // Arrange
-      Validator<Integer, Integer> validator = new Validator<>(wormholeForIntValue);
+      WormholeValidator<Integer, Integer> validator = new WormholeValidator<>(wormholeForIntValue);
       int recordCount = 30000;
       Map<Integer, Integer> expected = new HashMap<>(recordCount);
       for (int i = 0; i < recordCount; i++) {

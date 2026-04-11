@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Mitsunori Komatsu
+ * Copyright 2026 Mitsunori Komatsu
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,7 @@ import static org.komamitsu.wormhole4j.jmh.Utils.randomInt;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
-import org.komamitsu.wormhole4j.Wormhole;
-import org.komamitsu.wormhole4j.WormholeForIntKey;
-import org.komamitsu.wormhole4j.WormholeForLongKey;
-import org.komamitsu.wormhole4j.WormholeForStringKey;
+import org.komamitsu.wormhole4j.*;
 import org.komamitsu.wormhole4j.jmh.state.IntKeysState;
 import org.komamitsu.wormhole4j.jmh.state.KeysState;
 import org.komamitsu.wormhole4j.jmh.state.LongKeysState;
@@ -70,7 +67,7 @@ public abstract class WormholeBenchmark<K extends Comparable<K>> {
     public static class FullState extends WormholeBenchmark.FullState<Integer> {
       @Setup(Level.Trial)
       public void setup(IntKeysState keysState) {
-        super.setup(new WormholeForIntKey.Builder<Integer>().build(), keysState);
+        super.setup(new WormholeBuilder.ForIntKey<Integer>().build(), keysState);
       }
     }
 
@@ -95,7 +92,7 @@ public abstract class WormholeBenchmark<K extends Comparable<K>> {
     public static class FullState extends WormholeBenchmark.FullState<Long> {
       @Setup(Level.Trial)
       public void setup(LongKeysState keysState) {
-        super.setup(new WormholeForLongKey.Builder<Integer>().build(), keysState);
+        super.setup(new WormholeBuilder.ForLongKey<Integer>().build(), keysState);
       }
     }
 
@@ -120,7 +117,7 @@ public abstract class WormholeBenchmark<K extends Comparable<K>> {
     public static class FullState extends WormholeBenchmark.FullState<String> {
       @Setup(Level.Trial)
       public void setup(StringKeysState keysState) {
-        super.setup(new WormholeForStringKey.Builder<Integer>().build(), keysState);
+        super.setup(new WormholeBuilder.ForStringKey<Integer>().build(), keysState);
       }
     }
 

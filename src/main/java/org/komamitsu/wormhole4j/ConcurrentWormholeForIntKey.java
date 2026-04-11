@@ -17,22 +17,22 @@
 package org.komamitsu.wormhole4j;
 
 /**
- * A Wormhole implementation for long keys.
+ * A concurrent Wormhole implementation for integer keys.
  *
  * @param <V> the type of values stored in this Wormhole
  */
-public class WormholeForLongKey<V> extends SimpleWormhole<Long, V> {
-  WormholeForLongKey(int leafNodeSize, boolean isDebugMode) {
-    super(EncodedKeyType.LONG, leafNodeSize, isDebugMode);
+public class ConcurrentWormholeForIntKey<V> extends ConcurrentWormhole<Integer, V> {
+  ConcurrentWormholeForIntKey(int leafNodeSize) {
+    super(EncodedKeyType.INTEGER, leafNodeSize);
   }
 
   @Override
-  protected Object createEncodedKey(Long key) {
-    return createEncodedLongKey(key);
+  protected Object createEncodedKey(Integer key) {
+    return createEncodedIntKey(key);
   }
 
   @Override
   protected Object createEmptyEncodedKey() {
-    return LongWrapper.EMPTY_INSTANCE;
+    return IntWrapper.EMPTY_INSTANCE;
   }
 }

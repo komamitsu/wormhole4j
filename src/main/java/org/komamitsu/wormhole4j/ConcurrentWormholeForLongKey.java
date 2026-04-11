@@ -17,13 +17,13 @@
 package org.komamitsu.wormhole4j;
 
 /**
- * A Wormhole implementation for long keys.
+ * A concurrent Wormhole implementation for long keys.
  *
  * @param <V> the type of values stored in this Wormhole
  */
-public class WormholeForLongKey<V> extends SimpleWormhole<Long, V> {
-  WormholeForLongKey(int leafNodeSize, boolean isDebugMode) {
-    super(EncodedKeyType.LONG, leafNodeSize, isDebugMode);
+public class ConcurrentWormholeForLongKey<V> extends ConcurrentWormhole<Long, V> {
+  ConcurrentWormholeForLongKey(int leafNodeSize) {
+    super(EncodedKeyType.LONG, leafNodeSize);
   }
 
   @Override

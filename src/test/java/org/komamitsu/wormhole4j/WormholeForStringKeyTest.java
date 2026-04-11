@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Mitsunori Komatsu
+ * Copyright 2026 Mitsunori Komatsu
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@ import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.params.Parameter;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.komamitsu.wormhole4j.Wormhole.Validator;
 
 @ParameterizedClass
 @ValueSource(ints = {3, 8, 128})
@@ -43,19 +42,19 @@ class WormholeForStringKeyTest {
     }
   }
 
-  private WormholeForStringKey<Integer> wormholeForIntValue;
-  private WormholeForStringKey<String> wormholeForStrValue;
+  private Wormhole<String, Integer> wormholeForIntValue;
+  private Wormhole<String, String> wormholeForStrValue;
 
   @BeforeEach
   void setUp() {
     wormholeForIntValue =
-        new WormholeForStringKey.Builder<Integer>()
+        new WormholeBuilder.ForStringKey<Integer>()
             .setLeafNodeSize(leafNodeSize)
             .setDebugMode(true)
             .build();
 
     wormholeForStrValue =
-        new WormholeForStringKey.Builder<String>()
+        new WormholeBuilder.ForStringKey<String>()
             .setLeafNodeSize(leafNodeSize)
             .setDebugMode(true)
             .build();
@@ -65,7 +64,7 @@ class WormholeForStringKeyTest {
   void givenConcurrentAndDebugModeEnabled_ShouldThrowException() {
     assertThatThrownBy(
             () -> {
-              new WormholeForStringKey.Builder<Integer>()
+              new WormholeBuilder.ForStringKey<Integer>()
                   .setConcurrent(true)
                   .setDebugMode(true)
                   .build();
@@ -165,7 +164,7 @@ class WormholeForStringKeyTest {
     @Test
     void withManyLeafNodes_ShouldReturnThem() {
       // Arrange
-      Validator<String, Integer> validator = new Validator<>(wormholeForIntValue);
+      WormholeValidator<String, Integer> validator = new WormholeValidator<>(wormholeForIntValue);
       int minKeyLength = 4;
       int maxKeyLength = 16;
       int recordCount = 30000;
@@ -782,7 +781,7 @@ class WormholeForStringKeyTest {
     @Test
     void withManyLeafNodes_ShouldReturnThem() {
       // Arrange
-      Validator<String, Integer> validator = new Validator<>(wormholeForIntValue);
+      WormholeValidator<String, Integer> validator = new WormholeValidator<>(wormholeForIntValue);
       int minKeyLength = 4;
       int maxKeyLength = 16;
       int recordCount = 30000;
@@ -1153,7 +1152,7 @@ class WormholeForStringKeyTest {
     @Test
     void withManyLeafNodes_ShouldReturnIt() {
       // Arrange
-      Validator<String, Integer> validator = new Validator<>(wormholeForIntValue);
+      WormholeValidator<String, Integer> validator = new WormholeValidator<>(wormholeForIntValue);
       int minKeyLength = 4;
       int maxKeyLength = 16;
       int recordCount = 30000;

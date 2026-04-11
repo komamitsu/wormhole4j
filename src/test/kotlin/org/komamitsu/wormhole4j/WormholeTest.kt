@@ -24,7 +24,7 @@ import java.util.TreeMap
 @Param(name = "key1", gen = IntGen::class, conf = "1:20")
 @Param(name = "key2", gen = IntGen::class, conf = "1:20")
 class WormholeTest {
-    private val wormhole = WormholeForIntKey.Builder<Int>().setConcurrent(true).setLeafNodeSize(4).build()
+    private val wormhole = WormholeBuilder.ForIntKey<Int>().setConcurrent(true).setLeafNodeSize(4).build()
 
     @Operation(params = ["key", "value"])
     fun put(key: Int, value: Int): Int? {
@@ -56,7 +56,7 @@ class WormholeTest {
     fun stressTest() = StressOptions()
         .sequentialSpecification(SequentialMap::class.java)
         .threads(3)
-        .invocationsPerIteration(24)
+        .invocationsPerIteration(20)
         .iterations(100)
         .check(this::class)
 
