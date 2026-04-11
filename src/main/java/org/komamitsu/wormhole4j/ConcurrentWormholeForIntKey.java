@@ -17,22 +17,23 @@
 package org.komamitsu.wormhole4j;
 
 /**
- * A Wormhole implementation for string keys.
+ * A Wormhole implementation for integer keys.
  *
  * @param <V> the type of values stored in this Wormhole
  */
-public class WormholeForStringKey<V> extends SimpleWormhole<String, V> {
-  WormholeForStringKey(int leafNodeSize, boolean isDebugMode) {
-    super(EncodedKeyType.STRING, leafNodeSize, isDebugMode);
+public class ConcurrentWormholeForIntKey<V> extends ConcurrentWormhole<Integer, V> {
+  ConcurrentWormholeForIntKey(int leafNodeSize) {
+    super(EncodedKeyType.INTEGER, leafNodeSize);
   }
 
   @Override
-  protected Object createEncodedKey(String key) {
-    return key;
+  protected Object createEncodedKey(Integer key) {
+    assert key != null;
+    return new IntWrapper(key ^ 0x80000000);
   }
 
   @Override
   protected Object createEmptyEncodedKey() {
-    return "";
+    return IntWrapper.EMPTY_INSTANCE;
   }
 }

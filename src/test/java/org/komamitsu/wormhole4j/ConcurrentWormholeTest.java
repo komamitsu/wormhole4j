@@ -29,7 +29,7 @@ class ConcurrentWormholeTest {
   void putNewKeysAfterSplit_ShouldReturnNull() {
     // Arrange
     Wormhole<Integer, Integer> wormhole =
-        new WormholeForIntKey.Builder<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
+        new WormholeBuilder.ForIntKey<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
 
     // Act Assert
     assertThat(wormhole.put(10, 100)).isNull();
@@ -44,7 +44,7 @@ class ConcurrentWormholeTest {
       throws ExecutionException, InterruptedException {
     // Arrange
     Wormhole<Integer, Integer> wormhole =
-        new WormholeForIntKey.Builder<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
+        new WormholeBuilder.ForIntKey<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
     ExecutorService executorService = Executors.newFixedThreadPool(2);
     List<Future<Integer>> futures = new ArrayList<>();
 
@@ -78,7 +78,7 @@ class ConcurrentWormholeTest {
       throws ExecutionException, InterruptedException {
     // Arrange
     Wormhole<Integer, Integer> wormhole =
-        new WormholeForIntKey.Builder<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
+        new WormholeBuilder.ForIntKey<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
     assertThat(wormhole.put(8, 80)).isNull();
     assertThat(wormhole.put(9, 90)).isNull();
     assertThat(wormhole.put(10, 100)).isNull();
@@ -132,7 +132,7 @@ class ConcurrentWormholeTest {
       throws ExecutionException, InterruptedException {
     // Arrange
     Wormhole<Integer, Integer> wormhole =
-        new WormholeForIntKey.Builder<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
+        new WormholeBuilder.ForIntKey<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
     assertThat(wormhole.put(10, 100)).isNull();
     assertThat(wormhole.put(11, 110)).isNull();
     assertThat(wormhole.put(12, 120)).isNull();
@@ -186,7 +186,7 @@ class ConcurrentWormholeTest {
       throws ExecutionException, InterruptedException {
     // Arrange
     Wormhole<Integer, Integer> wormhole =
-        new WormholeForIntKey.Builder<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
+        new WormholeBuilder.ForIntKey<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
     assertThat(wormhole.put(10, 100)).isNull();
     assertThat(wormhole.put(11, 110)).isNull();
     assertThat(wormhole.put(9, 90)).isNull();
@@ -253,7 +253,7 @@ class ConcurrentWormholeTest {
       throws ExecutionException, InterruptedException {
     // Arrange
     Wormhole<Integer, Integer> wormhole =
-        new WormholeForIntKey.Builder<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
+        new WormholeBuilder.ForIntKey<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
     assertThat(wormhole.put(10, 100)).isNull();
     assertThat(wormhole.put(11, 110)).isNull();
     assertThat(wormhole.put(9, 90)).isNull();
@@ -320,7 +320,7 @@ class ConcurrentWormholeTest {
       throws ExecutionException, InterruptedException {
     // Arrange
     Wormhole<Integer, Integer> wormhole =
-        new WormholeForIntKey.Builder<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
+        new WormholeBuilder.ForIntKey<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
     assertThat(wormhole.put(11, 110)).isNull();
     assertThat(wormhole.put(9, 90)).isNull();
     assertThat(wormhole.put(12, 120)).isNull();
@@ -385,7 +385,7 @@ class ConcurrentWormholeTest {
       throws ExecutionException, InterruptedException, TimeoutException {
     // Arrange
     Wormhole<Integer, Integer> wormhole =
-        new WormholeForIntKey.Builder<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
+        new WormholeBuilder.ForIntKey<Integer>().setConcurrent(true).setLeafNodeSize(4).build();
     assertThat(wormhole.put(11, 110)).isNull();
     assertThat(wormhole.put(10, 100)).isNull();
     assertThat(wormhole.put(8, 80)).isNull();

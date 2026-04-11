@@ -42,19 +42,19 @@ class WormholeForIntKeyTest {
     }
   }
 
-  private WormholeForIntKey<Integer> wormholeForIntValue;
-  private WormholeForIntKey<String> wormholeForStrValue;
+  private Wormhole<Integer, Integer> wormholeForIntValue;
+  private Wormhole<Integer, String> wormholeForStrValue;
 
   @BeforeEach
   void setUp() {
     wormholeForIntValue =
-        new WormholeForIntKey.Builder<Integer>()
+        new WormholeBuilder.ForIntKey<Integer>()
             .setLeafNodeSize(leafNodeSize)
             .setDebugMode(true)
             .build();
 
     wormholeForStrValue =
-        new WormholeForIntKey.Builder<String>()
+        new WormholeBuilder.ForIntKey<String>()
             .setLeafNodeSize(leafNodeSize)
             .setDebugMode(true)
             .build();
@@ -64,7 +64,7 @@ class WormholeForIntKeyTest {
   void givenConcurrentAndDebugModeEnabled_ShouldThrowException() {
     assertThatThrownBy(
             () -> {
-              new WormholeForIntKey.Builder<Integer>()
+              new WormholeBuilder.ForIntKey<Integer>()
                   .setConcurrent(true)
                   .setDebugMode(true)
                   .build();

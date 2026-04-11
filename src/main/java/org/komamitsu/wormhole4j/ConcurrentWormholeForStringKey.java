@@ -21,9 +21,9 @@ package org.komamitsu.wormhole4j;
  *
  * @param <V> the type of values stored in this Wormhole
  */
-public class WormholeForStringKey<V> extends SimpleWormhole<String, V> {
-  WormholeForStringKey(int leafNodeSize, boolean isDebugMode) {
-    super(EncodedKeyType.STRING, leafNodeSize, isDebugMode);
+public class ConcurrentWormholeForStringKey<V> extends ConcurrentWormhole<String, V> {
+  ConcurrentWormholeForStringKey(int leafNodeSize) {
+    super(EncodedKeyType.STRING, leafNodeSize);
   }
 
   @Override

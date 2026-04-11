@@ -21,10 +21,7 @@ import static org.komamitsu.wormhole4j.jmh.Utils.randomInt;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
-import org.komamitsu.wormhole4j.Wormhole;
-import org.komamitsu.wormhole4j.WormholeForIntKey;
-import org.komamitsu.wormhole4j.WormholeForLongKey;
-import org.komamitsu.wormhole4j.WormholeForStringKey;
+import org.komamitsu.wormhole4j.*;
 import org.komamitsu.wormhole4j.jmh.state.IntKeysState;
 import org.komamitsu.wormhole4j.jmh.state.KeysState;
 import org.komamitsu.wormhole4j.jmh.state.LongKeysState;
@@ -71,7 +68,7 @@ public abstract class ConcurrentWormholeBenchmark<K extends Comparable<K>> {
       @Setup(Level.Trial)
       public void setup(IntKeysState keysState) {
         super.setup(
-            new WormholeForIntKey.Builder<Integer>().setConcurrent(true).build(), keysState);
+            new WormholeBuilder.ForIntKey<Integer>().setConcurrent(true).build(), keysState);
       }
     }
 
@@ -97,7 +94,7 @@ public abstract class ConcurrentWormholeBenchmark<K extends Comparable<K>> {
       @Setup(Level.Trial)
       public void setup(LongKeysState keysState) {
         super.setup(
-            new WormholeForLongKey.Builder<Integer>().setConcurrent(true).build(), keysState);
+            new WormholeBuilder.ForLongKey<Integer>().setConcurrent(true).build(), keysState);
       }
     }
 
@@ -123,7 +120,7 @@ public abstract class ConcurrentWormholeBenchmark<K extends Comparable<K>> {
       @Setup(Level.Trial)
       public void setup(StringKeysState keysState) {
         super.setup(
-            new WormholeForStringKey.Builder<Integer>().setConcurrent(true).build(), keysState);
+            new WormholeBuilder.ForStringKey<Integer>().setConcurrent(true).build(), keysState);
       }
     }
 

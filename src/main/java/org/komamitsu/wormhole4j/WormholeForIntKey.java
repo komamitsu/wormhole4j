@@ -21,9 +21,9 @@ package org.komamitsu.wormhole4j;
  *
  * @param <V> the type of values stored in this Wormhole
  */
-public class WormholeForIntKey<V> extends Wormhole<Integer, V> {
-  private WormholeForIntKey(boolean isConcurrent, int leafNodeSize, boolean isDebugMode) {
-    super(EncodedKeyType.INTEGER, isConcurrent, leafNodeSize, isDebugMode);
+public class WormholeForIntKey<V> extends SimpleWormhole<Integer, V> {
+  WormholeForIntKey(int leafNodeSize, boolean isDebugMode) {
+    super(EncodedKeyType.INTEGER, leafNodeSize, isDebugMode);
   }
 
   @Override
@@ -35,18 +35,5 @@ public class WormholeForIntKey<V> extends Wormhole<Integer, V> {
   @Override
   protected Object createEmptyEncodedKey() {
     return IntWrapper.EMPTY_INSTANCE;
-  }
-
-  public static class Builder<V>
-      extends WormholeBuilder<WormholeForIntKey<V>, Builder<V>, Integer, V> {
-    @Override
-    protected Builder<V> self() {
-      return this;
-    }
-
-    @Override
-    public WormholeForIntKey<V> build() {
-      return new WormholeForIntKey<>(isConcurrent, leafNodeSize, isDebugMode);
-    }
   }
 }
