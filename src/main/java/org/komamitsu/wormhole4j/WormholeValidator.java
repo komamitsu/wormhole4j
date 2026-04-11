@@ -120,7 +120,7 @@ class WormholeValidator<K, T> {
               wormhole.encodedKeyType, adjacentLeafNode.anchorKey, anchorKey)) {
             throw new AssertionError(
                 String.format(
-                    "The anchor key of the adjacent leaf node right to the node meta internal's left most leaf node starts with the node meta internal's anchor key. Node meta internal: %s, Leaf node: %s",
+                    "The anchor key of the adjacent leaf node right to the node meta internal's right most leaf node starts with the node meta internal's anchor key. Node meta internal: %s, Leaf node: %s",
                     nodeMeta, adjacentLeafNode));
           }
         }
