@@ -16,7 +16,9 @@
 
 package org.komamitsu.wormhole4j;
 
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.StampedLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import javax.annotation.Nullable;
@@ -31,7 +33,18 @@ import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
  * @param <V> the type of values stored in this index
  */
 abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
-  private final MetaTrieHashTable<K, V> metaTable;
+  // TODO: Make this configurable.
+  private static final int MAX_THREADS = 512;
+  private int metaTableIndex;
+  private long version;
+  private final List<MetaTrieHashTable<K, V>> metaTables;
+  private final StampedLock metaTableLock = new StampedLock();
+  private final List<AtomicReference<Long>> qsbrVersions;
+  private final BitSet qsbrThreads;
+  private final ThreadLocal<Integer> qsbrThreadLocalIndexes = new ThreadLocal<>();
+  private final ThreadLocal<AtomicReference<Long>> qsbrThreadLocalVersions = new ThreadLocal<>();
+  private final ThreadLocal<MetaTrieHashTable<K, V>> qsbrThreadLocalMetaTables =
+      new ThreadLocal<>();
 
   /**
    * Creates a Wormhole.
@@ -41,14 +54,19 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
    */
   protected ConcurrentWormhole(EncodedKeyType encodedKeyType, int leafNodeSize) {
     super(encodedKeyType, leafNodeSize);
-    this.metaTable = new MetaTrieHashTable<>(encodedKeyType, true);
+    this.metaTables =
+        Arrays.asList(
+            new MetaTrieHashTable<>(encodedKeyType), new MetaTrieHashTable<>(encodedKeyType));
+    this.qsbrVersions = new ArrayList<>(MAX_THREADS);
+    this.qsbrThreads = new BitSet(MAX_THREADS);
     initialize();
   }
 
   private void initialize() {
     Object encodedKey = createEmptyEncodedKey();
     LeafNode<K, V> rootLeafNode = createRootLeafNode(encodedKey);
-    getMetaTable().put(encodedKey, new NodeMetaLeaf<>(encodedKey, rootLeafNode));
+    metaTables.get(0).put(encodedKey, new NodeMetaLeaf<>(encodedKey, rootLeafNode));
+    metaTables.get(1).put(encodedKey, new NodeMetaLeaf<>(encodedKey, rootLeafNode));
   }
 
   protected abstract Object createEncodedKey(K key);
@@ -57,7 +75,80 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
 
   @Override
   protected MetaTrieHashTable<K, V> getMetaTable() {
-    return metaTable;
+    return metaTables.get(metaTableIndex);
+  }
+
+  protected MetaTrieHashTable<K, V> getInactiveMetaTable() {
+    return metaTables.get(metaTableIndex);
+  }
+
+  private int getQsbrThreadIndex() {
+    return qsbrThreadLocalIndexes.get();
+  }
+
+  public synchronized void register() {
+    int availableThreadIndex = qsbrThreads.nextClearBit(0);
+    AtomicReference<Long> versionContainer = new AtomicReference<>();
+    qsbrThreadLocalIndexes.set(availableThreadIndex);
+    qsbrThreadLocalVersions.set(versionContainer);
+    qsbrThreads.set(availableThreadIndex);
+    qsbrVersions.set(availableThreadIndex, versionContainer);
+  }
+
+  public synchronized void unregister() {
+    int qsbrThreadIndex = getQsbrThreadIndex();
+    qsbrVersions.set(qsbrThreadIndex, null);
+    qsbrThreads.clear(qsbrThreadIndex);
+    qsbrThreadLocalMetaTables.remove();
+    qsbrThreadLocalVersions.remove();
+    qsbrThreadLocalIndexes.remove();
+  }
+
+  private void qsbrEnter() {
+    qsbrThreadLocalVersions.get().set(version);
+    qsbrThreadLocalMetaTables.set(getMetaTable());
+  }
+
+  private void qsbrExit() {
+    qsbrThreadLocalMetaTables.remove();
+    qsbrThreadLocalVersions.get().set(null);
+  }
+
+  private long getLocalVersion() {
+    return qsbrThreadLocalVersions.get().get();
+  }
+
+  private synchronized void qsbrWait(long newVersion) {
+    int threadIndex = 0;
+    while (true) {
+      threadIndex = qsbrThreads.nextSetBit(threadIndex);
+      if (threadIndex < 0) {
+        break;
+      }
+      while (true) {
+        Long localVersion = qsbrVersions.get(threadIndex).get();
+        if (localVersion == null || localVersion == newVersion) {
+          break;
+        }
+      }
+    }
+  }
+
+  private long acquireLockOnMetaTable() {
+    return metaTableLock.writeLock();
+  }
+
+  private void releaseLockOnMetaTable(long stamp) {
+    metaTableLock.unlockWrite(stamp);
+  }
+
+  private int getInactiveMetaTableIndex() {
+    return metaTableIndex == 0 ? 1 : 0;
+  }
+
+  private void switchMetaTable(long newVersion) {
+    metaTableIndex = getInactiveMetaTableIndex();
+    version = newVersion;
   }
 
   /**
@@ -72,33 +163,40 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   @Nullable
   public V put(K key, V value) {
     Object encodedKey = createEncodedKey(key);
-    boolean writeLockOnTable = false;
-    while (true) {
-      long tableLock =
-          writeLockOnTable ? metaTable.acquireWriteLock() : metaTable.acquireReadLock();
+    qsbrEnter();
+    LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+    Long writeLockOnLeafNode = leafNode.acquireWriteLock();
+    try {
+      Optional<V> existingValue = leafNode.lookupAndPutValue(encodedKey, key, value);
+      if (existingValue != null) {
+        return existingValue.orElse(null);
+      }
+      long writeLockOnMetaTable = acquireLockOnMetaTable();
       try {
-        LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
-        long writeLockOnLeafNode = leafNode.acquireWriteLock();
-        try {
-          Optional<V> existingValue = leafNode.lookupAndPutValue(encodedKey, key, value);
-          if (existingValue != null) {
-            return existingValue.orElse(null);
-          }
-
-          // Retry with a write lock when the current lock is a read lock.
-          if (!writeLockOnTable) {
-            writeLockOnTable = true;
-            continue;
-          }
-
-          // Split the node and insert the value to a new leaf node.
-          splitAndInsert(leafNode, encodedKey, key, value);
-          return null;
-        } finally {
-          leafNode.releaseLock(writeLockOnLeafNode);
-        }
+        long newVersion = version + 1;
+        // Split the node and insert the value to a new leaf node on the inactive meta table.
+        LeafNode<K, V> newLeafNode =
+            splitAndInsert(getInactiveMetaTable(), leafNode, encodedKey, key, value);
+        // Increment versions and switch to the updated meta table.
+        leafNode.setVersion(newVersion);
+        newLeafNode.setVersion(newVersion);
+        switchMetaTable(newVersion);
+        leafNode.releaseLock(writeLockOnLeafNode);
+        writeLockOnLeafNode = null;
+        // Wait until no reader threads on the previously active meta table.
+        qsbrExit();
+        qsbrWait(newVersion);
+        // Split the node and insert the value to a new leaf node on the inactive (previously
+        // active) meta table.
+        splitAndInsert(getInactiveMetaTable(), leafNode, encodedKey, key, value);
+        return null;
       } finally {
-        metaTable.releaseLock(tableLock);
+        releaseLockOnMetaTable(writeLockOnMetaTable);
+      }
+    } finally {
+      qsbrExit();
+      if (writeLockOnLeafNode != null) {
+        leafNode.releaseLock(writeLockOnLeafNode);
       }
     }
   }
@@ -112,23 +210,41 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   @Override
   public boolean delete(K key) {
     Object encodedKey = createEncodedKey(key);
-    long tableLock = metaTable.acquireWriteLock();
+    qsbrEnter();
+    LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+    Long writeLockOnLeafNode = leafNode.acquireWriteLock();
     try {
-      LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
-      long writeLockOnLeafNode = leafNode.acquireWriteLock();
+      if (!leafNode.delete(encodedKey)) {
+        return false;
+      }
+      long writeLockOnMetaTable = acquireLockOnMetaTable();
       try {
-        if (!leafNode.delete(encodedKey)) {
-          return false;
+        // Merge the nodes on the inactive meta table if needed.
+        LeafNode<K, V> updatedLeafNode = mergeIfNeeded(getInactiveMetaTable(), leafNode);
+        // Increment versions and switch to the updated meta table.
+        long newVersion = version + 1;
+        leafNode.setVersion(newVersion);
+        if (updatedLeafNode != null && !updatedLeafNode.equals(leafNode)) {
+          updatedLeafNode.setVersion(newVersion);
         }
-
-        mergeIfNeeded(leafNode);
-      } finally {
+        switchMetaTable(newVersion);
         leafNode.releaseLock(writeLockOnLeafNode);
+        writeLockOnLeafNode = null;
+        // Wait until no reader threads on the previously active meta table.
+        qsbrExit();
+        qsbrWait(newVersion);
+        // Merge the nodes on the inactive (previously active) meta table if needed.
+        mergeIfNeeded(getInactiveMetaTable(), leafNode);
+        return true;
+      } finally {
+        releaseLockOnMetaTable(writeLockOnMetaTable);
       }
     } finally {
-      metaTable.releaseLock(tableLock);
+      qsbrExit();
+      if (writeLockOnLeafNode != null) {
+        leafNode.releaseLock(writeLockOnLeafNode);
+      }
     }
-    return true;
   }
 
   /**
@@ -141,17 +257,22 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   @Nullable
   public V get(K key) {
     Object encodedKey = createEncodedKey(key);
-    long tableLock = metaTable.acquireReadLock();
-    try {
-      LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
-      long readLockOnLeafNode = leafNode.acquireReadLock();
+    while (true) {
+      qsbrEnter();
       try {
-        return leafNode.lookupValue(encodedKey);
+        LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+        long readLockOnLeafNode = leafNode.acquireReadLock();
+        try {
+          V result = leafNode.lookupValue(encodedKey);
+          if (leafNode.getVersion() <= getLocalVersion()) {
+            return result;
+          }
+        } finally {
+          leafNode.releaseLock(readLockOnLeafNode);
+        }
       } finally {
-        leafNode.releaseLock(readLockOnLeafNode);
+        qsbrExit();
       }
-    } finally {
-      metaTable.releaseLock(tableLock);
     }
   }
 
@@ -167,35 +288,42 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     Object encodedEndKey = endKey == null ? null : createEncodedKey(endKey);
     BiFunction<K, V, Boolean> actualFunction = prepareScanFunction(count, function);
 
-    long tableLock = metaTable.acquireReadLock();
-    try {
-      LeafNode<K, V> leafNode = searchTrieHashTable(encodedStartKey);
-      while (leafNode != null) {
-        long lockOnLeafNode;
-        boolean writeLockOnLeafNode = false;
-        while (true) {
-          lockOnLeafNode =
-              writeLockOnLeafNode ? leafNode.acquireWriteLock() : leafNode.acquireReadLock();
-          if (writeLockOnLeafNode || leafNode.isKeyRefsSorted()) {
-            break;
+    while (true) {
+      qsbrEnter();
+      try {
+        LeafNode<K, V> leafNode = searchTrieHashTable(encodedStartKey);
+        while (leafNode != null) {
+          long lockOnLeafNode;
+          boolean writeLockOnLeafNode = false;
+          while (true) {
+            lockOnLeafNode =
+                writeLockOnLeafNode ? leafNode.acquireWriteLock() : leafNode.acquireReadLock();
+            if (writeLockOnLeafNode || leafNode.isKeyRefsSorted()) {
+              break;
+            }
+            leafNode.releaseLock(lockOnLeafNode);
+            writeLockOnLeafNode = true;
           }
-          leafNode.releaseLock(lockOnLeafNode);
-          writeLockOnLeafNode = true;
-        }
-        try {
-          leafNode.incSort();
-          if (!leafNode.iterateKeyValues(
-              encodedStartKey, encodedEndKey, isEndKeyExclusive, actualFunction)) {
-            return;
+          try {
+            if (leafNode.getVersion() > getLocalVersion()) {
+              // FIXME: This break leads to a retry from the beginning, but `actualFunction` can be
+              // executed multiple times on the same leaf nodes...
+              break;
+            }
+            leafNode.incSort();
+            if (!leafNode.iterateKeyValues(
+                encodedStartKey, encodedEndKey, isEndKeyExclusive, actualFunction)) {
+              return;
+            }
+          } finally {
+            leafNode.releaseLock(lockOnLeafNode);
           }
-        } finally {
-          leafNode.releaseLock(lockOnLeafNode);
+          leafNode = leafNode.getRight();
+          encodedStartKey = null;
         }
-        leafNode = leafNode.getRight();
-        encodedStartKey = null;
+      } finally {
+        qsbrExit();
       }
-    } finally {
-      metaTable.releaseLock(tableLock);
     }
   }
 

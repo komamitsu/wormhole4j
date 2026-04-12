@@ -22,6 +22,7 @@ import javax.annotation.Nullable;
 
 class ConcurrentLeafNode<K, V> extends LeafNode<K, V> {
   private final StampedLock lock = new StampedLock();
+  private long version;
 
   ConcurrentLeafNode(
       EncodedKeyType encodedKeyType,
@@ -43,8 +44,19 @@ class ConcurrentLeafNode<K, V> extends LeafNode<K, V> {
     return lock.readLock();
   }
 
+  @Override
   void releaseLock(long stamp) {
     this.lock.unlock(stamp);
+  }
+
+  @Override
+  long getVersion() {
+    return version;
+  }
+
+  @Override
+  void setVersion(long version) {
+    this.version = version;
   }
 
   @Override

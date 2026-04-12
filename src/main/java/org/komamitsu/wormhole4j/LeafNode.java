@@ -741,6 +741,14 @@ class LeafNode<K, V> {
     throw new UnsupportedOperationException();
   }
 
+  long getVersion() {
+    throw new UnsupportedOperationException();
+  }
+
+  void setVersion(long version) {
+    throw new UnsupportedOperationException();
+  }
+
   void validate() {
     Object normalizedAnchorKey = anchorKey;
     Object normalizedRightAnchorKey = null;

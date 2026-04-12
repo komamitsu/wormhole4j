@@ -43,7 +43,7 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
    */
   protected SimpleWormhole(EncodedKeyType encodedKeyType, int leafNodeSize, boolean debugMode) {
     super(encodedKeyType, leafNodeSize);
-    this.metaTable = new MetaTrieHashTable<>(encodedKeyType, false);
+    this.metaTable = new MetaTrieHashTable<>(encodedKeyType);
     validator = debugMode ? new WormholeValidator<>(this) : null;
     initialize();
   }
@@ -90,7 +90,7 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
     }
 
     // Split the node and insert the value to a new leaf node.
-    splitAndInsert(leafNode, encodedKey, key, value);
+    splitAndInsert(metaTable, leafNode, encodedKey, key, value);
     validateIfNeeded();
     return null;
   }
@@ -109,7 +109,7 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
       validateIfNeeded();
       return false;
     }
-    mergeIfNeeded(leafNode);
+    mergeIfNeeded(metaTable, leafNode);
     validateIfNeeded();
     return true;
   }

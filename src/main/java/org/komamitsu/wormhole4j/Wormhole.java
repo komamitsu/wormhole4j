@@ -230,37 +230,48 @@ public abstract class Wormhole<K, V> {
     return null;
   }
 
-  void splitAndInsert(LeafNode<K, V> leafNode, Object encodedKey, K key, V value) {
-    LeafNode<K, V> newLeafNode = split(leafNode);
+  LeafNode<K, V> splitAndInsert(
+      MetaTrieHashTable<K, V> metaTable,
+      LeafNode<K, V> leafNode,
+      Object encodedKey,
+      K key,
+      V value) {
+    LeafNode<K, V> newLeafNode = split(metaTable, leafNode);
     if (EncodedKeyUtils.compare(encodedKeyType, encodedKey, newLeafNode.anchorKey) < 0) {
       leafNode.add(encodedKey, key, value);
     } else {
       newLeafNode.add(encodedKey, key, value);
     }
-  }
-
-  private LeafNode<K, V> split(LeafNode<K, V> leafNode) {
-    Tuple<Object, LeafNode<K, V>> newLeafNodeAndAnchor = leafNode.splitToNewLeafNode();
-    Object newAnchor = newLeafNodeAndAnchor.first;
-    LeafNode<K, V> newLeafNode = newLeafNodeAndAnchor.second;
-    getMetaTable().handleSplitNodes(newAnchor, newLeafNode);
     return newLeafNode;
   }
 
-  void mergeIfNeeded(LeafNode<K, V> leafNode) {
-    if (leafNode.getLeft() != null
-        && leafNode.size() + leafNode.getLeft().size() < leafNodeMergeSize) {
-      merge(leafNode.getLeft(), leafNode);
-    } else if (leafNode.getRight() != null
-        && leafNode.size() + leafNode.getRight().size() < leafNodeMergeSize) {
-      merge(leafNode, leafNode.getRight());
-    }
+  private LeafNode<K, V> split(MetaTrieHashTable<K, V> metaTable, LeafNode<K, V> leafNode) {
+    Tuple<Object, LeafNode<K, V>> newLeafNodeAndAnchor = leafNode.splitToNewLeafNode();
+    Object newAnchor = newLeafNodeAndAnchor.first;
+    LeafNode<K, V> newLeafNode = newLeafNodeAndAnchor.second;
+    metaTable.handleSplitNodes(newAnchor, newLeafNode);
+    return newLeafNode;
   }
 
-  private void merge(LeafNode<K, V> left, LeafNode<K, V> victim) {
+  @Nullable
+  LeafNode<K, V> mergeIfNeeded(MetaTrieHashTable<K, V> metaTable, LeafNode<K, V> leafNode) {
+    // TODO: Check whether this if and else-if are correct.
+    if (leafNode.getLeft() != null
+        && leafNode.size() + leafNode.getLeft().size() < leafNodeMergeSize) {
+      merge(metaTable, leafNode.getLeft(), leafNode);
+      return leafNode.getLeft();
+    } else if (leafNode.getRight() != null
+        && leafNode.size() + leafNode.getRight().size() < leafNodeMergeSize) {
+      merge(metaTable, leafNode, leafNode.getRight());
+      return leafNode;
+    }
+    return null;
+  }
+
+  private void merge(
+      MetaTrieHashTable<K, V> metaTable, LeafNode<K, V> left, LeafNode<K, V> victim) {
     left.merge(victim);
     boolean childNodeRemoved = false;
-    MetaTrieHashTable<K, V> metaTable = getMetaTable();
     for (int prefixlen = EncodedKeyUtils.length(encodedKeyType, victim.anchorKey);
         prefixlen >= 0;
         prefixlen--) {
