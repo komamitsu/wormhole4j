@@ -63,6 +63,10 @@ public abstract class Wormhole<K, V> {
 
   protected abstract Object createEmptyEncodedKey();
 
+  public abstract void register();
+
+  public abstract void unregister();
+
   /**
    * Inserts or updates a key-value pair.
    *

@@ -59,6 +59,16 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
   protected abstract Object createEmptyEncodedKey();
 
   @Override
+  public void register() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void unregister() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   protected MetaTrieHashTable<K, V> getMetaTable() {
     return metaTable;
   }

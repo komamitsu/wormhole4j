@@ -79,22 +79,24 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   }
 
   protected MetaTrieHashTable<K, V> getInactiveMetaTable() {
-    return metaTables.get(metaTableIndex);
+    return metaTables.get(getInactiveMetaTableIndex());
   }
 
   private int getQsbrThreadIndex() {
     return qsbrThreadLocalIndexes.get();
   }
 
+  @Override
   public synchronized void register() {
     int availableThreadIndex = qsbrThreads.nextClearBit(0);
     AtomicReference<Long> versionContainer = new AtomicReference<>();
     qsbrThreadLocalIndexes.set(availableThreadIndex);
     qsbrThreadLocalVersions.set(versionContainer);
     qsbrThreads.set(availableThreadIndex);
-    qsbrVersions.set(availableThreadIndex, versionContainer);
+    registerQsbrVersion(availableThreadIndex, versionContainer);
   }
 
+  @Override
   public synchronized void unregister() {
     int qsbrThreadIndex = getQsbrThreadIndex();
     qsbrVersions.set(qsbrThreadIndex, null);
@@ -102,6 +104,13 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     qsbrThreadLocalMetaTables.remove();
     qsbrThreadLocalVersions.remove();
     qsbrThreadLocalIndexes.remove();
+  }
+
+  private void registerQsbrVersion(int threadIndex, AtomicReference<Long> versionContainer) {
+    while (qsbrVersions.size() <= threadIndex) {
+      qsbrVersions.add(null);
+    }
+    qsbrVersions.set(threadIndex, versionContainer);
   }
 
   private void qsbrEnter() {
@@ -131,6 +140,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
           break;
         }
       }
+      threadIndex++;
     }
   }
 
