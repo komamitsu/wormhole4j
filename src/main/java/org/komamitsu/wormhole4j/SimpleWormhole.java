@@ -99,8 +99,8 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
       return existingValue.orElse(null);
     }
 
-    // Split the node and insert the value to a new leaf node.
-    splitAndInsert(metaTable, leafNode, encodedKey, key, value);
+    LeafNode<K, V> newLeafNode = splitLeafNode(metaTable, leafNode, encodedKey, key, value);
+    addNewLeafNodeToMetaTable(metaTable, newLeafNode);
     validateIfNeeded();
     return null;
   }

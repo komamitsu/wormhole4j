@@ -184,21 +184,23 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
       long writeLockOnMetaTable = acquireLockOnMetaTable();
       try {
         long newVersion = version + 1;
-        // Split the node and insert the value to a new leaf node on the inactive meta table.
+
         LeafNode<K, V> newLeafNode =
-            splitAndInsert(getInactiveMetaTable(), leafNode, encodedKey, key, value);
+            splitLeafNode(getInactiveMetaTable(), leafNode, encodedKey, key, value);
+        addNewLeafNodeToMetaTable(getInactiveMetaTable(), newLeafNode);
+
         // Increment versions and switch to the updated meta table.
         leafNode.setVersion(newVersion);
         newLeafNode.setVersion(newVersion);
         switchMetaTable(newVersion);
         leafNode.releaseLock(writeLockOnLeafNode);
         writeLockOnLeafNode = null;
+
         // Wait until no reader threads on the previously active meta table.
         qsbrExit();
         qsbrWait(newVersion);
-        // Split the node and insert the value to a new leaf node on the inactive (previously
-        // active) meta table.
-        splitAndInsert(getInactiveMetaTable(), leafNode, encodedKey, key, value);
+
+        addNewLeafNodeToMetaTable(getInactiveMetaTable(), newLeafNode);
         return null;
       } finally {
         releaseLockOnMetaTable(writeLockOnMetaTable);

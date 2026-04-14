@@ -234,13 +234,13 @@ public abstract class Wormhole<K, V> {
     return null;
   }
 
-  LeafNode<K, V> splitAndInsert(
+  LeafNode<K, V> splitLeafNode(
       MetaTrieHashTable<K, V> metaTable,
       LeafNode<K, V> leafNode,
       Object encodedKey,
       K key,
       V value) {
-    LeafNode<K, V> newLeafNode = split(metaTable, leafNode);
+    LeafNode<K, V> newLeafNode = leafNode.splitToNewLeafNode();
     if (EncodedKeyUtils.compare(encodedKeyType, encodedKey, newLeafNode.anchorKey) < 0) {
       leafNode.add(encodedKey, key, value);
     } else {
@@ -249,12 +249,8 @@ public abstract class Wormhole<K, V> {
     return newLeafNode;
   }
 
-  private LeafNode<K, V> split(MetaTrieHashTable<K, V> metaTable, LeafNode<K, V> leafNode) {
-    Tuple<Object, LeafNode<K, V>> newLeafNodeAndAnchor = leafNode.splitToNewLeafNode();
-    Object newAnchor = newLeafNodeAndAnchor.first;
-    LeafNode<K, V> newLeafNode = newLeafNodeAndAnchor.second;
-    metaTable.handleSplitNodes(newAnchor, newLeafNode);
-    return newLeafNode;
+  void addNewLeafNodeToMetaTable(MetaTrieHashTable<K, V> metaTable, LeafNode<K, V> newLeafNode) {
+    metaTable.handleSplitNodes(newLeafNode.anchorKey, newLeafNode);
   }
 
   @Nullable

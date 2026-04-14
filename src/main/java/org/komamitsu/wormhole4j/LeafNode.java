@@ -585,7 +585,7 @@ class LeafNode<K, V> {
     sortTags();
   }
 
-  Tuple<Object, LeafNode<K, V>> splitToNewLeafNode() {
+  LeafNode<K, V> splitToNewLeafNode() {
     incSort();
 
     Tuple<Integer, Object> found = findSplitPositionAndNewAnchorInLeafNode();
@@ -598,7 +598,7 @@ class LeafNode<K, V> {
 
     removeMovedEntries(keyValuesIndexListOfNewLeafNode);
 
-    return new Tuple<>(newAnchor, newLeafNode);
+    return newLeafNode;
   }
 
   int size() {
