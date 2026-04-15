@@ -232,7 +232,14 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
       long writeLockOnMetaTable = acquireLockOnMetaTable();
       try {
         // Merge the nodes on the inactive meta table if needed.
-        LeafNode<K, V> updatedLeafNode = mergeIfNeeded(getInactiveMetaTable(), leafNode);
+        Tuple<LeafNode<K, V>, LeafNode<K, V>> mergedLeafNodes = mergeLeafNodesIfNeeded(leafNode);
+        LeafNode<K, V> updatedLeafNode = null;
+        LeafNode<K, V> mergedLeafNode = null;
+        if (mergedLeafNodes != null) {
+          updatedLeafNode = mergedLeafNodes.first;
+          mergedLeafNode = mergedLeafNodes.second;
+          removeMergedLeafNodeFromMetaTable(getInactiveMetaTable(), mergedLeafNode);
+        }
         // Increment versions and switch to the updated meta table.
         long newVersion = version + 1;
         leafNode.setVersion(newVersion);
@@ -245,8 +252,10 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
         // Wait until no reader threads on the previously active meta table.
         qsbrExit();
         qsbrWait(newVersion);
-        // Merge the nodes on the inactive (previously active) meta table if needed.
-        mergeIfNeeded(getInactiveMetaTable(), leafNode);
+        // Remove the merged leaf node from the inactive meta table.
+        if (mergedLeafNode != null) {
+          removeMergedLeafNodeFromMetaTable(getInactiveMetaTable(), mergedLeafNode);
+        }
         return true;
       } finally {
         releaseLockOnMetaTable(writeLockOnMetaTable);
@@ -300,42 +309,40 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     Object encodedEndKey = endKey == null ? null : createEncodedKey(endKey);
     BiFunction<K, V, Boolean> actualFunction = prepareScanFunction(count, function);
 
-    while (true) {
+    try {
       qsbrEnter();
-      try {
-        LeafNode<K, V> leafNode = searchTrieHashTable(encodedStartKey);
-        while (leafNode != null) {
-          long lockOnLeafNode;
-          boolean writeLockOnLeafNode = false;
-          while (true) {
-            lockOnLeafNode =
-                writeLockOnLeafNode ? leafNode.acquireWriteLock() : leafNode.acquireReadLock();
-            if (writeLockOnLeafNode || leafNode.isKeyRefsSorted()) {
-              break;
-            }
-            leafNode.releaseLock(lockOnLeafNode);
-            writeLockOnLeafNode = true;
+      LeafNode<K, V> leafNode = searchTrieHashTable(encodedStartKey);
+      while (leafNode != null) {
+        long lockOnLeafNode;
+        boolean writeLockOnLeafNode = false;
+        while (true) {
+          lockOnLeafNode =
+              writeLockOnLeafNode ? leafNode.acquireWriteLock() : leafNode.acquireReadLock();
+          if (writeLockOnLeafNode || leafNode.isKeyRefsSorted()) {
+            break;
           }
-          try {
-            if (leafNode.getVersion() > getLocalVersion()) {
-              // FIXME: This break leads to a retry from the beginning, but `actualFunction` can be
-              // executed multiple times on the same leaf nodes...
-              break;
-            }
-            leafNode.incSort();
-            if (!leafNode.iterateKeyValues(
-                encodedStartKey, encodedEndKey, isEndKeyExclusive, actualFunction)) {
-              return;
-            }
-          } finally {
-            leafNode.releaseLock(lockOnLeafNode);
-          }
-          leafNode = leafNode.getRight();
-          encodedStartKey = null;
+          leafNode.releaseLock(lockOnLeafNode);
+          writeLockOnLeafNode = true;
         }
-      } finally {
-        qsbrExit();
+        try {
+          if (leafNode.getVersion() > getLocalVersion()) {
+            // FIXME: This break leads to a retry from the beginning, but `actualFunction` can be
+            //        executed multiple times on the same leaf nodes...
+            break;
+          }
+          leafNode.incSort();
+          if (!leafNode.iterateKeyValues(
+              encodedStartKey, encodedEndKey, isEndKeyExclusive, actualFunction)) {
+            return;
+          }
+        } finally {
+          leafNode.releaseLock(lockOnLeafNode);
+        }
+        leafNode = leafNode.getRight();
+        encodedStartKey = null;
       }
+    } finally {
+      qsbrExit();
     }
   }
 

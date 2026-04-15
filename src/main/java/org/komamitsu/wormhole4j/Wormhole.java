@@ -254,23 +254,22 @@ public abstract class Wormhole<K, V> {
   }
 
   @Nullable
-  LeafNode<K, V> mergeIfNeeded(MetaTrieHashTable<K, V> metaTable, LeafNode<K, V> leafNode) {
-    // TODO: Check whether this if and else-if are correct.
+  Tuple<LeafNode<K, V>, LeafNode<K, V>> mergeLeafNodesIfNeeded(LeafNode<K, V> leafNode) {
     if (leafNode.getLeft() != null
         && leafNode.size() + leafNode.getLeft().size() < leafNodeMergeSize) {
-      merge(metaTable, leafNode.getLeft(), leafNode);
-      return leafNode.getLeft();
+      LeafNode<K, V> leftLeafNode = leafNode.getLeft();
+      leftLeafNode.merge(leafNode);
+      return new Tuple<>(leftLeafNode, leafNode);
     } else if (leafNode.getRight() != null
         && leafNode.size() + leafNode.getRight().size() < leafNodeMergeSize) {
-      merge(metaTable, leafNode, leafNode.getRight());
-      return leafNode;
+      LeafNode<K, V> rightLeafNode = leafNode.getRight();
+      leafNode.merge(rightLeafNode);
+      return new Tuple<>(leafNode, rightLeafNode);
     }
     return null;
   }
 
-  private void merge(
-      MetaTrieHashTable<K, V> metaTable, LeafNode<K, V> left, LeafNode<K, V> victim) {
-    left.merge(victim);
+  void removeMergedLeafNodeFromMetaTable(MetaTrieHashTable<K, V> metaTable, LeafNode<K, V> victim) {
     boolean childNodeRemoved = false;
     for (int prefixlen = EncodedKeyUtils.length(encodedKeyType, victim.anchorKey);
         prefixlen >= 0;

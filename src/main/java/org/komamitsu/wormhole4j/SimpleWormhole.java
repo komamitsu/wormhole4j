@@ -119,7 +119,10 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
       validateIfNeeded();
       return false;
     }
-    mergeIfNeeded(metaTable, leafNode);
+    Tuple<LeafNode<K, V>, LeafNode<K, V>> mergedLeafNodes = mergeLeafNodesIfNeeded(leafNode);
+    if (mergedLeafNodes != null) {
+      removeMergedLeafNodeFromMetaTable(metaTable, mergedLeafNodes.second);
+    }
     validateIfNeeded();
     return true;
   }
