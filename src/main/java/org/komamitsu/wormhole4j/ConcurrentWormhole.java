@@ -189,6 +189,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
       if (existingValue != null) {
         return existingValue.orElse(null);
       }
+      qsbrExit();
       long writeLockOnMetaTable = acquireLockOnMetaTable();
       try {
         long newVersion = version + 1;
@@ -205,7 +206,6 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
         writeLockOnLeafNode = null;
 
         // Wait until no reader threads on the previously active meta table.
-        qsbrExit();
         qsbrWait(newVersion);
 
         addNewLeafNodeToMetaTable(getInactiveMetaTable(), newLeafNode);
