@@ -114,13 +114,21 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   }
 
   private void qsbrEnter() {
-    qsbrThreadLocalVersions.get().set(version);
+    AtomicReference<Long> qsbrThreadLocalVersion = qsbrThreadLocalVersions.get();
+    if (qsbrThreadLocalVersion == null) {
+      throw new IllegalStateException("This thread is not registered yet");
+    }
+    qsbrThreadLocalVersion.set(version);
     qsbrThreadLocalMetaTables.set(getMetaTable());
   }
 
   private void qsbrExit() {
+    AtomicReference<Long> qsbrThreadLocalVersion = qsbrThreadLocalVersions.get();
+    if (qsbrThreadLocalVersion == null) {
+      throw new IllegalStateException("This thread is not registered yet");
+    }
     qsbrThreadLocalMetaTables.remove();
-    qsbrThreadLocalVersions.get().set(null);
+    qsbrThreadLocalVersion.set(null);
   }
 
   private long getLocalVersion() {
