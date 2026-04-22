@@ -221,6 +221,69 @@ class ConcurrentWormholeTest {
   }
 
   @RepeatedTest(10000)
+  void concurrent2PutsAfterSplit_ShouldReturnProperValues_3() throws Exception {
+    withRegisteredWormhole(
+        () -> {
+          // Arrange
+          assertThat(wormhole.put(10, 100)).isNull();
+          assertThat(wormhole.put(11, 110)).isNull();
+          assertThat(wormhole.put(13, 130)).isNull();
+          assertThat(wormhole.put(14, 140)).isNull();
+          assertThat(wormhole.put(7, 70)).isNull();
+          assertThat(wormhole.put(8, 80)).isNull();
+
+          ExecutorService executorService = Executors.newFixedThreadPool(2);
+          List<Future<Integer>> futures = new ArrayList<>();
+          CyclicBarrier barrier = new CyclicBarrier(2);
+
+          try {
+            // Act
+            futures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier.await();
+                              return wormhole.put(6, 60);
+                            })));
+            futures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier.await();
+                              return wormhole.put(7, 71);
+                            })));
+
+            // Assert
+            List<Integer> resultValues = new ArrayList<>();
+            for (Future<Integer> future : futures) {
+              Integer resultValue = future.get();
+              if (resultValue != null) {
+                resultValues.add(resultValue);
+              }
+            }
+            assertThat(resultValues).hasSize(1);
+            assertThat(resultValues.get(0)).isEqualTo(70);
+
+            assertThat(wormhole.get(7)).isEqualTo(71);
+            assertThat(wormhole.get(8)).isEqualTo(80);
+            assertThat(wormhole.get(10)).isEqualTo(100);
+            assertThat(wormhole.get(11)).isEqualTo(110);
+            assertThat(wormhole.get(13)).isEqualTo(130);
+            assertThat(wormhole.get(14)).isEqualTo(140);
+
+            return null;
+          } finally {
+            executorService.shutdown();
+            if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+              executorService.shutdownNow();
+            }
+          }
+        });
+  }
+
+  @RepeatedTest(10000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_simplified() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -520,6 +583,211 @@ class ConcurrentWormholeTest {
             assertThat(wormhole.get(15)).isEqualTo(150);
             assertThat(wormhole.get(16)).isEqualTo(160);
             assertThat(wormhole.get(17)).isEqualTo(170);
+
+            return null;
+          } finally {
+            executorService.shutdown();
+            if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+              executorService.shutdownNow();
+            }
+          }
+        });
+  }
+
+  @RepeatedTest(10000)
+  void concurrent3PutsAfterSplit_ShouldReturnProperValues_4() throws Exception {
+    withRegisteredWormhole(
+        () -> {
+          // Arrange
+          assertThat(wormhole.put(10, 100)).isNull();
+          assertThat(wormhole.put(13, 130)).isNull();
+
+          ExecutorService executorService = Executors.newFixedThreadPool(3);
+          List<Future<List<Integer>>> futures = new ArrayList<>();
+          CyclicBarrier barrier1 = new CyclicBarrier(3);
+          CyclicBarrier barrier2 = new CyclicBarrier(2);
+
+          try {
+            // Act
+            futures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              List<Integer> existingValues = new ArrayList<>();
+                              barrier1.await();
+                              existingValues.add(wormhole.put(11, 110));
+                              barrier2.await();
+                              existingValues.add(wormhole.put(8, 80));
+                              return existingValues;
+                            })));
+            futures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier1.await();
+                              List<Integer> existingValues = new ArrayList<>();
+                              existingValues.add(wormhole.put(12, 120));
+                              barrier2.await();
+                              existingValues.add(wormhole.put(7, 70));
+                              return existingValues;
+                            })));
+            futures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier1.await();
+                              List<Integer> existingValues = new ArrayList<>();
+                              existingValues.add(wormhole.put(6, 60));
+                              return existingValues;
+                            })));
+
+            // Assert
+            List<Integer> resultValues = new ArrayList<>();
+            for (Future<List<Integer>> future : futures) {
+              List<Integer> result =
+                  future.get(10, TimeUnit.SECONDS).stream()
+                      .filter(Objects::nonNull)
+                      .collect(toList());
+              resultValues.addAll(result);
+            }
+            assertThat(resultValues).hasSize(0);
+
+            assertThat(wormhole.get(6)).isEqualTo(60);
+            assertThat(wormhole.get(7)).isEqualTo(70);
+            assertThat(wormhole.get(8)).isEqualTo(80);
+            assertThat(wormhole.get(10)).isEqualTo(100);
+            assertThat(wormhole.get(11)).isEqualTo(110);
+            assertThat(wormhole.get(12)).isEqualTo(120);
+            assertThat(wormhole.get(13)).isEqualTo(130);
+
+            return null;
+          } finally {
+            executorService.shutdown();
+            if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+              executorService.shutdownNow();
+            }
+          }
+        });
+  }
+
+  @RepeatedTest(10000)
+  void concurrent2Deletes_ShouldReturnProperValues() throws Exception {
+    withRegisteredWormhole(
+        () -> {
+          // Arrange
+          assertThat(wormhole.put(9, 90)).isNull();
+          assertThat(wormhole.put(10, 100)).isNull();
+
+          ExecutorService executorService = Executors.newFixedThreadPool(3);
+          List<Future<List<Boolean>>> futures = new ArrayList<>();
+          CyclicBarrier barrier = new CyclicBarrier(2);
+
+          try {
+            // Act
+            futures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier.await();
+                              List<Boolean> existingValues = new ArrayList<>();
+                              existingValues.add(wormhole.delete(9));
+                              return existingValues;
+                            })));
+            futures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier.await();
+                              List<Boolean> existingValues = new ArrayList<>();
+                              existingValues.add(wormhole.delete(10));
+                              return existingValues;
+                            })));
+
+            // Assert
+            List<Boolean> resultValues = new ArrayList<>();
+            for (Future<List<Boolean>> future : futures) {
+              List<Boolean> result =
+                  future.get().stream().filter(Objects::nonNull).collect(toList());
+              resultValues.addAll(result);
+            }
+            assertThat(resultValues).hasSize(2);
+            assertThat(resultValues.get(0)).isTrue();
+            assertThat(resultValues.get(1)).isTrue();
+
+            assertThat(wormhole.get(9)).isNull();
+            assertThat(wormhole.get(10)).isNull();
+
+            return null;
+          } finally {
+            executorService.shutdown();
+            if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+              executorService.shutdownNow();
+            }
+          }
+        });
+  }
+
+  @RepeatedTest(10000)
+  void concurrentPutAndDelete_ShouldReturnProperValues() throws Exception {
+    withRegisteredWormhole(
+        () -> {
+          // Arrange
+          assertThat(wormhole.put(8, 80)).isNull();
+          assertThat(wormhole.put(10, 100)).isNull();
+          assertThat(wormhole.put(12, 120)).isNull();
+          assertThat(wormhole.put(13, 130)).isNull();
+
+          ExecutorService executorService = Executors.newFixedThreadPool(3);
+          List<Future<List<Boolean>>> deleteFutures = new ArrayList<>();
+          List<Future<List<Integer>>> putFutures = new ArrayList<>();
+          CyclicBarrier barrier = new CyclicBarrier(2);
+
+          try {
+            // Act
+            putFutures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier.await();
+                              return Arrays.asList(wormhole.put(7, 70));
+                            })));
+            deleteFutures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier.await();
+                              return Arrays.asList(wormhole.delete(12));
+                            })));
+
+            // Assert
+            List<Integer> resultPutValues = new ArrayList<>();
+            for (Future<List<Integer>> future : putFutures) {
+              List<Integer> result =
+                  future.get().stream().filter(Objects::nonNull).collect(toList());
+              resultPutValues.addAll(result);
+            }
+            List<Boolean> resultDeleteValues = new ArrayList<>();
+            for (Future<List<Boolean>> future : deleteFutures) {
+              List<Boolean> result =
+                  future.get().stream().filter(Objects::nonNull).collect(toList());
+              resultDeleteValues.addAll(result);
+            }
+            assertThat(resultPutValues).hasSize(0);
+            assertThat(resultDeleteValues).hasSize(1);
+            assertThat(resultDeleteValues.get(0)).isTrue();
+
+            assertThat(wormhole.get(7)).isEqualTo(70);
+            assertThat(wormhole.get(8)).isEqualTo(80);
+            assertThat(wormhole.get(10)).isEqualTo(100);
+            assertThat(wormhole.get(12)).isNull();
+            assertThat(wormhole.get(13)).isEqualTo(130);
 
             return null;
           } finally {

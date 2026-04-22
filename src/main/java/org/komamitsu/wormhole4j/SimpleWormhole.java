@@ -51,7 +51,7 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
   private void initialize() {
     Object encodedKey = createEmptyEncodedKey();
     LeafNode<K, V> rootLeafNode = createRootLeafNode(encodedKey);
-    getMetaTable().put(encodedKey, new NodeMetaLeaf<>(encodedKey, rootLeafNode));
+    metaTable.put(encodedKey, new NodeMetaLeaf<>(encodedKey, rootLeafNode));
   }
 
   protected abstract Object createEncodedKey(K key);
@@ -65,6 +65,11 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
 
   @Override
   public void unregister() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public boolean isThreadRegistered() {
     throw new UnsupportedOperationException();
   }
 
@@ -176,5 +181,14 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
       @Nullable LeafNode<K, V> rightNode) {
     return new LeafNode<>(
         encodedKeyType, validAnchorKeyProvider, anchorKey, maxSize, leftNode, rightNode);
+  }
+
+  @Override
+  protected Object provideValidAnchorKeyForSplit(Object anchorKey) {
+    MetaTrieHashTable.NodeMeta existingNodeMeta = metaTable.get(anchorKey);
+    if (existingNodeMeta == null) {
+      return anchorKey;
+    }
+    return null;
   }
 }

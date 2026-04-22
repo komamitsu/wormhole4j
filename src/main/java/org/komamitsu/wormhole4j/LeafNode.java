@@ -30,7 +30,7 @@ class LeafNode<K, V> {
   private final EncodedKeyType encodedKeyType;
   final Object anchorKey;
   private final int maxSize;
-  private final Function<Object, Object> validAnchorKeyProvider;
+  private final Function<Object, Object> validAnchorKeyProviderForSplit;
 
   @Nullable private LeafNode<K, V> left;
   @Nullable private LeafNode<K, V> right;
@@ -414,13 +414,13 @@ class LeafNode<K, V> {
   @SuppressWarnings("unchecked")
   LeafNode(
       EncodedKeyType encodedKeyType,
-      Function<Object, Object> validAnchorKeyProvider,
+      Function<Object, Object> validAnchorKeyProviderForSplit,
       Object anchorKey,
       int maxSize,
       @Nullable LeafNode<K, V> left,
       @Nullable LeafNode<K, V> right) {
     this.encodedKeyType = encodedKeyType;
-    this.validAnchorKeyProvider = validAnchorKeyProvider;
+    this.validAnchorKeyProviderForSplit = validAnchorKeyProviderForSplit;
     this.anchorKey = anchorKey;
     this.maxSize = maxSize;
     keyValues = new Object[maxSize * TUPLE_SIZE];
@@ -534,7 +534,7 @@ class LeafNode<K, V> {
     // Copy entries to a new leaf node.
     LeafNode<K, V> newLeafNode =
         createLeafNode(
-            encodedKeyType, validAnchorKeyProvider, newAnchor, maxSize, this, this.right);
+            encodedKeyType, validAnchorKeyProviderForSplit, newAnchor, maxSize, this, this.right);
     List<Integer> keyValueIndexListOfNewLeafNode = new ArrayList<>(currentSize);
     for (int i = startKeyRefIndex; i < currentSize; i++) {
       int keyValueIndex = getKeyValueIndexFromKeyRef(i);
@@ -720,7 +720,7 @@ class LeafNode<K, V> {
       // For anchor-key ≤ node-key, the relationship of `newAnchor` and `k2` always satisfy it.
 
       // Check the anchor key prefix condition.
-      Object validatedAnchorKey = validAnchorKeyProvider.apply(newAnchor);
+      Object validatedAnchorKey = validAnchorKeyProviderForSplit.apply(newAnchor);
       if (validatedAnchorKey == null) {
         continue;
       }
@@ -737,7 +737,19 @@ class LeafNode<K, V> {
     throw new UnsupportedOperationException();
   }
 
+  long tryReadLock() {
+    throw new UnsupportedOperationException();
+  }
+
+  long tryWriteLock() {
+    throw new UnsupportedOperationException();
+  }
+
   void releaseLock(long stamp) {
+    throw new UnsupportedOperationException();
+  }
+
+  long getInitialLockStamp() {
     throw new UnsupportedOperationException();
   }
 

@@ -16,12 +16,14 @@
 
 package org.komamitsu.wormhole4j;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.StampedLock;
 import java.util.function.Function;
 import javax.annotation.Nullable;
 
 class ConcurrentLeafNode<K, V> extends LeafNode<K, V> {
   private final StampedLock lock = new StampedLock();
+  private Long initialLockStamp;
   private long version;
 
   ConcurrentLeafNode(
@@ -45,8 +47,35 @@ class ConcurrentLeafNode<K, V> extends LeafNode<K, V> {
   }
 
   @Override
+  long tryReadLock() {
+    try {
+      // TODO: Consider no wait.
+      return lock.tryReadLock(5, TimeUnit.MILLISECONDS);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  long tryWriteLock() {
+    try {
+      // TODO: Consider no wait.
+      return lock.tryWriteLock(5, TimeUnit.MILLISECONDS);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override
   void releaseLock(long stamp) {
     this.lock.unlock(stamp);
+  }
+
+  @Override
+  long getInitialLockStamp() {
+    return initialLockStamp;
   }
 
   @Override
@@ -67,7 +96,10 @@ class ConcurrentLeafNode<K, V> extends LeafNode<K, V> {
       int maxSize,
       @Nullable LeafNode<K, V> left,
       @Nullable LeafNode<K, V> right) {
-    return new ConcurrentLeafNode<>(
-        encodedKeyType, validAnchorKeyProvider, anchorKey, maxSize, left, right);
+    ConcurrentLeafNode<K, V> leafNode =
+        new ConcurrentLeafNode<>(
+            encodedKeyType, validAnchorKeyProvider, anchorKey, maxSize, left, right);
+    leafNode.initialLockStamp = leafNode.acquireWriteLock();
+    return leafNode;
   }
 }

@@ -51,7 +51,7 @@ public abstract class Wormhole<K, V> {
     this.encodedKeyType = encodedKeyType;
     this.leafNodeSize = leafNodeSize;
     this.leafNodeMergeSize = leafNodeSize * 3 / 4;
-    validAnchorKeyProvider = this::provideValidAnchorKey;
+    validAnchorKeyProvider = this::provideValidAnchorKeyForSplit;
   }
 
   LeafNode<K, V> createRootLeafNode(Object encodedKey) {
@@ -66,6 +66,8 @@ public abstract class Wormhole<K, V> {
   public abstract void register();
 
   public abstract void unregister();
+
+  public abstract boolean isThreadRegistered();
 
   /**
    * Inserts or updates a key-value pair.
@@ -226,13 +228,7 @@ public abstract class Wormhole<K, V> {
   }
 
   @Nullable
-  private Object provideValidAnchorKey(Object anchorKey) {
-    MetaTrieHashTable.NodeMeta existingNodeMeta = getMetaTable().get(anchorKey);
-    if (existingNodeMeta == null) {
-      return anchorKey;
-    }
-    return null;
-  }
+  abstract Object provideValidAnchorKeyForSplit(Object anchorKey);
 
   LeafNode<K, V> splitLeafNode(
       MetaTrieHashTable<K, V> metaTable,
