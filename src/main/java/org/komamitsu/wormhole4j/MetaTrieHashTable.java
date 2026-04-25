@@ -242,25 +242,6 @@ class MetaTrieHashTable<K, V> {
     }
   }
 
-  Object removeNodeMetaInternal(Object anchorKey) {
-    NodeMeta removed = table.remove(anchorKey);
-    if (removed == null) {
-      throw new AssertionError(
-          String.format("Node meta internal for anchor key '%s' not found for removal", anchorKey));
-    }
-    if (EncodedKeyUtils.length(encodedKeyType, anchorKey) >= maxAnchorLength) {
-      maxAnchorLength = calcMaxAnchorLength();
-    }
-    if (removed instanceof NodeMetaInternal) {
-      return anchorKey;
-    }
-
-    throw new AssertionError(
-        String.format(
-            "Removed node meta is an unexpected type. Expected: %s, Actual: %s",
-            NodeMetaInternal.class.getName(), removed.getClass().getName()));
-  }
-
   private int calcMaxAnchorLength() {
     int max = 0;
     for (Object key : table.keySet()) {
@@ -274,6 +255,6 @@ class MetaTrieHashTable<K, V> {
 
   @Override
   public String toString() {
-    return "MetaTrieHashTable{" + "table=" + table + '}';
+    return "MetaTrieHashTable{" + "table.size=" + table.size() + '}';
   }
 }

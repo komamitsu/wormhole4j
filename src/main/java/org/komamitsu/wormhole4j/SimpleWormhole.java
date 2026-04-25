@@ -54,22 +54,13 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
     metaTable.put(encodedKey, new NodeMetaLeaf<>(encodedKey, rootLeafNode));
   }
 
-  protected abstract Object createEncodedKey(K key);
-
-  protected abstract Object createEmptyEncodedKey();
-
   @Override
-  public void register() {
+  public void registerThread() {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public void unregister() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean isThreadRegistered() {
+  public void unregisterThread() {
     throw new UnsupportedOperationException();
   }
 

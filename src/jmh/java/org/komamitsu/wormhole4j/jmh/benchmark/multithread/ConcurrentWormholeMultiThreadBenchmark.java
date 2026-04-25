@@ -38,11 +38,11 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
 
     protected void setup(Wormhole<K, Integer> wormhole, KeysState<K> keysState) {
       map = wormhole;
-      map.register();
+      map.registerThread();
       for (K key : keysState.keys) {
         map.put(key, randomInt());
       }
-      map.unregister();
+      map.unregisterThread();
     }
   }
 
@@ -79,7 +79,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     public static class ThreadState {
       @Setup(Level.Trial)
       public void register(FullState state) {
-        state.map.register();
+        state.map.registerThread();
       }
     }
 
@@ -130,7 +130,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     public static class ThreadState {
       @Setup(Level.Trial)
       public void register(FullState state) {
-        state.map.register();
+        state.map.registerThread();
       }
     }
 
@@ -187,7 +187,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     public static class ThreadState {
       @Setup(Level.Trial)
       public void register(FullState state) {
-        state.map.register();
+        state.map.registerThread();
       }
     }
 

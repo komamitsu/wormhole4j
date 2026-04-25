@@ -27,19 +27,19 @@ class ConcurrentWormholeForLongKeyTest extends WormholeForLongKeyTest {
             .setConcurrent(true)
             .setLeafNodeSize(leafNodeSize)
             .build();
-    wormholeForIntValue.register();
+    wormholeForIntValue.registerThread();
 
     wormholeForStrValue =
         new WormholeBuilder.ForLongKey<String>()
             .setConcurrent(true)
             .setLeafNodeSize(leafNodeSize)
             .build();
-    wormholeForStrValue.register();
+    wormholeForStrValue.registerThread();
   }
 
   @AfterEach
   void tearDown() {
-    wormholeForIntValue.unregister();
-    wormholeForStrValue.unregister();
+    wormholeForIntValue.unregisterThread();
+    wormholeForStrValue.unregisterThread();
   }
 }

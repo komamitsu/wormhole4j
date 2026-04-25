@@ -70,10 +70,6 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     metaTables.get(1).put(encodedKey, new NodeMetaLeaf<>(encodedKey, rootLeafNode));
   }
 
-  protected abstract Object createEncodedKey(K key);
-
-  protected abstract Object createEmptyEncodedKey();
-
   @Override
   protected MetaTrieHashTable<K, V> getMetaTable() {
     return metaTables.get(metaTableIndex);
@@ -88,7 +84,10 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   }
 
   @Override
-  public synchronized void register() {
+  public synchronized void registerThread() {
+    if (qsbrThreadLocalIndexes.get() != null) {
+      return;
+    }
     int availableThreadIndex = qsbrThreads.nextClearBit(0);
     if (availableThreadIndex >= MAX_THREADS) {
       throw new IllegalStateException("The number of registered threads exceeds " + MAX_THREADS);
@@ -101,18 +100,13 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   }
 
   @Override
-  public synchronized void unregister() {
+  public synchronized void unregisterThread() {
     int qsbrThreadIndex = getQsbrThreadIndex();
     qsbrVersions.set(qsbrThreadIndex, null);
     qsbrThreads.clear(qsbrThreadIndex);
     qsbrThreadLocalMetaTables.remove();
     qsbrThreadLocalVersions.remove();
     qsbrThreadLocalIndexes.remove();
-  }
-
-  @Override
-  public boolean isThreadRegistered() {
-    return qsbrThreadLocalIndexes.get() != null;
   }
 
   private void registerQsbrVersion(int threadIndex, AtomicReference<Long> versionContainer) {
@@ -144,6 +138,9 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     return qsbrThreadLocalVersions.get().get();
   }
 
+  // This method is called by a thread which has acquired the meta table lock.
+  // Also, only a few methods takes the synchronized lock which are not frequently called.
+  // So method scope synchronized is fine.
   private synchronized void qsbrWait(long newVersion) {
     int threadIndex = 0;
     while (true) {

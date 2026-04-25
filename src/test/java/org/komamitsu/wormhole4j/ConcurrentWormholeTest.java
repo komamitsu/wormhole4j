@@ -33,11 +33,11 @@ class ConcurrentWormholeTest {
   }
 
   private <R> R withRegisteredWormhole(ThrowableSupplier<R, Exception> task) throws Exception {
-    wormhole.register();
+    wormhole.registerThread();
     try {
       return task.get();
     } finally {
-      wormhole.unregister();
+      wormhole.unregisterThread();
     }
   }
 

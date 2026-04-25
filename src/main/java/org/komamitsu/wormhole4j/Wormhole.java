@@ -63,11 +63,9 @@ public abstract class Wormhole<K, V> {
 
   protected abstract Object createEmptyEncodedKey();
 
-  public abstract void register();
+  public abstract void registerThread();
 
-  public abstract void unregister();
-
-  public abstract boolean isThreadRegistered();
+  public abstract void unregisterThread();
 
   /**
    * Inserts or updates a key-value pair.

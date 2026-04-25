@@ -27,9 +27,7 @@ class WormholeTest {
     private val wormhole = WormholeBuilder.ForIntKey<Int>().setConcurrent(true).setLeafNodeSize(4).build()
 
     fun ensureThreadRegistered() {
-        if (!wormhole.isThreadRegistered()) {
-            wormhole.register()
-        }
+        wormhole.registerThread()
     }
 
     @Operation(params = ["key", "value"])
