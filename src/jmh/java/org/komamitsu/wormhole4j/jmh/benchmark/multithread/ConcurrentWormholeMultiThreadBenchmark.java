@@ -38,9 +38,11 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
 
     protected void setup(Wormhole<K, Integer> wormhole, KeysState<K> keysState) {
       map = wormhole;
+      map.register();
       for (K key : keysState.keys) {
         map.put(key, randomInt());
       }
+      map.unregister();
     }
   }
 
@@ -73,10 +75,19 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
       }
     }
 
+    @State(Scope.Thread)
+    public static class ThreadState {
+      @Setup(Level.Trial)
+      public void register(FullState state) {
+        state.map.register();
+      }
+    }
+
     @Group("PutAndGet")
     @GroupThreads(4)
     @Benchmark
-    public void putAndGetBenchmarkPut(IntKeysState keysState, FullState fullState) {
+    public void putAndGetBenchmarkPut(
+        IntKeysState keysState, FullState fullState, ThreadState threadState) {
       execPut(keysState, fullState);
     }
 
@@ -84,14 +95,15 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     @GroupThreads(4)
     @Benchmark
     public void putAndGetBenchmarkGet(
-        IntKeysState keysState, FullState fullState, Blackhole blackhole) {
+        IntKeysState keysState, FullState fullState, Blackhole blackhole, ThreadState threadState) {
       execGet(keysState, fullState, blackhole);
     }
 
     @Group("PutAndScan")
     @GroupThreads(4)
     @Benchmark
-    public void putAndScanBenchmarkPut(IntKeysState keysState, FullState fullState) {
+    public void putAndScanBenchmarkPut(
+        IntKeysState keysState, FullState fullState, ThreadState threadState) {
       execPut(keysState, fullState);
     }
 
@@ -99,7 +111,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     @GroupThreads(4)
     @Benchmark
     public void putAndScanBenchmarkScan(
-        IntKeysState keysState, FullState fullState, Blackhole blackhole) {
+        IntKeysState keysState, FullState fullState, Blackhole blackhole, ThreadState threadState) {
       execScan(keysState, fullState, blackhole);
     }
   }
@@ -114,10 +126,19 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
       }
     }
 
+    @State(Scope.Thread)
+    public static class ThreadState {
+      @Setup(Level.Trial)
+      public void register(FullState state) {
+        state.map.register();
+      }
+    }
+
     @Group("PutAndGet")
     @GroupThreads(4)
     @Benchmark
-    public void putAndGetBenchmarkPut(LongKeysState keysState, FullState fullState) {
+    public void putAndGetBenchmarkPut(
+        LongKeysState keysState, FullState fullState, ThreadState threadState) {
       execPut(keysState, fullState);
     }
 
@@ -125,14 +146,18 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     @GroupThreads(4)
     @Benchmark
     public void putAndGetBenchmarkGet(
-        LongKeysState keysState, FullState fullState, Blackhole blackhole) {
+        LongKeysState keysState,
+        FullState fullState,
+        Blackhole blackhole,
+        ThreadState threadState) {
       execGet(keysState, fullState, blackhole);
     }
 
     @Group("PutAndScan")
     @GroupThreads(4)
     @Benchmark
-    public void putAndScanBenchmarkPut(LongKeysState keysState, FullState fullState) {
+    public void putAndScanBenchmarkPut(
+        LongKeysState keysState, FullState fullState, ThreadState threadState) {
       execPut(keysState, fullState);
     }
 
@@ -140,7 +165,10 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     @GroupThreads(4)
     @Benchmark
     public void putAndScanBenchmarkScan(
-        LongKeysState keysState, FullState fullState, Blackhole blackhole) {
+        LongKeysState keysState,
+        FullState fullState,
+        Blackhole blackhole,
+        ThreadState threadState) {
       execScan(keysState, fullState, blackhole);
     }
   }
@@ -155,10 +183,19 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
       }
     }
 
+    @State(Scope.Thread)
+    public static class ThreadState {
+      @Setup(Level.Trial)
+      public void register(FullState state) {
+        state.map.register();
+      }
+    }
+
     @Group("PutAndGet")
     @GroupThreads(4)
     @Benchmark
-    public void putAndGetBenchmarkPut(StringKeysState keysState, FullState fullState) {
+    public void putAndGetBenchmarkPut(
+        StringKeysState keysState, FullState fullState, ThreadState threadState) {
       execPut(keysState, fullState);
     }
 
@@ -166,14 +203,18 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     @GroupThreads(4)
     @Benchmark
     public void putAndGetBenchmarkGet(
-        StringKeysState keysState, FullState fullState, Blackhole blackhole) {
+        StringKeysState keysState,
+        FullState fullState,
+        Blackhole blackhole,
+        ThreadState threadState) {
       execGet(keysState, fullState, blackhole);
     }
 
     @Group("PutAndScan")
     @GroupThreads(4)
     @Benchmark
-    public void putAndScanBenchmarkPut(StringKeysState keysState, FullState fullState) {
+    public void putAndScanBenchmarkPut(
+        StringKeysState keysState, FullState fullState, ThreadState threadState) {
       execPut(keysState, fullState);
     }
 
@@ -181,7 +222,10 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     @GroupThreads(4)
     @Benchmark
     public void putAndScanBenchmarkScan(
-        StringKeysState keysState, FullState fullState, Blackhole blackhole) {
+        StringKeysState keysState,
+        FullState fullState,
+        Blackhole blackhole,
+        ThreadState threadState) {
       execScan(keysState, fullState, blackhole);
     }
   }
