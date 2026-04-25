@@ -81,6 +81,11 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
       public void register(FullState state) {
         state.map.registerThread();
       }
+
+      @TearDown(Level.Trial)
+      public void unregister(FullState state) {
+        state.map.unregisterThread();
+      }
     }
 
     @Group("PutAndGet")
@@ -131,6 +136,11 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
       @Setup(Level.Trial)
       public void register(FullState state) {
         state.map.registerThread();
+      }
+
+      @TearDown(Level.Trial)
+      public void unregister(ForIntKey.FullState state) {
+        state.map.unregisterThread();
       }
     }
 
@@ -188,6 +198,11 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
       @Setup(Level.Trial)
       public void register(FullState state) {
         state.map.registerThread();
+      }
+
+      @TearDown(Level.Trial)
+      public void unregister(ForIntKey.FullState state) {
+        state.map.unregisterThread();
       }
     }
 

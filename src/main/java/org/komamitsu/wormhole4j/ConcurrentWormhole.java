@@ -130,7 +130,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     if (qsbrThreadLocalVersion == null) {
       throw new IllegalStateException("This thread is not registered yet");
     }
-    qsbrThreadLocalMetaTables.remove();
+    qsbrThreadLocalMetaTables.set(null);
     qsbrThreadLocalVersion.set(null);
   }
 
