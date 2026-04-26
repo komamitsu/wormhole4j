@@ -34,8 +34,6 @@ import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
  * @param <V> the type of values stored in this index
  */
 abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
-  // TODO: Make this configurable.
-  private static final int MAX_THREADS = 512;
   // These don't need to be volatile since they are only updated in synchronized blocks.
   private int metaTableIndex;
   private long version;
@@ -59,8 +57,8 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     this.metaTables =
         Arrays.asList(
             new MetaTrieHashTable<>(encodedKeyType), new MetaTrieHashTable<>(encodedKeyType));
-    this.qsbrVersions = new ArrayList<>(MAX_THREADS);
-    this.qsbrThreads = new BitSet(MAX_THREADS);
+    this.qsbrVersions = new ArrayList<>();
+    this.qsbrThreads = new BitSet();
     initialize();
   }
 
@@ -90,9 +88,6 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
       return;
     }
     int availableThreadIndex = qsbrThreads.nextClearBit(0);
-    if (availableThreadIndex >= MAX_THREADS) {
-      throw new IllegalStateException("The number of registered threads exceeds " + MAX_THREADS);
-    }
     AtomicReference<Long> versionContainer = new AtomicReference<>();
     qsbrThreadLocalIndexes.set(availableThreadIndex);
     qsbrThreadLocalVersions.set(versionContainer);
