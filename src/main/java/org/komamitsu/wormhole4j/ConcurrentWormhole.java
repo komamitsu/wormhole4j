@@ -36,6 +36,7 @@ import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
 abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   // TODO: Make this configurable.
   private static final int MAX_THREADS = 512;
+  // These don't need to be volatile since they are only updated in synchronized blocks.
   private int metaTableIndex;
   private long version;
   private final List<MetaTrieHashTable<K, V>> metaTables;
