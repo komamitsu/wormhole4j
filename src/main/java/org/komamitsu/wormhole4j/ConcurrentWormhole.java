@@ -184,7 +184,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     return metaTableIndex == 0 ? 1 : 0;
   }
 
-  private void switchMetaTable(long newVersion) {
+  private synchronized void switchMetaTable(long newVersion) {
     metaTableIndex = getInactiveMetaTableIndex();
     version = newVersion;
   }
