@@ -139,7 +139,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
       }
 
       @TearDown(Level.Trial)
-      public void unregister(ForIntKey.FullState state) {
+      public void unregister(FullState state) {
         state.map.unregisterThread();
       }
     }
@@ -201,7 +201,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
       }
 
       @TearDown(Level.Trial)
-      public void unregister(ForIntKey.FullState state) {
+      public void unregister(FullState state) {
         state.map.unregisterThread();
       }
     }
