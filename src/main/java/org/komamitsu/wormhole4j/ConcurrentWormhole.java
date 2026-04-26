@@ -220,7 +220,6 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
         if (existingValue != null) {
           return existingValue.orElse(null);
         }
-        qsbrExit();
         long writeLockOnMetaTable = tryLockOnMetaTable();
         if (writeLockOnMetaTable == 0) {
           continue;
@@ -298,6 +297,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
             mergedLeafNode = mergedLeafNodes.second;
             removeMergedLeafNodeFromMetaTable(getInactiveMetaTable(), mergedLeafNode);
           }
+
           // Increment versions and switch to the updated meta table.
           long newVersion = version + 1;
           leafNode.setVersion(newVersion);
@@ -307,6 +307,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
           switchMetaTable(newVersion);
           leafNode.releaseLock(writeLockOnLeafNode);
           writeLockOnLeafNode = null;
+
           // Wait until no reader threads on the previously active meta table.
           qsbrThreadLocalVersions.get().set(newVersion);
           qsbrWait(newVersion, getQsbrThreadIndex());
