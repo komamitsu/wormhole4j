@@ -16,13 +16,11 @@
 
 package org.komamitsu.wormhole4j;
 
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.StampedLock;
 import java.util.function.Function;
 import javax.annotation.Nullable;
 
 class ConcurrentLeafNode<K, V> extends LeafNode<K, V> {
-  private static final long TRY_LOCK_WAIT_IN_MILLIS = 5;
   private final StampedLock lock = new StampedLock();
   private Long initialLockStamp;
   private long version;
@@ -49,22 +47,12 @@ class ConcurrentLeafNode<K, V> extends LeafNode<K, V> {
 
   @Override
   long tryReadLock() {
-    try {
-      return lock.tryReadLock(TRY_LOCK_WAIT_IN_MILLIS, TimeUnit.MILLISECONDS);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException(e);
-    }
+    return lock.tryReadLock();
   }
 
   @Override
   long tryWriteLock() {
-    try {
-      return lock.tryWriteLock(TRY_LOCK_WAIT_IN_MILLIS, TimeUnit.MILLISECONDS);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException(e);
-    }
+    return lock.tryWriteLock();
   }
 
   @Override
