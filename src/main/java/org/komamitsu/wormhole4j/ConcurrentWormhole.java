@@ -208,14 +208,13 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
       LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
       Long writeLockOnLeafNode = leafNode.tryWriteLock();
       if (writeLockOnLeafNode == 0) {
+        qsbrExit();
         continue;
       }
-
       try {
         if (leafNode.getVersion() > qsbrThreadLocalVersions.get().get()) {
           continue;
         }
-
         Optional<V> existingValue = leafNode.lookupAndPutValue(encodedKey, key, value);
         if (existingValue != null) {
           return existingValue.orElse(null);
@@ -269,10 +268,10 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     Object encodedKey = createEncodedKey(key);
     while (true) {
       qsbrEnter();
-
       LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
       Long writeLockOnLeafNode = leafNode.tryWriteLock();
       if (writeLockOnLeafNode == 0) {
+        qsbrExit();
         continue;
       }
       try {
