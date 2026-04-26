@@ -65,7 +65,7 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
   }
 
   @Override
-  protected MetaTrieHashTable<K, V> getMetaTable() {
+  protected MetaTrieHashTable<K, V> getActiveMetaTable() {
     return metaTable;
   }
 

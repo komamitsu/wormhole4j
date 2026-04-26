@@ -35,8 +35,9 @@ import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
  */
 abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   // These don't need to be volatile since they are only updated in synchronized blocks.
-  private int metaTableIndex;
   private long version;
+  private int metaTableIndex;
+
   private final List<MetaTrieHashTable<K, V>> metaTables;
   private final StampedLock metaTableLock = new StampedLock();
   private final List<AtomicReference<Long>> qsbrVersions;
@@ -70,7 +71,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   }
 
   @Override
-  protected MetaTrieHashTable<K, V> getMetaTable() {
+  protected MetaTrieHashTable<K, V> getActiveMetaTable() {
     return metaTables.get(metaTableIndex);
   }
 
@@ -118,7 +119,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
       throw new IllegalStateException("This thread is not registered yet");
     }
     qsbrThreadLocalVersion.set(version);
-    qsbrThreadLocalMetaTables.set(getMetaTable());
+    qsbrThreadLocalMetaTables.set(getActiveMetaTable());
   }
 
   private void qsbrExit() {
@@ -137,20 +138,24 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   // This method is called by a thread which has acquired the meta table lock.
   // Also, only a few methods takes the synchronized lock which are not frequently called.
   // So method scope synchronized is fine.
-  private synchronized void qsbrWait(long newVersion) {
+  private synchronized void qsbrWait(long newVersion, int threadIndexSkipped) {
     int threadIndex = 0;
     while (true) {
       threadIndex = qsbrThreads.nextSetBit(threadIndex);
       if (threadIndex < 0) {
         break;
       }
+      if (threadIndex == threadIndexSkipped) {
+        threadIndex++;
+        continue;
+      }
       while (true) {
         Long localVersion = qsbrVersions.get(threadIndex).get();
         if (localVersion == null || localVersion == newVersion) {
           break;
         }
-        // Or, Thread.onSpinWait() with Java 9 or later.
-        Thread.yield();
+        // TODO: Call Thread.onSpinWait() here somehow, although Java 8 doesn't have it.
+        //       Thread.yield() affects the performance.
       }
       threadIndex++;
     }
@@ -237,7 +242,8 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
           writeLockOnLeafNode = null;
 
           // Wait until no reader threads on the previously active meta table.
-          qsbrWait(newVersion);
+          qsbrThreadLocalVersions.get().set(newVersion);
+          qsbrWait(newVersion, getQsbrThreadIndex());
 
           addNewLeafNodeToMetaTable(getInactiveMetaTable(), newLeafNode);
           return null;
@@ -302,8 +308,8 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
           leafNode.releaseLock(writeLockOnLeafNode);
           writeLockOnLeafNode = null;
           // Wait until no reader threads on the previously active meta table.
-          qsbrExit();
-          qsbrWait(newVersion);
+          qsbrThreadLocalVersions.get().set(newVersion);
+          qsbrWait(newVersion, getQsbrThreadIndex());
           // Remove the merged leaf node from the inactive meta table.
           if (mergedLeafNode != null) {
             removeMergedLeafNodeFromMetaTable(getInactiveMetaTable(), mergedLeafNode);

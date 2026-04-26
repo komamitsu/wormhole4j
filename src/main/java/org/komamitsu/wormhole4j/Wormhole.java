@@ -39,7 +39,7 @@ public abstract class Wormhole<K, V> {
   private final int leafNodeMergeSize;
   private final Function<Object, Object> validAnchorKeyProvider;
 
-  abstract MetaTrieHashTable<K, V> getMetaTable();
+  abstract MetaTrieHashTable<K, V> getActiveMetaTable();
 
   /**
    * Creates a Wormhole.
@@ -165,7 +165,7 @@ public abstract class Wormhole<K, V> {
       @Nullable LeafNode<K, V> rightNode);
 
   LeafNode<K, V> searchTrieHashTable(Object encodedKey) {
-    MetaTrieHashTable<K, V> metaTable = getMetaTable();
+    MetaTrieHashTable<K, V> metaTable = getActiveMetaTable();
     MetaTrieHashTable.NodeMeta nodeMeta =
         metaTable.searchLongestPrefixMatch(encodedKeyType, encodedKey);
     if (nodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf) {
@@ -313,7 +313,7 @@ public abstract class Wormhole<K, V> {
 
   @Override
   public String toString() {
-    return "Wormhole{" + "table=" + getMetaTable() + ", leafNodeSize=" + leafNodeSize + '}';
+    return "Wormhole{" + "table=" + getActiveMetaTable() + ", leafNodeSize=" + leafNodeSize + '}';
   }
 
   IntWrapper createEncodedIntKey(Integer key) {
