@@ -34,6 +34,7 @@ import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
  * @param <V> the type of values stored in this index
  */
 abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
+  private static final long TRY_LOCK_WAIT_IN_MILLIS = 5;
   // These don't need to be volatile since they are only updated in synchronized blocks.
   private long version;
   private int metaTableIndex;
@@ -163,8 +164,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
 
   private long tryLockOnMetaTable() {
     try {
-      // TODO: Consider no wait.
-      return metaTableLock.tryWriteLock(5, TimeUnit.MILLISECONDS);
+      return metaTableLock.tryWriteLock(TRY_LOCK_WAIT_IN_MILLIS, TimeUnit.MILLISECONDS);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException(e);
