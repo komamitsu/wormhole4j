@@ -153,6 +153,8 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
         if (localVersion == null || localVersion == newVersion) {
           break;
         }
+        // Or, Thread.onSpinWait() with Java 9 or later.
+        Thread.yield();
       }
       threadIndex++;
     }
