@@ -203,7 +203,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     while (true) {
       qsbrEnter();
       LeafNode<K, V> leafNode = searchTrieHashTable(qsbrThreadLocalMetaTables.get(), encodedKey);
-      Long writeLockOnLeafNode = leafNode.tryWriteLock();
+      long writeLockOnLeafNode = leafNode.tryWriteLock();
       if (writeLockOnLeafNode == 0) {
         qsbrExit();
         continue;
@@ -224,8 +224,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
           long newVersion = version + 1;
 
           // This new leaf is already locked.
-          LeafNode<K, V> newLeafNode =
-              splitLeafNode(getInactiveMetaTable(), leafNode, encodedKey, key, value);
+          LeafNode<K, V> newLeafNode = splitLeafNode(leafNode, encodedKey, key, value);
           addNewLeafNodeToMetaTable(getInactiveMetaTable(), newLeafNode);
 
           // Increment versions and switch to the updated meta table.
@@ -234,7 +233,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
           switchMetaTable(newVersion);
           newLeafNode.releaseLock(newLeafNode.getInitialLockStamp());
           leafNode.releaseLock(writeLockOnLeafNode);
-          writeLockOnLeafNode = null;
+          writeLockOnLeafNode = 0;
 
           // Wait until no reader threads on the previously active meta table.
           qsbrThreadLocalVersions.get().set(newVersion);
@@ -247,7 +246,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
         }
       } finally {
         qsbrExit();
-        if (writeLockOnLeafNode != null) {
+        if (writeLockOnLeafNode != 0) {
           leafNode.releaseLock(writeLockOnLeafNode);
         }
       }
@@ -266,7 +265,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     while (true) {
       qsbrEnter();
       LeafNode<K, V> leafNode = searchTrieHashTable(qsbrThreadLocalMetaTables.get(), encodedKey);
-      Long writeLockOnLeafNode = leafNode.tryWriteLock();
+      long writeLockOnLeafNode = leafNode.tryWriteLock();
       if (writeLockOnLeafNode == 0) {
         qsbrExit();
         continue;
@@ -303,7 +302,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
           }
           switchMetaTable(newVersion);
           leafNode.releaseLock(writeLockOnLeafNode);
-          writeLockOnLeafNode = null;
+          writeLockOnLeafNode = 0;
 
           // Wait until no reader threads on the previously active meta table.
           qsbrThreadLocalVersions.get().set(newVersion);
@@ -318,7 +317,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
         }
       } finally {
         qsbrExit();
-        if (writeLockOnLeafNode != null) {
+        if (writeLockOnLeafNode != 0) {
           leafNode.releaseLock(writeLockOnLeafNode);
         }
       }

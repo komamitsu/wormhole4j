@@ -510,7 +510,7 @@ class LeafNode<K, V> {
     }
   }
 
-  protected LeafNode<K, V> createLeafNode(
+  protected LeafNode<K, V> createLeafNodeForSplit(
       EncodedKeyType encodedKeyType,
       Function<Object, Object> validAnchorKeyProvider,
       Object anchorKey,
@@ -533,7 +533,7 @@ class LeafNode<K, V> {
 
     // Copy entries to a new leaf node.
     LeafNode<K, V> newLeafNode =
-        createLeafNode(
+        createLeafNodeForSplit(
             encodedKeyType, validAnchorKeyProviderForSplit, newAnchor, maxSize, this, this.right);
     List<Integer> keyValueIndexListOfNewLeafNode = new ArrayList<>(currentSize);
     for (int i = startKeyRefIndex; i < currentSize; i++) {

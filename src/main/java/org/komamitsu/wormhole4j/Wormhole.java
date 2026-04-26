@@ -227,12 +227,7 @@ public abstract class Wormhole<K, V> {
   @Nullable
   abstract Object provideValidAnchorKeyForSplit(Object anchorKey);
 
-  LeafNode<K, V> splitLeafNode(
-      MetaTrieHashTable<K, V> metaTable,
-      LeafNode<K, V> leafNode,
-      Object encodedKey,
-      K key,
-      V value) {
+  LeafNode<K, V> splitLeafNode(LeafNode<K, V> leafNode, Object encodedKey, K key, V value) {
     LeafNode<K, V> newLeafNode = leafNode.splitToNewLeafNode();
     if (EncodedKeyUtils.compare(encodedKeyType, encodedKey, newLeafNode.anchorKey) < 0) {
       leafNode.add(encodedKey, key, value);

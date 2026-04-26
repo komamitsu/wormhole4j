@@ -95,7 +95,7 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
       return existingValue.orElse(null);
     }
 
-    LeafNode<K, V> newLeafNode = splitLeafNode(metaTable, leafNode, encodedKey, key, value);
+    LeafNode<K, V> newLeafNode = splitLeafNode(leafNode, encodedKey, key, value);
     addNewLeafNodeToMetaTable(metaTable, newLeafNode);
     validateIfNeeded();
     return null;
