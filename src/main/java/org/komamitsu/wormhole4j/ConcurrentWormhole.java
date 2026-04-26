@@ -99,6 +99,9 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
 
   @Override
   public synchronized void unregisterThread() {
+    if (qsbrThreadLocalIndexes.get() == null) {
+      return;
+    }
     int qsbrThreadIndex = getQsbrThreadIndex();
     qsbrVersions.set(qsbrThreadIndex, null);
     qsbrThreads.clear(qsbrThreadIndex);
@@ -120,7 +123,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
       throw new IllegalStateException("This thread is not registered yet");
     }
     qsbrThreadLocalVersion.set(version);
-    qsbrThreadLocalMetaTables.set(getActiveMetaTable());
+    qsbrThreadLocalMetaTables.set(metaTables.get(metaTableIndex));
   }
 
   private void qsbrExit() {
@@ -206,7 +209,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     Object encodedKey = createEncodedKey(key);
     while (true) {
       qsbrEnter();
-      LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+      LeafNode<K, V> leafNode = searchTrieHashTable(qsbrThreadLocalMetaTables.get(), encodedKey);
       Long writeLockOnLeafNode = leafNode.tryWriteLock();
       if (writeLockOnLeafNode == 0) {
         qsbrExit();
@@ -269,7 +272,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     Object encodedKey = createEncodedKey(key);
     while (true) {
       qsbrEnter();
-      LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+      LeafNode<K, V> leafNode = searchTrieHashTable(qsbrThreadLocalMetaTables.get(), encodedKey);
       Long writeLockOnLeafNode = leafNode.tryWriteLock();
       if (writeLockOnLeafNode == 0) {
         qsbrExit();
@@ -286,7 +289,8 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
         if (writeLockOnMetaTable == 0) {
           continue;
         }
-        assert leafNode.delete(encodedKey);
+        boolean deleted = leafNode.delete(encodedKey);
+        assert deleted;
         try {
           // Merge the nodes on the inactive meta table if needed.
           Tuple<LeafNode<K, V>, LeafNode<K, V>> mergedLeafNodes = mergeLeafNodesIfNeeded(leafNode);
@@ -341,7 +345,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     while (true) {
       qsbrEnter();
       try {
-        LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+        LeafNode<K, V> leafNode = searchTrieHashTable(qsbrThreadLocalMetaTables.get(), encodedKey);
         long readLockOnLeafNode = leafNode.tryReadLock();
         if (readLockOnLeafNode == 0) {
           continue;
@@ -375,7 +379,8 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     long readLockOnMetaTable = acquireReadLockOnMetaTable();
     try {
       qsbrEnter();
-      LeafNode<K, V> leafNode = searchTrieHashTable(encodedStartKey);
+      LeafNode<K, V> leafNode =
+          searchTrieHashTable(qsbrThreadLocalMetaTables.get(), encodedStartKey);
       while (leafNode != null) {
         long lockOnLeafNode;
         boolean writeLockOnLeafNode = false;

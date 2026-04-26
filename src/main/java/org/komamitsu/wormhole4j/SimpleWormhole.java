@@ -88,7 +88,7 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
   @Nullable
   public V put(K key, V value) {
     Object encodedKey = createEncodedKey(key);
-    LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+    LeafNode<K, V> leafNode = searchTrieHashTable(metaTable, encodedKey);
     Optional<V> existingValue = leafNode.lookupAndPutValue(encodedKey, key, value);
     if (existingValue != null) {
       validateIfNeeded();
@@ -110,7 +110,7 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
   @Override
   public boolean delete(K key) {
     Object encodedKey = createEncodedKey(key);
-    LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+    LeafNode<K, V> leafNode = searchTrieHashTable(metaTable, encodedKey);
     if (!leafNode.delete(encodedKey)) {
       validateIfNeeded();
       return false;
@@ -133,7 +133,7 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
   @Nullable
   public V get(K key) {
     Object encodedKey = createEncodedKey(key);
-    LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+    LeafNode<K, V> leafNode = searchTrieHashTable(metaTable, encodedKey);
     return leafNode.lookupValue(encodedKey);
   }
 
@@ -148,7 +148,7 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
         startKey == null ? createEmptyEncodedKey() : createEncodedKey(startKey);
     Object encodedEndKey = endKey == null ? null : createEncodedKey(endKey);
     BiFunction<K, V, Boolean> actualFunction = prepareScanFunction(count, function);
-    LeafNode<K, V> leafNode = searchTrieHashTable(encodedStartKey);
+    LeafNode<K, V> leafNode = searchTrieHashTable(metaTable, encodedStartKey);
     while (leafNode != null) {
       leafNode.incSort();
       if (!leafNode.iterateKeyValues(
