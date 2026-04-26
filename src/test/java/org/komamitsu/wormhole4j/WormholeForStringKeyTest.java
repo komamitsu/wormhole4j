@@ -23,7 +23,6 @@ import static org.komamitsu.wormhole4j.TestHelpers.genRandomKey;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
@@ -33,7 +32,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 @ParameterizedClass
 @ValueSource(ints = {3, 8, 128})
-class WormholeForStringKeyTest {
+abstract class WormholeForStringKeyTest {
   @Parameter int leafNodeSize;
 
   class Common {
@@ -42,23 +41,8 @@ class WormholeForStringKeyTest {
     }
   }
 
-  private Wormhole<String, Integer> wormholeForIntValue;
-  private Wormhole<String, String> wormholeForStrValue;
-
-  @BeforeEach
-  void setUp() {
-    wormholeForIntValue =
-        new WormholeBuilder.ForStringKey<Integer>()
-            .setLeafNodeSize(leafNodeSize)
-            .setDebugMode(true)
-            .build();
-
-    wormholeForStrValue =
-        new WormholeBuilder.ForStringKey<String>()
-            .setLeafNodeSize(leafNodeSize)
-            .setDebugMode(true)
-            .build();
-  }
+  protected Wormhole<String, Integer> wormholeForIntValue;
+  protected Wormhole<String, String> wormholeForStrValue;
 
   @Test
   void givenConcurrentAndDebugModeEnabled_ShouldThrowException() {

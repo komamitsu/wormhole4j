@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
@@ -32,7 +31,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 @ParameterizedClass
 @ValueSource(ints = {3, 8, 128})
-class WormholeForIntKeyTest {
+abstract class WormholeForIntKeyTest {
   @Parameter int leafNodeSize;
 
   class Common {
@@ -41,23 +40,8 @@ class WormholeForIntKeyTest {
     }
   }
 
-  private Wormhole<Integer, Integer> wormholeForIntValue;
-  private Wormhole<Integer, String> wormholeForStrValue;
-
-  @BeforeEach
-  void setUp() {
-    wormholeForIntValue =
-        new WormholeBuilder.ForIntKey<Integer>()
-            .setLeafNodeSize(leafNodeSize)
-            .setDebugMode(true)
-            .build();
-
-    wormholeForStrValue =
-        new WormholeBuilder.ForIntKey<String>()
-            .setLeafNodeSize(leafNodeSize)
-            .setDebugMode(true)
-            .build();
-  }
+  protected Wormhole<Integer, Integer> wormholeForIntValue;
+  protected Wormhole<Integer, String> wormholeForStrValue;
 
   @Test
   void givenConcurrentAndDebugModeEnabled_ShouldThrowException() {

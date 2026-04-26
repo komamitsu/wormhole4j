@@ -39,7 +39,7 @@ public abstract class Wormhole<K, V> {
   private final int leafNodeMergeSize;
   private final Function<Object, Object> validAnchorKeyProvider;
 
-  abstract MetaTrieHashTable<K, V> getMetaTable();
+  abstract MetaTrieHashTable<K, V> getActiveMetaTable();
 
   /**
    * Creates a Wormhole.
@@ -51,7 +51,7 @@ public abstract class Wormhole<K, V> {
     this.encodedKeyType = encodedKeyType;
     this.leafNodeSize = leafNodeSize;
     this.leafNodeMergeSize = leafNodeSize * 3 / 4;
-    validAnchorKeyProvider = this::provideValidAnchorKey;
+    validAnchorKeyProvider = this::provideValidAnchorKeyForSplit;
   }
 
   LeafNode<K, V> createRootLeafNode(Object encodedKey) {
@@ -62,6 +62,10 @@ public abstract class Wormhole<K, V> {
   protected abstract Object createEncodedKey(K key);
 
   protected abstract Object createEmptyEncodedKey();
+
+  public abstract void registerThread();
+
+  public abstract void unregisterThread();
 
   /**
    * Inserts or updates a key-value pair.
@@ -160,8 +164,7 @@ public abstract class Wormhole<K, V> {
       @Nullable LeafNode<K, V> leftNode,
       @Nullable LeafNode<K, V> rightNode);
 
-  LeafNode<K, V> searchTrieHashTable(Object encodedKey) {
-    MetaTrieHashTable<K, V> metaTable = getMetaTable();
+  LeafNode<K, V> searchTrieHashTable(MetaTrieHashTable<K, V> metaTable, Object encodedKey) {
     MetaTrieHashTable.NodeMeta nodeMeta =
         metaTable.searchLongestPrefixMatch(encodedKeyType, encodedKey);
     if (nodeMeta instanceof MetaTrieHashTable.NodeMetaLeaf) {
@@ -222,45 +225,40 @@ public abstract class Wormhole<K, V> {
   }
 
   @Nullable
-  private Object provideValidAnchorKey(Object anchorKey) {
-    MetaTrieHashTable.NodeMeta existingNodeMeta = getMetaTable().get(anchorKey);
-    if (existingNodeMeta == null) {
-      return anchorKey;
-    }
-    return null;
-  }
+  abstract Object provideValidAnchorKeyForSplit(Object anchorKey);
 
-  void splitAndInsert(LeafNode<K, V> leafNode, Object encodedKey, K key, V value) {
-    LeafNode<K, V> newLeafNode = split(leafNode);
+  LeafNode<K, V> splitLeafNode(LeafNode<K, V> leafNode, Object encodedKey, K key, V value) {
+    LeafNode<K, V> newLeafNode = leafNode.splitToNewLeafNode();
     if (EncodedKeyUtils.compare(encodedKeyType, encodedKey, newLeafNode.anchorKey) < 0) {
       leafNode.add(encodedKey, key, value);
     } else {
       newLeafNode.add(encodedKey, key, value);
     }
-  }
-
-  private LeafNode<K, V> split(LeafNode<K, V> leafNode) {
-    Tuple<Object, LeafNode<K, V>> newLeafNodeAndAnchor = leafNode.splitToNewLeafNode();
-    Object newAnchor = newLeafNodeAndAnchor.first;
-    LeafNode<K, V> newLeafNode = newLeafNodeAndAnchor.second;
-    getMetaTable().handleSplitNodes(newAnchor, newLeafNode);
     return newLeafNode;
   }
 
-  void mergeIfNeeded(LeafNode<K, V> leafNode) {
-    if (leafNode.getLeft() != null
-        && leafNode.size() + leafNode.getLeft().size() < leafNodeMergeSize) {
-      merge(leafNode.getLeft(), leafNode);
-    } else if (leafNode.getRight() != null
-        && leafNode.size() + leafNode.getRight().size() < leafNodeMergeSize) {
-      merge(leafNode, leafNode.getRight());
-    }
+  void addNewLeafNodeToMetaTable(MetaTrieHashTable<K, V> metaTable, LeafNode<K, V> newLeafNode) {
+    metaTable.handleSplitNodes(newLeafNode.anchorKey, newLeafNode);
   }
 
-  private void merge(LeafNode<K, V> left, LeafNode<K, V> victim) {
-    left.merge(victim);
+  @Nullable
+  Tuple<LeafNode<K, V>, LeafNode<K, V>> mergeLeafNodesIfNeeded(LeafNode<K, V> leafNode) {
+    if (leafNode.getLeft() != null
+        && leafNode.size() + leafNode.getLeft().size() < leafNodeMergeSize) {
+      LeafNode<K, V> leftLeafNode = leafNode.getLeft();
+      leftLeafNode.merge(leafNode);
+      return new Tuple<>(leftLeafNode, leafNode);
+    } else if (leafNode.getRight() != null
+        && leafNode.size() + leafNode.getRight().size() < leafNodeMergeSize) {
+      LeafNode<K, V> rightLeafNode = leafNode.getRight();
+      leafNode.merge(rightLeafNode);
+      return new Tuple<>(leafNode, rightLeafNode);
+    }
+    return null;
+  }
+
+  void removeMergedLeafNodeFromMetaTable(MetaTrieHashTable<K, V> metaTable, LeafNode<K, V> victim) {
     boolean childNodeRemoved = false;
-    MetaTrieHashTable<K, V> metaTable = getMetaTable();
     for (int prefixlen = EncodedKeyUtils.length(encodedKeyType, victim.anchorKey);
         prefixlen >= 0;
         prefixlen--) {
@@ -305,11 +303,6 @@ public abstract class Wormhole<K, V> {
         }
       }
     }
-  }
-
-  @Override
-  public String toString() {
-    return "Wormhole{" + "table=" + getMetaTable() + ", leafNodeSize=" + leafNodeSize + '}';
   }
 
   IntWrapper createEncodedIntKey(Integer key) {

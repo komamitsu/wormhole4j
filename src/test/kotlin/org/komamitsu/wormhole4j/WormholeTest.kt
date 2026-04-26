@@ -26,23 +26,31 @@ import java.util.TreeMap
 class WormholeTest {
     private val wormhole = WormholeBuilder.ForIntKey<Int>().setConcurrent(true).setLeafNodeSize(4).build()
 
+    fun ensureThreadRegistered() {
+        wormhole.registerThread()
+    }
+
     @Operation(params = ["key", "value"])
     fun put(key: Int, value: Int): Int? {
+        ensureThreadRegistered()
         return wormhole.put(key, value)
     }
 
     @Operation(params = ["key"])
     fun get(key: Int): Int? {
+        ensureThreadRegistered()
         return wormhole.get(key)
     }
 
     @Operation(params = ["key"])
     fun delete(key: Int): Boolean {
+        ensureThreadRegistered()
         return wormhole.delete(key)
     }
 
     @Operation(params = ["key1", "key2"])
     fun scan(key1: Int, key2: Int): List<Int> {
+        ensureThreadRegistered()
         val (startKey, endKey) = if (key1 < key2) Pair(key1, key2) else Pair(key2, key1)
         val result = ArrayList<Int>()
         wormhole.scan(startKey, endKey, true) { _, v ->
@@ -56,8 +64,8 @@ class WormholeTest {
     fun stressTest() = StressOptions()
         .sequentialSpecification(SequentialMap::class.java)
         .threads(3)
-        .invocationsPerIteration(20)
-        .iterations(100)
+        .invocationsPerIteration(40)
+        .iterations(40)
         .check(this::class)
 
     class SequentialMap {

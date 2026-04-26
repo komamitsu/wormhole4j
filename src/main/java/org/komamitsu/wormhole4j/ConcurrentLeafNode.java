@@ -22,6 +22,8 @@ import javax.annotation.Nullable;
 
 class ConcurrentLeafNode<K, V> extends LeafNode<K, V> {
   private final StampedLock lock = new StampedLock();
+  private long initialLockStamp;
+  private long version;
 
   ConcurrentLeafNode(
       EncodedKeyType encodedKeyType,
@@ -43,19 +45,48 @@ class ConcurrentLeafNode<K, V> extends LeafNode<K, V> {
     return lock.readLock();
   }
 
+  @Override
+  long tryReadLock() {
+    return lock.tryReadLock();
+  }
+
+  @Override
+  long tryWriteLock() {
+    return lock.tryWriteLock();
+  }
+
+  @Override
   void releaseLock(long stamp) {
     this.lock.unlock(stamp);
   }
 
   @Override
-  protected LeafNode<K, V> createLeafNode(
+  long getInitialLockStamp() {
+    return initialLockStamp;
+  }
+
+  @Override
+  long getVersion() {
+    return version;
+  }
+
+  @Override
+  void setVersion(long version) {
+    this.version = version;
+  }
+
+  @Override
+  protected LeafNode<K, V> createLeafNodeForSplit(
       EncodedKeyType encodedKeyType,
       Function<Object, Object> validAnchorKeyProvider,
       Object anchorKey,
       int maxSize,
       @Nullable LeafNode<K, V> left,
       @Nullable LeafNode<K, V> right) {
-    return new ConcurrentLeafNode<>(
-        encodedKeyType, validAnchorKeyProvider, anchorKey, maxSize, left, right);
+    ConcurrentLeafNode<K, V> leafNode =
+        new ConcurrentLeafNode<>(
+            encodedKeyType, validAnchorKeyProvider, anchorKey, maxSize, left, right);
+    leafNode.initialLockStamp = leafNode.acquireWriteLock();
+    return leafNode;
   }
 }

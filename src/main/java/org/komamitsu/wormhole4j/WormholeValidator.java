@@ -72,7 +72,7 @@ class WormholeValidator<K, T> {
   }
 
   private void validateHashTable() {
-    MetaTrieHashTable<K, T> metaTable = wormhole.getMetaTable();
+    MetaTrieHashTable<K, T> metaTable = wormhole.getActiveMetaTable();
     for (Map.Entry<Object, MetaTrieHashTable.NodeMeta> entry : metaTable.entrySetForValidate()) {
       Object key = entry.getKey();
       MetaTrieHashTable.NodeMeta nodeMeta = entry.getValue();
@@ -159,7 +159,7 @@ class WormholeValidator<K, T> {
   }
 
   private void validateInternal() {
-    MetaTrieHashTable<K, T> metaTable = wormhole.getMetaTable();
+    MetaTrieHashTable<K, T> metaTable = wormhole.getActiveMetaTable();
 
     LeafNode<K, T> leftMostLeafNode;
     LeafNode<K, T> rightMostLeafNode;

@@ -43,7 +43,7 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
    */
   protected SimpleWormhole(EncodedKeyType encodedKeyType, int leafNodeSize, boolean debugMode) {
     super(encodedKeyType, leafNodeSize);
-    this.metaTable = new MetaTrieHashTable<>(encodedKeyType, false);
+    this.metaTable = new MetaTrieHashTable<>(encodedKeyType);
     validator = debugMode ? new WormholeValidator<>(this) : null;
     initialize();
   }
@@ -51,15 +51,21 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
   private void initialize() {
     Object encodedKey = createEmptyEncodedKey();
     LeafNode<K, V> rootLeafNode = createRootLeafNode(encodedKey);
-    getMetaTable().put(encodedKey, new NodeMetaLeaf<>(encodedKey, rootLeafNode));
+    metaTable.put(encodedKey, new NodeMetaLeaf<>(encodedKey, rootLeafNode));
   }
 
-  protected abstract Object createEncodedKey(K key);
-
-  protected abstract Object createEmptyEncodedKey();
+  @Override
+  public void registerThread() {
+    throw new UnsupportedOperationException();
+  }
 
   @Override
-  protected MetaTrieHashTable<K, V> getMetaTable() {
+  public void unregisterThread() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  protected MetaTrieHashTable<K, V> getActiveMetaTable() {
     return metaTable;
   }
 
@@ -82,15 +88,15 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
   @Nullable
   public V put(K key, V value) {
     Object encodedKey = createEncodedKey(key);
-    LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+    LeafNode<K, V> leafNode = searchTrieHashTable(metaTable, encodedKey);
     Optional<V> existingValue = leafNode.lookupAndPutValue(encodedKey, key, value);
     if (existingValue != null) {
       validateIfNeeded();
       return existingValue.orElse(null);
     }
 
-    // Split the node and insert the value to a new leaf node.
-    splitAndInsert(leafNode, encodedKey, key, value);
+    LeafNode<K, V> newLeafNode = splitLeafNode(leafNode, encodedKey, key, value);
+    addNewLeafNodeToMetaTable(metaTable, newLeafNode);
     validateIfNeeded();
     return null;
   }
@@ -104,12 +110,15 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
   @Override
   public boolean delete(K key) {
     Object encodedKey = createEncodedKey(key);
-    LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+    LeafNode<K, V> leafNode = searchTrieHashTable(metaTable, encodedKey);
     if (!leafNode.delete(encodedKey)) {
       validateIfNeeded();
       return false;
     }
-    mergeIfNeeded(leafNode);
+    Tuple<LeafNode<K, V>, LeafNode<K, V>> mergedLeafNodes = mergeLeafNodesIfNeeded(leafNode);
+    if (mergedLeafNodes != null) {
+      removeMergedLeafNodeFromMetaTable(metaTable, mergedLeafNodes.second);
+    }
     validateIfNeeded();
     return true;
   }
@@ -124,7 +133,7 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
   @Nullable
   public V get(K key) {
     Object encodedKey = createEncodedKey(key);
-    LeafNode<K, V> leafNode = searchTrieHashTable(encodedKey);
+    LeafNode<K, V> leafNode = searchTrieHashTable(metaTable, encodedKey);
     return leafNode.lookupValue(encodedKey);
   }
 
@@ -139,7 +148,7 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
         startKey == null ? createEmptyEncodedKey() : createEncodedKey(startKey);
     Object encodedEndKey = endKey == null ? null : createEncodedKey(endKey);
     BiFunction<K, V, Boolean> actualFunction = prepareScanFunction(count, function);
-    LeafNode<K, V> leafNode = searchTrieHashTable(encodedStartKey);
+    LeafNode<K, V> leafNode = searchTrieHashTable(metaTable, encodedStartKey);
     while (leafNode != null) {
       leafNode.incSort();
       if (!leafNode.iterateKeyValues(
@@ -163,5 +172,14 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
       @Nullable LeafNode<K, V> rightNode) {
     return new LeafNode<>(
         encodedKeyType, validAnchorKeyProvider, anchorKey, maxSize, leftNode, rightNode);
+  }
+
+  @Override
+  protected Object provideValidAnchorKeyForSplit(Object anchorKey) {
+    MetaTrieHashTable.NodeMeta existingNodeMeta = metaTable.get(anchorKey);
+    if (existingNodeMeta == null) {
+      return anchorKey;
+    }
+    return null;
   }
 }
