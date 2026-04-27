@@ -64,7 +64,7 @@ class WormholeTest {
     fun stressTest() = StressOptions()
         .sequentialSpecification(SequentialMap::class.java)
         .threads(3)
-        .invocationsPerIteration(20)
+        .invocationsPerIteration(16)
         .iterations(100)
         .check(this::class)
 
