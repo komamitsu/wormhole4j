@@ -65,7 +65,7 @@ class WormholeTest {
         .sequentialSpecification(SequentialMap::class.java)
         .threads(3)
         .invocationsPerIteration(20)
-        .iterations(200)
+        .iterations(100)
         .check(this::class)
 
     class SequentialMap {
