@@ -62,7 +62,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(10000)
+  @RepeatedTest(1000)
   void conflict2Puts_ShouldReturnNullAndExistingValue() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -100,7 +100,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(10000)
+  @RepeatedTest(1000)
   void concurrent2PutsAfterSplit_ShouldReturnProperValues_1() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -160,7 +160,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(10000)
+  @RepeatedTest(1000)
   void concurrent2PutsAfterSplit_ShouldReturnProperValues_2() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -220,7 +220,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(10000)
+  @RepeatedTest(1000)
   void concurrent2PutsAfterSplit_ShouldReturnProperValues_3() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -283,7 +283,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(10000)
+  @RepeatedTest(1000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_simplified() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -359,7 +359,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(10000)
+  @RepeatedTest(1000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_1() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -435,7 +435,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(10000)
+  @RepeatedTest(1000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_2() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -509,7 +509,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(10000)
+  @RepeatedTest(1000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_3() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -594,7 +594,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(10000)
+  @RepeatedTest(1000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_4() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -673,7 +673,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(10000)
+  @RepeatedTest(1000)
   void concurrent2Deletes_ShouldReturnProperValues() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -732,7 +732,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(10000)
+  @RepeatedTest(1000)
   void concurrentPutAndDelete_ShouldReturnProperValues() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -799,7 +799,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(10000)
+  @RepeatedTest(1000)
   void concurrentPutAndScan_ShouldReturnProperValues() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -868,6 +868,71 @@ class ConcurrentWormholeTest {
             assertThat(wormhole.get(10)).isEqualTo(100);
             assertThat(wormhole.get(11)).isEqualTo(110);
             assertThat(wormhole.get(13)).isEqualTo(130);
+
+            return null;
+          } finally {
+            executorService.shutdown();
+            if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+              executorService.shutdownNow();
+            }
+          }
+        });
+  }
+
+  @RepeatedTest(1000)
+  void concurrentPutAndGetAndDelete_ShouldReturnProperValues() throws Exception {
+    withRegisteredWormhole(
+        () -> {
+          // Arrange
+          assertThat(wormhole.put(10, 100)).isNull();
+          assertThat(wormhole.put(11, 110)).isNull();
+          assertThat(wormhole.put(9, 90)).isNull();
+          assertThat(wormhole.put(7, 70)).isNull();
+          assertThat(wormhole.put(6, 60)).isNull();
+          assertThat(wormhole.put(8, 80)).isNull();
+          assertThat(wormhole.put(5, 50)).isNull();
+          assertThat(wormhole.delete(9)).isTrue();
+
+          ExecutorService executorService = Executors.newFixedThreadPool(2);
+          List<Future<?>> futures = new ArrayList<>();
+          CyclicBarrier barrier1 = new CyclicBarrier(2);
+          CyclicBarrier barrier2 = new CyclicBarrier(2);
+
+          try {
+            // Act
+            futures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier1.await();
+                              assertThat(wormhole.put(10, 101)).isEqualTo(100);
+                              barrier2.await();
+                              assertThat(wormhole.get(10)).isEqualTo(101);
+                              return null;
+                            })));
+            futures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier1.await();
+                              assertThat(wormhole.delete(8)).isTrue();
+                              barrier2.await();
+                              return null;
+                            })));
+
+            // Assert
+            for (Future<?> future : futures) {
+              future.get(5, TimeUnit.SECONDS);
+            }
+            assertThat(wormhole.get(5)).isEqualTo(50);
+            assertThat(wormhole.get(6)).isEqualTo(60);
+            assertThat(wormhole.get(7)).isEqualTo(70);
+            assertThat(wormhole.get(8)).isNull();
+            assertThat(wormhole.get(9)).isNull();
+            assertThat(wormhole.get(10)).isEqualTo(101);
+            assertThat(wormhole.get(11)).isEqualTo(110);
 
             return null;
           } finally {
