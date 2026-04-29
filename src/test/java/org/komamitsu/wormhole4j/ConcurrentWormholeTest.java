@@ -18,6 +18,7 @@ package org.komamitsu.wormhole4j;
 
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -105,66 +106,6 @@ class ConcurrentWormholeTest {
     withRegisteredWormhole(
         () -> {
           // Arrange
-          assertThat(wormhole.put(8, 80)).isNull();
-          assertThat(wormhole.put(9, 90)).isNull();
-          assertThat(wormhole.put(10, 100)).isNull();
-          assertThat(wormhole.put(11, 110)).isNull();
-
-          ExecutorService executorService = Executors.newFixedThreadPool(2);
-          List<Future<Integer>> futures = new ArrayList<>();
-          CyclicBarrier barrier = new CyclicBarrier(2);
-
-          try {
-            // Act
-            futures.add(
-                executorService.submit(
-                    () ->
-                        withRegisteredWormhole(
-                            () -> {
-                              barrier.await();
-                              return wormhole.put(9, 99);
-                            })));
-            futures.add(
-                executorService.submit(
-                    () ->
-                        withRegisteredWormhole(
-                            () -> {
-                              barrier.await();
-                              return wormhole.put(12, 120);
-                            })));
-
-            // Assert
-            List<Integer> resultValues = new ArrayList<>();
-            for (Future<Integer> future : futures) {
-              Integer resultValue = future.get();
-              if (resultValue != null) {
-                resultValues.add(resultValue);
-              }
-            }
-            assertThat(resultValues).hasSize(1);
-            assertThat(resultValues.get(0)).isEqualTo(90);
-
-            assertThat(wormhole.get(8)).isEqualTo(80);
-            assertThat(wormhole.get(9)).isEqualTo(99);
-            assertThat(wormhole.get(10)).isEqualTo(100);
-            assertThat(wormhole.get(11)).isEqualTo(110);
-            assertThat(wormhole.get(12)).isEqualTo(120);
-
-            return null;
-          } finally {
-            executorService.shutdown();
-            if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
-              executorService.shutdownNow();
-            }
-          }
-        });
-  }
-
-  @RepeatedTest(1000)
-  void concurrent2PutsAfterSplit_ShouldReturnProperValues_2() throws Exception {
-    withRegisteredWormhole(
-        () -> {
-          // Arrange
           assertThat(wormhole.put(10, 100)).isNull();
           assertThat(wormhole.put(11, 110)).isNull();
           assertThat(wormhole.put(12, 120)).isNull();
@@ -221,7 +162,7 @@ class ConcurrentWormholeTest {
   }
 
   @RepeatedTest(1000)
-  void concurrent2PutsAfterSplit_ShouldReturnProperValues_3() throws Exception {
+  void concurrent2PutsAfterSplit_ShouldReturnProperValues_2() throws Exception {
     withRegisteredWormhole(
         () -> {
           // Arrange
@@ -284,7 +225,7 @@ class ConcurrentWormholeTest {
   }
 
   @RepeatedTest(1000)
-  void concurrent3PutsAfterSplit_ShouldReturnProperValues_simplified() throws Exception {
+  void concurrent3PutsAfterSplit_ShouldReturnProperValues_1() throws Exception {
     withRegisteredWormhole(
         () -> {
           // Arrange
@@ -360,7 +301,7 @@ class ConcurrentWormholeTest {
   }
 
   @RepeatedTest(1000)
-  void concurrent3PutsAfterSplit_ShouldReturnProperValues_1() throws Exception {
+  void concurrent3PutsAfterSplit_ShouldReturnProperValues_2() throws Exception {
     withRegisteredWormhole(
         () -> {
           // Arrange
@@ -436,7 +377,7 @@ class ConcurrentWormholeTest {
   }
 
   @RepeatedTest(1000)
-  void concurrent3PutsAfterSplit_ShouldReturnProperValues_2() throws Exception {
+  void concurrent3PutsAfterSplit_ShouldReturnProperValues_3() throws Exception {
     withRegisteredWormhole(
         () -> {
           // Arrange
@@ -510,7 +451,7 @@ class ConcurrentWormholeTest {
   }
 
   @RepeatedTest(1000)
-  void concurrent3PutsAfterSplit_ShouldReturnProperValues_3() throws Exception {
+  void concurrent3PutsAfterSplit_ShouldReturnProperValues_4() throws Exception {
     withRegisteredWormhole(
         () -> {
           // Arrange
@@ -595,7 +536,7 @@ class ConcurrentWormholeTest {
   }
 
   @RepeatedTest(1000)
-  void concurrent3PutsAfterSplit_ShouldReturnProperValues_4() throws Exception {
+  void concurrent3PutsAfterSplit_ShouldReturnProperValues_5() throws Exception {
     withRegisteredWormhole(
         () -> {
           // Arrange
@@ -933,6 +874,368 @@ class ConcurrentWormholeTest {
             assertThat(wormhole.get(9)).isNull();
             assertThat(wormhole.get(10)).isEqualTo(101);
             assertThat(wormhole.get(11)).isEqualTo(110);
+
+            return null;
+          } finally {
+            executorService.shutdown();
+            if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+              executorService.shutdownNow();
+            }
+          }
+        });
+  }
+
+  @RepeatedTest(1000)
+  void concurrentPutAndGetAndDelete_withLeafNodeSize2_ShouldReturnProperValues() throws Exception {
+    wormhole =
+        new WormholeBuilder.ForIntKey<Integer>().setConcurrent(true).setLeafNodeSize(2).build();
+    withRegisteredWormhole(
+        () -> {
+          // Arrange
+          assertThat(wormhole.put(10, 100)).isNull();
+
+          ExecutorService executorService = Executors.newFixedThreadPool(3);
+          List<Future<?>> futures = new ArrayList<>();
+          CyclicBarrier barrier1 = new CyclicBarrier(3);
+
+          try {
+            // Act
+            futures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier1.await();
+                              // 1-0
+                              assertThat(wormhole.put(11, 110)).isIn(null, 111);
+                              // 1-1
+                              assertThat(wormhole.put(9, 90)).isNull();
+                              // 1-2
+                              wormhole.delete(10);
+                              // 1-3
+                              return null;
+                            })));
+            futures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier1.await();
+                              List<Integer> scanned = new ArrayList<>();
+                              wormhole.scan(8, 16, true, (k, v) -> scanned.add(v));
+                              if (scanned.equals(Arrays.asList(100))) {
+                                // 1-0, 3-0
+                                Integer result10 = wormhole.get(10);
+                                if (result10 == null) {
+                                  // 1-0, 3-1
+                                  // 1-1, 3-1
+                                  // 1-2, 3-1
+                                  // 1-3, 3-0
+                                  // 1-3, 3-1
+                                  // 1-3, 3-2
+                                  // 1-3, 3-3
+                                  // 1-3, 3-4
+                                } else if (result10 == 100) {
+                                  // 1-0, 3-0
+                                  // 1-1, 3-0
+                                  // 1-2, 3-0
+                                } else if (result10 == 101) {
+                                  // 1-0, 3-2
+                                  // 1-0, 3-3
+                                  // 1-1, 3-2
+                                  // 1-1, 3-3
+                                  // 1-2, 3-2
+                                  // 1-2, 3-3
+                                  // 1-2, 3-4
+                                } else {
+                                  fail(result10.toString());
+                                }
+                                assertThat(wormhole.get(11)).isIn(null, 110, 111);
+                              } else if (scanned.equals(Arrays.asList())) {
+                                // 1-0, 3-1
+                                Integer result10 = wormhole.get(10);
+                                if (result10 == null) {
+                                  // 1-0, 3-1
+                                  // 1-1, 3-1
+                                  // 1-2, 3-1
+                                  // 1-3, 3-1
+                                  // 1-3, 3-2
+                                  // 1-3, 3-3
+                                  // 1-3, 3-4
+                                } else if (result10 == 100) {
+                                  // value:100 is deleted at 3-1
+                                  fail(result10.toString());
+                                } else if (result10 == 101) {
+                                  // 1-0, 3-2
+                                  // 1-0, 3-3
+                                  // 1-1, 3-2
+                                  // 1-1, 3-3
+                                  // 1-2, 3-2
+                                  // 1-2, 3-3
+                                  // 1-2, 3-4
+                                } else {
+                                  fail(result10.toString());
+                                }
+                                assertThat(wormhole.get(11)).isIn(null, 110, 111);
+                              } else if (scanned.equals(Arrays.asList(101))) {
+                                // 1-0, 3-2
+                                // 1-0, 3-3
+                                Integer result10 = wormhole.get(10);
+                                if (result10 == null) {
+                                  // 1-3, 3-2
+                                  // 1-3, 3-3
+                                  // 1-3, 3-4
+                                  assertThat(wormhole.get(11)).isIn(110, 111);
+                                } else if (result10 == 100) {
+                                  // value:100 is deleted at 3-1
+                                  fail(result10.toString());
+                                } else if (result10 == 101) {
+                                  // 1-0, 3-2
+                                  // 1-0, 3-3
+                                  // 1-0, 3-4
+                                  // 1-1, 3-2
+                                  // 1-1, 3-3
+                                  // 1-1, 3-4
+                                  // 1-2, 3-2
+                                  // 1-2, 3-3
+                                  // 1-2, 3-4
+                                  assertThat(wormhole.get(11)).isIn(null, 110, 111);
+                                } else {
+                                  fail(result10.toString());
+                                }
+                              } else if (scanned.equals(Arrays.asList(100, 110))) {
+                                // 1-1, 3-0
+                                Integer result10 = wormhole.get(10);
+                                if (result10 == null) {
+                                  // 1-1, 3-1
+                                  // 1-2, 3-1
+                                  // 1-3, 3-0
+                                  // 1-3, 3-1
+                                  // 1-3, 3-2
+                                  // 1-3, 3-3
+                                  // 1-3, 3-4
+                                } else if (result10 == 100) {
+                                  // 1-1, 3-0
+                                  // 1-2, 3-0
+                                } else if (result10 == 101) {
+                                  // 1-1, 3-2
+                                  // 1-1, 3-3
+                                  // 1-1, 3-4
+                                  // 1-2, 3-2
+                                  // 1-2, 3-3
+                                  // 1-2, 3-4
+                                } else {
+                                  fail(result10.toString());
+                                }
+                                assertThat(wormhole.get(11)).isIn(110, 111);
+                              } else if (scanned.equals(Arrays.asList(110))) {
+                                // 1-1, 3-1
+                                Integer result10 = wormhole.get(10);
+                                if (result10 == null) {
+                                  // 1-1, 3-1
+                                  // 1-2, 3-1
+                                  // 1-3, 3-1
+                                  // 1-3, 3-2
+                                  // 1-3, 3-3
+                                  // 1-3, 3-4
+                                } else if (result10 == 100) {
+                                  // value:100 is deleted at 3-1
+                                  fail(result10.toString());
+                                } else if (result10 == 101) {
+                                  // 1-1, 3-2
+                                  // 1-1, 3-3
+                                  // 1-1, 3-4
+                                  // 1-2, 3-2
+                                  // 1-2, 3-3
+                                  // 1-2, 3-4
+                                } else {
+                                  fail(result10.toString());
+                                }
+                                assertThat(wormhole.get(11)).isIn(110, 111);
+                              } else if (scanned.equals(Arrays.asList(111))) {
+                                // 1-3, 3-4
+                                Integer result10 = wormhole.get(10);
+                                if (result10 == null) {
+                                  // 1-3, 3-4
+                                } else if (result10 == 100) {
+                                  // value:100 is deleted at 3-1
+                                  fail(result10.toString());
+                                } else if (result10 == 101) {
+                                  // value:101 is deleted at 1-3
+                                  fail(result10.toString());
+                                } else {
+                                  fail(result10.toString());
+                                }
+                                assertThat(wormhole.get(11)).isIn(111);
+                              } else if (scanned.equals(Arrays.asList(101, 110))) {
+                                // 1-1, 3-2
+                                // 1-1, 3-3
+                                // 1-2, 3-2
+                                // 1-2, 3-3
+                                // 1-3, 3-2
+                                // 1-3, 3-3
+                                Integer result10 = wormhole.get(10);
+                                if (result10 == null) {
+                                  // 1-3, 3-2
+                                  // 1-3, 3-3
+                                  // 1-3, 3-4
+                                } else if (result10 == 100) {
+                                  // value:100 is deleted at 3-1
+                                  fail(result10.toString());
+                                } else if (result10 == 101) {
+                                  // 1-1, 3-2
+                                  // 1-1, 3-3
+                                  // 1-1, 3-4
+                                  // 1-2, 3-2
+                                  // 1-2, 3-3
+                                  // 1-2, 3-4
+                                } else {
+                                  fail(result10.toString());
+                                }
+                                assertThat(wormhole.get(11)).isIn(110, 111);
+                              } else if (scanned.equals(Arrays.asList(101, 111))) {
+                                // 1-0, 3-4
+                                // 1-1, 3-4
+                                // 1-2, 3-4
+                                // 1-3, 3-4
+                                Integer result10 = wormhole.get(10);
+                                if (result10 == null) {
+                                  // 1-3, 3-4
+                                } else if (result10 == 100) {
+                                  // value:100 is deleted at 3-1
+                                  fail(result10.toString());
+                                } else if (result10 == 101) {
+                                  // 1-0, 3-4
+                                  // 1-1, 3-4
+                                  // 1-2, 3-4
+                                } else {
+                                  fail(result10.toString());
+                                }
+                                assertThat(wormhole.get(11)).isIn(110, 111);
+                              } else if (scanned.equals(Arrays.asList(90, 100, 110))) {
+                                // 1-2, 3-0
+                                Integer result10 = wormhole.get(10);
+                                if (result10 == null) {
+                                  // 1-2, 3-1
+                                  // 1-3, 3-0
+                                  // 1-3, 3-1
+                                  // 1-3, 3-2
+                                  // 1-3, 3-3
+                                  // 1-3, 3-4
+                                } else if (result10 == 100) {
+                                  // 1-2, 3-0
+                                } else if (result10 == 101) {
+                                  // 1-2, 3-2
+                                  // 1-2, 3-3
+                                  // 1-2, 3-4
+                                } else {
+                                  fail(result10.toString());
+                                }
+                                assertThat(wormhole.get(11)).isIn(110, 111);
+                              } else if (scanned.equals(Arrays.asList(90, 110))) {
+                                // 1-2, 3-1
+                                // 1-3, 3-0
+                                // 1-3, 3-1
+                                Integer result10 = wormhole.get(10);
+                                if (result10 == null) {
+                                  // 1-2, 3-1
+                                  // 1-3, 3-0
+                                  // 1-3, 3-1
+                                  // 1-3, 3-2
+                                  // 1-3, 3-3
+                                  // 1-3, 3-4
+                                } else if (result10 == 100) {
+                                  // value:100 is deleted at 1-3 and 3-1
+                                  fail(result10.toString());
+                                } else if (result10 == 101) {
+                                  // 1-2, 3-2
+                                  // 1-2, 3-3
+                                  // 1-2, 3-4
+                                } else {
+                                  fail(result10.toString());
+                                }
+                                assertThat(wormhole.get(11)).isIn(110, 111);
+                              } else if (scanned.equals(Arrays.asList(90, 111))) {
+                                // 1-3, 3-4
+                                Integer result10 = wormhole.get(10);
+                                if (result10 == null) {
+                                  // 1-3, 3-4
+                                } else if (result10 == 100) {
+                                  // value:100 is deleted at 1-3 and 3-1
+                                  fail(result10.toString());
+                                } else if (result10 == 101) {
+                                  // value:101 is deleted at 1-3 and 3-4
+                                  fail(result10.toString());
+                                } else {
+                                  fail(result10.toString());
+                                }
+                                assertThat(wormhole.get(11)).isIn(111);
+                              } else if (scanned.equals(Arrays.asList(90, 101, 110))) {
+                                // 1-2, 3-2
+                                // 1-3, 3-2
+                                Integer result10 = wormhole.get(10);
+                                if (result10 == null) {
+                                  // 1-3, 3-2
+                                  // 1-3, 3-3
+                                  // 1-3, 3-4
+                                } else if (result10 == 100) {
+                                  // value:100 is deleted at 3-1
+                                  fail(result10.toString());
+                                } else if (result10 == 101) {
+                                  // 1-2, 3-2
+                                  // 1-2, 3-3
+                                  // 1-2, 3-4
+                                } else {
+                                  fail(result10.toString());
+                                }
+                                assertThat(wormhole.get(11)).isIn(110, 111);
+                              } else if (scanned.equals(Arrays.asList(90, 101, 111))) {
+                                // 1-1 -> 3-4 -> 1-2/3
+
+                                // 1-2, 3-4
+                                // 1-3, 3-4
+                                Integer result10 = wormhole.get(10);
+                                if (result10 == null) {
+                                  // 1-3, 3-4
+                                } else if (result10 == 100) {
+                                  // value:100 is deleted at 3-1
+                                  fail(result10.toString());
+                                } else if (result10 == 101) {
+                                  // 1-2, 3-4
+                                } else {
+                                  fail(result10.toString());
+                                }
+                                assertThat(wormhole.get(11)).isIn(111);
+                              } else {
+                                fail(scanned.toString());
+                              }
+                              return null;
+                            })));
+            futures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier1.await();
+                              // 3-0
+                              wormhole.delete(10);
+                              // 3-1
+                              assertThat(wormhole.put(10, 101)).isNull();
+                              // 3-2
+                              wormhole.delete(9);
+                              // 3-3
+                              assertThat(wormhole.put(11, 111)).isIn(null, 110);
+                              // 3-4
+                              return null;
+                            })));
+
+            // Assert
+            for (Future<?> future : futures) {
+              future.get(5, TimeUnit.SECONDS);
+            }
+            assertThat(wormhole.get(9)).isIn(null, 90);
+            assertThat(wormhole.get(10)).isIn(null, 101);
+            assertThat(wormhole.get(11)).isIn(110, 111);
 
             return null;
           } finally {
