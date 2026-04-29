@@ -264,16 +264,41 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     Object encodedKey = createEncodedKey(key);
     while (true) {
       qsbrEnter();
+      long writeLockOnLeafNode = 0;
+      long writeLockOnLeftLeafNode = 0;
+      long writeLockOnRightLeafNode = 0;
       LeafNode<K, V> leafNode = searchTrieHashTable(qsbrThreadLocalMetaTables.get(), encodedKey);
-      long writeLockOnLeafNode = leafNode.tryWriteLock();
-      if (writeLockOnLeafNode == 0) {
-        qsbrExit();
-        continue;
-      }
+      LeafNode<K, V> leftLeafNode = null;
+      LeafNode<K, V> rightLeafNode = null;
       try {
+        writeLockOnLeafNode = leafNode.tryWriteLock();
+        if (writeLockOnLeafNode == 0) {
+          continue;
+        }
         if (leafNode.getVersion() > qsbrThreadLocalVersions.get().get()) {
           continue;
         }
+        leftLeafNode = leafNode.getLeft();
+        if (leftLeafNode != null) {
+          writeLockOnLeftLeafNode = leftLeafNode.tryWriteLock();
+          if (writeLockOnLeftLeafNode == 0) {
+            continue;
+          }
+          if (leftLeafNode.getVersion() > qsbrThreadLocalVersions.get().get()) {
+            continue;
+          }
+        }
+        rightLeafNode = leafNode.getRight();
+        if (rightLeafNode != null) {
+          writeLockOnRightLeafNode = rightLeafNode.tryWriteLock();
+          if (writeLockOnRightLeafNode == 0) {
+            continue;
+          }
+          if (rightLeafNode.getVersion() > qsbrThreadLocalVersions.get().get()) {
+            continue;
+          }
+        }
+
         if (leafNode.lookupValue(encodedKey) == null) {
           return false;
         }
@@ -297,12 +322,23 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
           // Increment versions and switch to the updated meta table.
           long newVersion = version + 1;
           leafNode.setVersion(newVersion);
-          if (updatedLeafNode != null && !updatedLeafNode.equals(leafNode)) {
+          if (updatedLeafNode != null) {
             updatedLeafNode.setVersion(newVersion);
+          }
+          if (mergedLeafNode != null) {
+            mergedLeafNode.setVersion(newVersion);
           }
           switchMetaTable(newVersion);
           leafNode.releaseLock(writeLockOnLeafNode);
           writeLockOnLeafNode = 0;
+          if (writeLockOnRightLeafNode != 0) {
+            rightLeafNode.releaseLock(writeLockOnRightLeafNode);
+            writeLockOnRightLeafNode = 0;
+          }
+          if (writeLockOnLeftLeafNode != 0) {
+            leftLeafNode.releaseLock(writeLockOnLeftLeafNode);
+            writeLockOnLeftLeafNode = 0;
+          }
 
           // Wait until no reader threads on the previously active meta table.
           qsbrThreadLocalVersions.get().set(newVersion);
@@ -317,6 +353,12 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
         }
       } finally {
         qsbrExit();
+        if (writeLockOnRightLeafNode != 0) {
+          rightLeafNode.releaseLock(writeLockOnRightLeafNode);
+        }
+        if (writeLockOnLeftLeafNode != 0) {
+          leftLeafNode.releaseLock(writeLockOnLeftLeafNode);
+        }
         if (writeLockOnLeafNode != 0) {
           leafNode.releaseLock(writeLockOnLeafNode);
         }
