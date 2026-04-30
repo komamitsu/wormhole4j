@@ -33,6 +33,7 @@ import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
  * @param <V> the type of values stored in this index
  */
 abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
+  private static final int SPIN_INTERVAL = 64;
   // These don't need to be volatile since they are only updated in synchronized blocks.
   private long version;
   private int metaTableIndex;
@@ -151,13 +152,16 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
         threadIndex++;
         continue;
       }
+      int loopCount = 0;
       while (true) {
+        if (++loopCount % SPIN_INTERVAL == 0) {
+          // TODO: Use Thread.onSpinWait() if possible.
+          Thread.yield();
+        }
         Long localVersion = qsbrVersions.get(threadIndex).get();
         if (localVersion == null || localVersion == newVersion) {
           break;
         }
-        // TODO: Call Thread.onSpinWait() here somehow, although Java 8 doesn't have it.
-        //       Thread.yield() affects the performance.
       }
       threadIndex++;
     }
@@ -200,7 +204,11 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   @Nullable
   public V put(K key, V value) {
     Object encodedKey = createEncodedKey(key);
+    int loopCount = 0;
     while (true) {
+      if (++loopCount % SPIN_INTERVAL == 0) {
+        Thread.yield();
+      }
       qsbrEnter();
       LeafNode<K, V> leafNode = searchTrieHashTable(qsbrThreadLocalMetaTables.get(), encodedKey);
       long writeLockOnLeafNode = leafNode.tryWriteLock();
@@ -262,7 +270,11 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   @Override
   public boolean delete(K key) {
     Object encodedKey = createEncodedKey(key);
+    int loopCount = 0;
     while (true) {
+      if (++loopCount % SPIN_INTERVAL == 0) {
+        Thread.yield();
+      }
       qsbrEnter();
       long writeLockOnLeafNode = 0;
       long writeLockOnLeftLeafNode = 0;
@@ -376,7 +388,11 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   @Nullable
   public V get(K key) {
     Object encodedKey = createEncodedKey(key);
+    int loopCount = 0;
     while (true) {
+      if (++loopCount % SPIN_INTERVAL == 0) {
+        Thread.yield();
+      }
       qsbrEnter();
       try {
         LeafNode<K, V> leafNode = searchTrieHashTable(qsbrThreadLocalMetaTables.get(), encodedKey);
@@ -418,7 +434,11 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
       while (leafNode != null) {
         long lockOnLeafNode;
         boolean writeLockOnLeafNode = false;
+        int loopCount = 0;
         while (true) {
+          if (++loopCount % SPIN_INTERVAL == 0) {
+            Thread.yield();
+          }
           lockOnLeafNode = writeLockOnLeafNode ? leafNode.tryWriteLock() : leafNode.tryReadLock();
           if (lockOnLeafNode == 0) {
             continue;
