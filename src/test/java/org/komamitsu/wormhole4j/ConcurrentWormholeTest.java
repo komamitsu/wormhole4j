@@ -22,9 +22,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.*;
 import java.util.concurrent.*;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.RepeatedTest;
-import org.junit.jupiter.api.Test;
+
+import org.junit.jupiter.api.*;
 
 class ConcurrentWormholeTest {
   private Wormhole<Integer, Integer> wormhole;
@@ -40,6 +39,16 @@ class ConcurrentWormholeTest {
     } finally {
       wormhole.unregisterThread();
     }
+  }
+
+  @BeforeAll
+  static void beforeAll() {
+    ConcurrentWormhole.debugPrintEnabled = true;
+  }
+
+  @AfterAll
+  static void afterAll() {
+    ConcurrentWormhole.debugPrintEnabled = false;
   }
 
   @BeforeEach
