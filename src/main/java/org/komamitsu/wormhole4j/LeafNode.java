@@ -32,6 +32,8 @@ class LeafNode<K, V> {
   private final int maxSize;
   private final Function<Object, Object> validAnchorKeyProviderForSplit;
 
+  final String id = UUID.randomUUID().toString();
+
   @Nullable private LeafNode<K, V> left;
   @Nullable private LeafNode<K, V> right;
 
