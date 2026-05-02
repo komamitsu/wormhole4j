@@ -63,7 +63,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(1000)
+  @RepeatedTest(10000)
   void conflict2Puts_ShouldReturnNullAndExistingValue() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -101,7 +101,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(1000)
+  @RepeatedTest(10000)
   void concurrent2PutsAfterSplit_ShouldReturnProperValues_1() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -161,7 +161,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(1000)
+  @RepeatedTest(10000)
   void concurrent2PutsAfterSplit_ShouldReturnProperValues_2() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -224,7 +224,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(1000)
+  @RepeatedTest(10000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_1() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -300,7 +300,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(1000)
+  @RepeatedTest(10000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_2() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -376,7 +376,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(1000)
+  @RepeatedTest(10000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_3() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -450,7 +450,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(1000)
+  @RepeatedTest(10000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_4() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -535,7 +535,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(1000)
+  @RepeatedTest(10000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_5() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -614,7 +614,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(1000)
+  @RepeatedTest(10000)
   void concurrent2Deletes_ShouldReturnProperValues() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -673,7 +673,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(1000)
+  @RepeatedTest(10000)
   void concurrentPutAndDelete_ShouldReturnProperValues() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -740,7 +740,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(1000)
+  @RepeatedTest(10000)
   void concurrentPutAndScan_ShouldReturnProperValues() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -820,7 +820,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(1000)
+  @RepeatedTest(10000)
   void concurrentPutAndGetAndDelete_ShouldReturnProperValues() throws Exception {
     withRegisteredWormhole(
         () -> {
@@ -885,7 +885,7 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(1000)
+  @RepeatedTest(10000)
   void concurrentPutAndGetAndDelete_withLeafNodeSize2_ShouldReturnProperValues() throws Exception {
     wormhole =
         new WormholeBuilder.ForIntKey<Integer>().setConcurrent(true).setLeafNodeSize(2).build();

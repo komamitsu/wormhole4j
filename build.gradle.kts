@@ -63,6 +63,7 @@ spotless {
 
 tasks.test {
     useJUnitPlatform()
+    failFast = true
 }
 
 jmh {
