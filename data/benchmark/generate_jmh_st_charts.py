@@ -1,33 +1,26 @@
 #!/usr/bin/env python3
 """
-Generate JMH benchmark chart images from a JMH result text file.
-Supports both single-thread and multi-thread JMH result formats.
+Generate JMH benchmark bar charts from a single-thread JMH result text file.
 
-Single-thread format:
-    AVLTreeForIntKey.benchmarkGet  thrpt ...
-    → one chart per operation (Get / Put / Scan)
-      x-axis: key type,  bars: implementation
+Expected format:
+    AVLTreeBenchmark.ForIntKey.benchmarkGet  thrpt ...
 
-Multi-thread format:
-    ConcurrentWormholeForIntKey.PutAndGet:putAndGetBenchmarkGet  thrpt ...
-    → one chart per workload+operation pair (e.g. PutAndGet/Get, PutAndScan/Put)
-      x-axis: key type,  bars: implementation
-    Group-level aggregate lines (no colon) are skipped.
+One chart is produced per operation (Get / Put / Scan):
+  x-axis: key type (IntKey, LongKey, StringKey)
+  bars:   implementation
 
 Usage:
-    python generate_jmh_charts.py <jmh_result.txt> <java_version> [--error-bars]
+    python generate_jmh_st_charts.py <jmh_result.txt> <java_version> [--out-dir DIR] [--error-bars]
 
 Options:
-    java_version   Label used in chart titles and output filenames (e.g. Java8, Java21)
-    --error-bars   Show error bars on each bar (disabled by default)
+    java_version     Label used in chart titles and output filenames (e.g. Java21)
+    --out-dir DIR    Directory to write output PNG files (default: same dir as input file)
+    --error-bars     Show error bars on each bar (disabled by default)
 
-Output (single-thread):
-    bench-<java_version>-get.png  etc.
-
-Output (multi-thread):
-    bench-<java_version>-putandget-get.png  etc.
-
-Files are written to the same directory as the input file.
+Output filenames:
+    bench-<java_version>-get.png
+    bench-<java_version>-put.png
+    bench-<java_version>-scan.png
 """
 
 import argparse
@@ -68,81 +61,49 @@ def op_label(raw: str) -> str:
     return raw.capitalize()
 
 
-def _impl_from_class(class_name: str) -> str:
-    """'ConcurrentWormholeForIntKey' -> 'Concurrent Wormhole'"""
-    bare = re.sub(r"For\w+Key$", "", class_name)
-    return camel_to_display(bare)
-
-
-def _key_type_from_class(class_name: str) -> str | None:
-    """'ConcurrentWormholeForIntKey' -> 'IntKey'"""
-    m = re.search(r"For(\w+Key)$", class_name)
-    return m.group(1) if m else None
-
 
 # ---------------------------------------------------------------------------
 # 2. Parsing
 # ---------------------------------------------------------------------------
 
-# Single-thread: AVLTreeForIntKey.benchmarkGet
+# AVLTreeBenchmark.ForIntKey.benchmarkGet
 _SINGLE_THREAD_RE = re.compile(
-    r"^(\w+For\w+Key)\.(benchmark\w+)"
+    r"^(\w+Benchmark)\.(\w+Key)\.(benchmark\w+)"
     r"\s+thrpt\s+\d+\s+([\d.]+)\s+[±]\s+([\d.]+)",
 )
 
-# Multi-thread: ConcurrentWormholeForIntKey.PutAndGet:putAndGetBenchmarkGet
-# The colon is required — lines without it are group aggregates and are skipped.
-_MULTI_THREAD_RE = re.compile(
-    r"^(\w+For\w+Key)\.(\w+):(\w+Benchmark\w+)"
-    r"\s+thrpt\s+\d+\s+([\d.]+)\s+[±]\s+([\d.]+)",
-    re.IGNORECASE,
-)
+# Map benchmark class name → short implementation label
+_IMPL_MAP = {
+    "AVLTreeBenchmark":       "AVL Tree",
+    "RedBlackTreeBenchmark":  "Red-Black Tree",
+    "WormholeBenchmark":      "Wormhole",
+}
 
 
 def parse_jmh(path: str):
     """
-    Parse a JMH throughput result file (single-thread or multi-thread).
+    Parse a single-thread JMH throughput result file.
 
-    Returns a nested dict:
-
-      Single-thread:
-        data[workload=None][operation][impl][key_type] = (score, error)
-
-      Multi-thread:
-        data[workload][operation][impl][key_type] = (score, error)
-
-    workload is the JMH @Group name (e.g. "PutAndGet"), or None for
-    single-thread benchmarks that have no group structure.
+    Returns:
+        data[operation][impl][key_type] = (score, error)
     """
-    data = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
+    data = defaultdict(lambda: defaultdict(dict))
 
     with open(path) as fh:
         for line in fh:
-            line = line.strip()
-
-            # Try multi-thread first (more specific pattern)
-            m = _MULTI_THREAD_RE.match(line)
-            if m:
-                class_name, workload, raw_op, score_s, error_s = m.groups()
-                key_type = _key_type_from_class(class_name)
-                if key_type is None:
-                    continue
-                impl = _impl_from_class(class_name)
-                op   = op_label(raw_op)
-                data[workload][op][impl][key_type] = (float(score_s), float(error_s))
+            m = _SINGLE_THREAD_RE.match(line.strip())
+            if not m:
                 continue
-
-            m = _SINGLE_THREAD_RE.match(line)
-            if m:
-                class_name, raw_op, score_s, error_s = m.groups()
-                key_type = _key_type_from_class(class_name)
-                if key_type is None:
-                    continue
-                impl = _impl_from_class(class_name)
-                op   = op_label(raw_op)
-                data[None][op][impl][key_type] = (float(score_s), float(error_s))
+            bench_class, key_type, raw_op, score_s, error_s = m.groups()
+            impl = _IMPL_MAP.get(bench_class, camel_to_display(
+                re.sub(r"Benchmark$", "", bench_class)
+            ))
+            op = op_label(raw_op)
+            data[op][impl][key_type] = (float(score_s), float(error_s))
 
     return data
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -162,11 +123,8 @@ _PALETTE = [
 
 _PREFERRED_ORDER = [
     "AVL Tree",
-    "Red Black Tree",
+    "Red-Black Tree",
     "Wormhole",
-    "Thread Safe Wormhole",
-    "Concurrent Skip List Map",
-    "Concurrent Wormhole",
 ]
 
 
@@ -248,7 +206,7 @@ def plot_operation(op, op_data, out_path, title, show_error_bars=False):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate JMH benchmark chart images from a JMH result text file.",
+        description="Generate JMH single-thread benchmark bar charts.",
     )
     parser.add_argument(
         "jmh_file",
@@ -256,7 +214,12 @@ def main():
     )
     parser.add_argument(
         "java_version",
-        help="Java version label used in titles and filenames (e.g. Java8, Java21)",
+        help="Java version label used in titles and filenames (e.g. Java21)",
+    )
+    parser.add_argument(
+        "--out-dir",
+        default=None,
+        help="Directory to write output PNG files (default: same dir as input file)",
     )
     parser.add_argument(
         "--error-bars",
@@ -267,29 +230,22 @@ def main():
     args = parser.parse_args()
 
     java_version = args.java_version
-    out_dir      = os.path.dirname(os.path.abspath(args.jmh_file))
+    out_dir = args.out_dir or os.path.dirname(os.path.abspath(args.jmh_file))
+    os.makedirs(out_dir, exist_ok=True)
 
     print(f"Parsing:      {args.jmh_file}")
     print(f"Java version: {java_version}")
     print(f"Error bars:   {'enabled' if args.error_bars else 'disabled'}")
+    print(f"Output dir:   {out_dir}")
 
     data = parse_jmh(args.jmh_file)
 
-    for workload, ops in data.items():
-        for op, op_data in ops.items():
-            if workload is None:
-                # Single-thread: bench-java8-get.png
-                fname = f"bench-{java_version.lower()}-{op.lower()}.png"
-                title = f"Performance Comparison on {java_version} for {op} Operation"
-            else:
-                # Multi-thread: bench-java21-putandget-get.png
-                fname = f"bench-{java_version.lower()}-{workload.lower()}-{op.lower()}.png"
-                title = (f"Performance Comparison on {java_version} "
-                         f"for {op} Operation (Workload: {workload})")
-
-            out_path = os.path.join(out_dir, fname)
-            print(f"Plotting {op} ...")
-            plot_operation(op, op_data, out_path, title, args.error_bars)
+    for op, op_data in data.items():
+        fname    = f"bench-{java_version.lower()}-{op.lower()}.png"
+        title    = f"Performance Comparison on {java_version} — {op}"
+        out_path = os.path.join(out_dir, fname)
+        print(f"Plotting {op} ...")
+        plot_operation(op, op_data, out_path, title, args.error_bars)
 
     print("Done.")
 
