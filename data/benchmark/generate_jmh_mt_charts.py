@@ -57,15 +57,6 @@ def op_label(raw: str) -> str:
     return m.group(1) if m else raw.capitalize()
 
 
-def _impl_from_class(class_name: str) -> str:
-    bare = re.sub(r"For\w+Key$", "", class_name)
-    return camel_to_display(bare)
-
-
-def _key_type_from_class(class_name: str) -> str | None:
-    m = re.search(r"For(\w+Key)$", class_name)
-    return m.group(1) if m else None
-
 
 # ---------------------------------------------------------------------------
 # 2. Parsing
@@ -99,7 +90,8 @@ def parse_mt_file(path: str) -> dict:
             m = _MT_RE.match(line.strip())
             if not m:
                 continue
-            bench_class, key_type, scenario, raw_op, score_s, error_s = m.groups()
+            bench_class, raw_key_type, scenario, raw_op, score_s, error_s = m.groups()
+            key_type = re.sub(r"^For", "", raw_key_type)  # "ForIntKey" -> "IntKey"
             impl = _IMPL_MAP.get(bench_class, camel_to_display(
                 re.sub(r"MultiThreadBenchmark$", "", bench_class)
             ))
@@ -144,8 +136,6 @@ def _impl_order(impls):
 
 def plot_scaling_chart(
     thread_counts,          # list of ints, e.g. [1, 2, 4, 8]
-    scenario,               # str, e.g. "PutAndGet"
-    key_type,               # str, e.g. "IntKey"
     # series_data[impl][op] = list of (score, error) aligned with thread_counts
     series_data,
     out_path,
@@ -255,8 +245,17 @@ def main():
     out_dir      = args.out_dir
     os.makedirs(out_dir, exist_ok=True)
 
-    # Sort inputs by thread count
-    inputs = sorted((int(n), path) for n, path in args.input)
+    # Validate and sort inputs by thread count
+    inputs = []
+    for n_str, path in args.input:
+        try:
+            n = int(n_str)
+        except ValueError:
+            parser.error(f"THREAD_COUNT must be an integer, got: {n_str!r}")
+        if n <= 0:
+            parser.error(f"THREAD_COUNT must be positive, got: {n}")
+        inputs.append((n, path))
+    inputs.sort(key=lambda x: x[0])
     thread_counts = [n for n, _ in inputs]
 
     print(f"Java version:  {java_version}")
@@ -296,13 +295,16 @@ def main():
                         all_ops.add(op)
                         all_impls.add(impl)
 
-        # Second pass: populate series, filling missing entries with (0, 0)
+        # Second pass: populate series. Missing entries use NaN so matplotlib
+        # breaks the line rather than plotting a misleading zero.
         for n in thread_counts:
             ops_at_n = parsed[n].get(scenario, {})
             for op in all_ops:
                 for impl in all_impls:
                     val = ops_at_n.get(op, {}).get(impl, {}).get(key_type)
-                    series_data[impl][op].append(val if val else (0.0, 0.0))
+                    if val is None:
+                        print(f"  WARNING: missing data for {scenario}/{key_type}/{impl}/{op} at {n}+{n} threads — line will be broken")
+                    series_data[impl][op].append(val if val else (np.nan, np.nan))
 
         # e.g. bench-java21-mt-putandget-intkey.png
         fname = (
@@ -318,8 +320,6 @@ def main():
         print(f"Plotting {scenario} / {key_type} ...")
         plot_scaling_chart(
             thread_counts=thread_counts,
-            scenario=scenario,
-            key_type=key_type,
             series_data=series_data,
             out_path=out_path,
             title=title,

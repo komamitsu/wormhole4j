@@ -109,13 +109,14 @@ try {
     executor.submit(() -> {
         wormhole.registerThread();
         try {
-            String value = wormhole.get("James");
+            String value = wormhole.get("James"); // returns "semaj"
         } finally {
             wormhole.unregisterThread();
         }
     });
 } finally {
     executor.shutdown();
+    executor.awaitTermination(60, TimeUnit.SECONDS);
 }
 ```
 
@@ -124,8 +125,6 @@ try {
 ### Single-thread
 
 The performance of Wormhole4j was evaluated against well-known sorted map implementations.
-
-*(benchmark charts)*
 
 ![Java 21 - Get](./data/benchmark/2026/05/01/bench-java21-get.png)
 ![Java 21 - Put](./data/benchmark/2026/05/01/bench-java21-put.png)
@@ -154,12 +153,12 @@ The performance of Wormhole4j was evaluated against well-known sorted map implem
 
 The concurrent performance of Wormhole4j was evaluated with simultaneous read and write operations across varying thread counts.
 
-![Java 21 - Put and Get (IntKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandget-forintkey.png)
-![Java 21 - Put and Get (LongKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandget-forlongkey.png)
-![Java 21 - Put and Get (StringKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandget-forstringkey.png)
-![Java 21 - Put and Scan (IntKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandscan-forintkey.png)
-![Java 21 - Put and Scan (LongKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandscan-forlongkey.png)
-![Java 21 - Put and Scan (StringKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandscan-forstringkey.png)
+![Java 21 - Put and Get (IntKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandget-intkey.png)
+![Java 21 - Put and Get (LongKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandget-longkey.png)
+![Java 21 - Put and Get (StringKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandget-stringkey.png)
+![Java 21 - Put and Scan (IntKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandscan-intkey.png)
+![Java 21 - Put and Scan (LongKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandscan-longkey.png)
+![Java 21 - Put and Scan (StringKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandscan-stringkey.png)
 
 #### Benchmark Configuration
 
