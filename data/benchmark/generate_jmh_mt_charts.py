@@ -304,7 +304,7 @@ def main():
                     val = ops_at_n.get(op, {}).get(impl, {}).get(key_type)
                     if val is None:
                         print(f"  WARNING: missing data for {scenario}/{key_type}/{impl}/{op} at {n}+{n} threads — line will be broken")
-                    series_data[impl][op].append(val if val else (np.nan, np.nan))
+                    series_data[impl][op].append((np.nan, np.nan) if val is None else val)
 
         # e.g. bench-java21-mt-putandget-intkey.png
         fname = (

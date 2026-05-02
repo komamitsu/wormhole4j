@@ -6,7 +6,7 @@ It provides fast range scans and prefix searches, fast point lookups, and compet
 ## Features
 
 * Supports `put()`, `get()`, `scan()`, and `delete()` operations for Integer, Long, and String keys
-* **[Significantly faster](#benchmark-result) `scan()` API** for full scans, prefix scans, and range scans (inclusive/exclusive) - up to 6x faster than tree-based alternatives
+* **[Significantly faster](#benchmark-result) `scan()` API** for full scans, prefix scans, and range scans (inclusive/exclusive) - up to 4x faster than tree-based alternatives
 * **[Excellent performance](#benchmark-result) for String keys** - 30-41% faster get/put operations than tree-based structures
 * **Faster `get()` for numeric keys** - 26% faster than tree-based structures; competitive `put()` performance
 * **[Thread-safe concurrent access](#multi-thread)** via `setConcurrent(true)` in the builder - outperforms `ConcurrentSkipListMap` for Put+Get and String key scans; trade-off on concurrent numeric key scans
@@ -81,7 +81,7 @@ Wormhole<Long, String> wormholeLong = new WormholeBuilder.ForLongKey<String>().b
 wormholeLong.put(9000000000L, "nine billion");
 ```
 
-### Concurrent Usage
+## Concurrent Usage
 
 When using Wormhole from multiple threads, enable concurrent mode via the builder.
 Each thread must call `registerThread()` before accessing the Wormhole and `unregisterThread()` when done.
