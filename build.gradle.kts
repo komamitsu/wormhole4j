@@ -68,7 +68,7 @@ tasks.test {
 jmh {
     warmupIterations = 1
     iterations = 1
-    fork = 10 
+    fork = 12
     failOnError = true
     // includes = listOf(".*\\.singlethread\\..*")
     // includes = listOf(".*\\.multithread\\..*")

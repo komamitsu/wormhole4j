@@ -89,7 +89,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     }
 
     @Group("PutAndGet")
-    @GroupThreads(4)
+    @GroupThreads(8)
     @Benchmark
     public void putAndGetBenchmarkPut(
         IntKeysState keysState, FullState fullState, ThreadState threadState) {
@@ -97,7 +97,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     }
 
     @Group("PutAndGet")
-    @GroupThreads(4)
+    @GroupThreads(8)
     @Benchmark
     public void putAndGetBenchmarkGet(
         IntKeysState keysState, FullState fullState, Blackhole blackhole, ThreadState threadState) {
@@ -105,7 +105,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     }
 
     @Group("PutAndScan")
-    @GroupThreads(4)
+    @GroupThreads(8)
     @Benchmark
     public void putAndScanBenchmarkPut(
         IntKeysState keysState, FullState fullState, ThreadState threadState) {
@@ -113,7 +113,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     }
 
     @Group("PutAndScan")
-    @GroupThreads(4)
+    @GroupThreads(8)
     @Benchmark
     public void putAndScanBenchmarkScan(
         IntKeysState keysState, FullState fullState, Blackhole blackhole, ThreadState threadState) {
@@ -145,7 +145,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     }
 
     @Group("PutAndGet")
-    @GroupThreads(4)
+    @GroupThreads(8)
     @Benchmark
     public void putAndGetBenchmarkPut(
         LongKeysState keysState, FullState fullState, ThreadState threadState) {
@@ -153,7 +153,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     }
 
     @Group("PutAndGet")
-    @GroupThreads(4)
+    @GroupThreads(8)
     @Benchmark
     public void putAndGetBenchmarkGet(
         LongKeysState keysState,
@@ -164,7 +164,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     }
 
     @Group("PutAndScan")
-    @GroupThreads(4)
+    @GroupThreads(8)
     @Benchmark
     public void putAndScanBenchmarkPut(
         LongKeysState keysState, FullState fullState, ThreadState threadState) {
@@ -172,7 +172,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     }
 
     @Group("PutAndScan")
-    @GroupThreads(4)
+    @GroupThreads(8)
     @Benchmark
     public void putAndScanBenchmarkScan(
         LongKeysState keysState,
@@ -207,7 +207,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     }
 
     @Group("PutAndGet")
-    @GroupThreads(4)
+    @GroupThreads(8)
     @Benchmark
     public void putAndGetBenchmarkPut(
         StringKeysState keysState, FullState fullState, ThreadState threadState) {
@@ -215,7 +215,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     }
 
     @Group("PutAndGet")
-    @GroupThreads(4)
+    @GroupThreads(8)
     @Benchmark
     public void putAndGetBenchmarkGet(
         StringKeysState keysState,
@@ -226,7 +226,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     }
 
     @Group("PutAndScan")
-    @GroupThreads(4)
+    @GroupThreads(8)
     @Benchmark
     public void putAndScanBenchmarkPut(
         StringKeysState keysState, FullState fullState, ThreadState threadState) {
@@ -234,7 +234,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     }
 
     @Group("PutAndScan")
-    @GroupThreads(4)
+    @GroupThreads(8)
     @Benchmark
     public void putAndScanBenchmarkScan(
         StringKeysState keysState,
