@@ -284,14 +284,24 @@ def main():
         # series_data[impl][op] = list of (score, error) per thread count
         series_data = defaultdict(lambda: defaultdict(list))
 
+        # First pass: collect all impls and ops present for this combo across
+        # all thread counts, so every series list has the same length.
+        all_impls = set()
+        all_ops   = set()
         for n in thread_counts:
-            ops = parsed[n].get(scenario, {})
-            # Collect all impls and ops present at any thread count
-            all_impls = {impl for op_data in ops.values() for impl in op_data}
-            all_ops   = set(ops.keys())
+            ops_at_n = parsed[n].get(scenario, {})
+            for op, impl_data in ops_at_n.items():
+                for impl, kt_data in impl_data.items():
+                    if key_type in kt_data:
+                        all_ops.add(op)
+                        all_impls.add(impl)
+
+        # Second pass: populate series, filling missing entries with (0, 0)
+        for n in thread_counts:
+            ops_at_n = parsed[n].get(scenario, {})
             for op in all_ops:
                 for impl in all_impls:
-                    val = ops.get(op, {}).get(impl, {}).get(key_type)
+                    val = ops_at_n.get(op, {}).get(impl, {}).get(key_type)
                     series_data[impl][op].append(val if val else (0.0, 0.0))
 
         # e.g. bench-java21-mt-putandget-intkey.png

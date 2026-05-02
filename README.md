@@ -159,7 +159,12 @@ The concurrent performance of Wormhole4j was evaluated with simultaneous read an
 ![Java 21 - Put and Get (StringKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandget-forstringkey.png)
 ![Java 21 - Put and Scan (IntKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandscan-forintkey.png)
 ![Java 21 - Put and Scan (LongKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandscan-forlongkey.png)
-![Java 21 - Put and Scan (StringKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandscan-forstringkey.png) and N GET (or SCAN) threads running concurrently, where N = 1, 2, 4, 8
+![Java 21 - Put and Scan (StringKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandscan-forstringkey.png)
+
+#### Benchmark Configuration
+
+- **Record count:** 100,000 records
+- **Scenarios:** N PUT threads and N GET (or SCAN) threads running concurrently, where N = 1, 2, 4, 8
 - **Key types tested:** Integer, Long, and String
   - String keys: length range 32-256 characters
 - **JVM version:** Java 21

@@ -10,7 +10,7 @@ One chart is produced per operation (Get / Put / Scan):
   bars:   implementation
 
 Usage:
-    python generate_jmh_charts.py <jmh_result.txt> <java_version> [--out-dir DIR] [--error-bars]
+    python generate_jmh_st_charts.py <jmh_result.txt> <java_version> [--out-dir DIR] [--error-bars]
 
 Options:
     java_version     Label used in chart titles and output filenames (e.g. Java21)
