@@ -16,6 +16,8 @@
 
 package org.komamitsu.wormhole4j;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -194,12 +196,18 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   }
 
   void p(String op, Object key, String msg) {
-    if (debugPrintEnabled) {
-      System.out.printf("[%s] (%s) <%s:%s> %s%n", Instant.now(), Thread.currentThread().getName(), op, key, msg);
+    if (writer != null) {
+//      System.out.printf("[%s] (%s) <%s:%s> %s%n", Instant.now(), Thread.currentThread().getName(), op, key, msg);
+      try {
+        writer.append(
+            String.format("[%s] (%s) <%s:%s> %s%n", Instant.now(), Thread.currentThread().getName(), op, key, msg));
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 
-  static boolean debugPrintEnabled;
+  static BufferedWriter writer;
   static String testName = "";
   static int counter;
 

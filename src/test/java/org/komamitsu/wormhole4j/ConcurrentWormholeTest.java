@@ -20,12 +20,42 @@ import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.*;
 
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.TestWatcher;
 
+@ExtendWith(ConcurrentWormholeTest.TestResultWatcher.class)
 class ConcurrentWormholeTest {
+  private static final Path DEBUG_OUTPUT_PATH = Paths.get("/tmp/wormhole-debug.txt");
+
+  public static class TestResultWatcher implements TestWatcher {
+    @Override
+    public void testFailed(ExtensionContext context, Throwable cause) {
+      System.out.println("FAILED: " + context);
+      if (ConcurrentWormhole.writer != null) {
+        try {
+          ConcurrentWormhole.writer.close();
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+        try {
+          String s = Files.readString(DEBUG_OUTPUT_PATH);
+          System.out.println("Log: " + s);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    }
+  }
+
   private Wormhole<Integer, Integer> wormhole;
 
   private interface ThrowableSupplier<R, E extends Exception> {
@@ -42,13 +72,16 @@ class ConcurrentWormholeTest {
   }
 
   @BeforeAll
-  static void beforeAll() {
-    ConcurrentWormhole.debugPrintEnabled = true;
+  static void beforeAll() throws IOException {
+    ConcurrentWormhole.writer = Files.newBufferedWriter(DEBUG_OUTPUT_PATH);
   }
 
   @AfterAll
-  static void afterAll() {
-    ConcurrentWormhole.debugPrintEnabled = false;
+  static void afterAll() throws IOException {
+    if (ConcurrentWormhole.writer != null) {
+      ConcurrentWormhole.writer.close();
+    }
+    ConcurrentWormhole.writer = null;
   }
 
   @BeforeEach
@@ -74,6 +107,7 @@ class ConcurrentWormholeTest {
 
   @RepeatedTest(1000)
   void conflict2Puts_ShouldReturnNullAndExistingValue() throws Exception {
+    ConcurrentWormhole.testName = "conflict2Puts_ShouldReturnNullAndExistingValue";
     if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
@@ -116,6 +150,7 @@ class ConcurrentWormholeTest {
 
   @RepeatedTest(1000)
   void concurrent2PutsAfterSplit_ShouldReturnProperValues_1() throws Exception {
+    ConcurrentWormhole.testName = "concurrent2PutsAfterSplit_ShouldReturnProperValues_1";
     if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
@@ -180,6 +215,7 @@ class ConcurrentWormholeTest {
 
   @RepeatedTest(1000)
   void concurrent2PutsAfterSplit_ShouldReturnProperValues_2() throws Exception {
+    ConcurrentWormhole.testName = "concurrent2PutsAfterSplit_ShouldReturnProperValues_2";
     if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
@@ -247,6 +283,7 @@ class ConcurrentWormholeTest {
 
   @RepeatedTest(1000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_1() throws Exception {
+    ConcurrentWormhole.testName = "concurrent3PutsAfterSplit_ShouldReturnProperValues_1";
     if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
@@ -327,6 +364,7 @@ class ConcurrentWormholeTest {
 
   @RepeatedTest(1000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_2() throws Exception {
+    ConcurrentWormhole.testName = "concurrent3PutsAfterSplit_ShouldReturnProperValues_2";
     if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
@@ -407,6 +445,7 @@ class ConcurrentWormholeTest {
 
   @RepeatedTest(1000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_3() throws Exception {
+    ConcurrentWormhole.testName = "concurrent3PutsAfterSplit_ShouldReturnProperValues_3";
     if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
@@ -485,6 +524,7 @@ class ConcurrentWormholeTest {
 
   @RepeatedTest(1000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_4() throws Exception {
+    ConcurrentWormhole.testName = "concurrent3PutsAfterSplit_ShouldReturnProperValues_4";
     if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
@@ -574,6 +614,7 @@ class ConcurrentWormholeTest {
 
   @RepeatedTest(1000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_5() throws Exception {
+    ConcurrentWormhole.testName = "concurrent3PutsAfterSplit_ShouldReturnProperValues_5";
     if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
@@ -657,6 +698,7 @@ class ConcurrentWormholeTest {
 
   @RepeatedTest(1000)
   void concurrent2Deletes_ShouldReturnProperValues() throws Exception {
+    ConcurrentWormhole.testName = "concurrent2Deletes_ShouldReturnProperValues";
     if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
@@ -720,6 +762,7 @@ class ConcurrentWormholeTest {
 
   @RepeatedTest(1000)
   void concurrentPutAndDelete_ShouldReturnProperValues() throws Exception {
+    ConcurrentWormhole.testName = "concurrentPutAndDelete_ShouldReturnProperValues";
     if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
@@ -791,6 +834,7 @@ class ConcurrentWormholeTest {
 
   @RepeatedTest(1000)
   void concurrentPutAndScan_ShouldReturnProperValues() throws Exception {
+    ConcurrentWormhole.testName = "concurrentPutAndScan_ShouldReturnProperValues";
     if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
@@ -875,6 +919,7 @@ class ConcurrentWormholeTest {
 
   @RepeatedTest(1000)
   void concurrentPutAndGetAndDelete_ShouldReturnProperValues() throws Exception {
+    ConcurrentWormhole.testName = "concurrentPutAndGetAndDelete_ShouldReturnProperValues";
     if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
@@ -944,6 +989,7 @@ class ConcurrentWormholeTest {
 
   @RepeatedTest(1000)
   void concurrentPutAndGetAndDelete_withLeafNodeSize2_ShouldReturnProperValues() throws Exception {
+    ConcurrentWormhole.testName = "concurrentPutAndGetAndDelete_withLeafNodeSize2_ShouldReturnProperValues";
     if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
