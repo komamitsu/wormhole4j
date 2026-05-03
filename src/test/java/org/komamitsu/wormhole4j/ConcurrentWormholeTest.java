@@ -26,7 +26,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.*;
-
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -989,7 +988,8 @@ class ConcurrentWormholeTest {
 
   @RepeatedTest(1000)
   void concurrentPutAndGetAndDelete_withLeafNodeSize2_ShouldReturnProperValues() throws Exception {
-    ConcurrentWormhole.testName = "concurrentPutAndGetAndDelete_withLeafNodeSize2_ShouldReturnProperValues";
+    ConcurrentWormhole.testName =
+        "concurrentPutAndGetAndDelete_withLeafNodeSize2_ShouldReturnProperValues";
     if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }

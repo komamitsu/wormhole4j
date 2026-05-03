@@ -197,10 +197,13 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
 
   void p(String op, Object key, String msg) {
     if (writer != null) {
-//      System.out.printf("[%s] (%s) <%s:%s> %s%n", Instant.now(), Thread.currentThread().getName(), op, key, msg);
+      //      System.out.printf("[%s] (%s) <%s:%s> %s%n", Instant.now(),
+      // Thread.currentThread().getName(), op, key, msg);
       try {
         writer.append(
-            String.format("[%s] (%s) <%s:%s> %s%n", Instant.now(), Thread.currentThread().getName(), op, key, msg));
+            String.format(
+                "[%s] (%s) <%s:%s> %s%n",
+                Instant.now(), Thread.currentThread().getName(), op, key, msg));
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
