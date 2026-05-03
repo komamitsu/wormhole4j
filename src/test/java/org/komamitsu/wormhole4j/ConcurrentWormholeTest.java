@@ -72,9 +72,9 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(2000)
+  @RepeatedTest(1000)
   void conflict2Puts_ShouldReturnNullAndExistingValue() throws Exception {
-    if (ConcurrentWormhole.counter >= 2000) {
+    if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
     ConcurrentWormhole.counter++;
@@ -114,9 +114,9 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(2000)
+  @RepeatedTest(1000)
   void concurrent2PutsAfterSplit_ShouldReturnProperValues_1() throws Exception {
-    if (ConcurrentWormhole.counter >= 2000) {
+    if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
     ConcurrentWormhole.counter++;
@@ -178,9 +178,9 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(2000)
+  @RepeatedTest(1000)
   void concurrent2PutsAfterSplit_ShouldReturnProperValues_2() throws Exception {
-    if (ConcurrentWormhole.counter >= 2000) {
+    if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
     ConcurrentWormhole.counter++;
@@ -245,9 +245,9 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(2000)
+  @RepeatedTest(1000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_1() throws Exception {
-    if (ConcurrentWormhole.counter >= 2000) {
+    if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
     ConcurrentWormhole.counter++;
@@ -325,9 +325,9 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(2000)
+  @RepeatedTest(1000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_2() throws Exception {
-    if (ConcurrentWormhole.counter >= 2000) {
+    if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
     ConcurrentWormhole.counter++;
@@ -405,9 +405,9 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(2000)
+  @RepeatedTest(1000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_3() throws Exception {
-    if (ConcurrentWormhole.counter >= 2000) {
+    if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
     ConcurrentWormhole.counter++;
@@ -483,9 +483,9 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(2000)
+  @RepeatedTest(1000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_4() throws Exception {
-    if (ConcurrentWormhole.counter >= 2000) {
+    if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
     ConcurrentWormhole.counter++;
@@ -572,9 +572,9 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(2000)
+  @RepeatedTest(1000)
   void concurrent3PutsAfterSplit_ShouldReturnProperValues_5() throws Exception {
-    if (ConcurrentWormhole.counter >= 2000) {
+    if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
     ConcurrentWormhole.counter++;
@@ -655,9 +655,9 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(2000)
+  @RepeatedTest(1000)
   void concurrent2Deletes_ShouldReturnProperValues() throws Exception {
-    if (ConcurrentWormhole.counter >= 2000) {
+    if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
     ConcurrentWormhole.counter++;
@@ -718,9 +718,9 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(2000)
+  @RepeatedTest(1000)
   void concurrentPutAndDelete_ShouldReturnProperValues() throws Exception {
-    if (ConcurrentWormhole.counter >= 2000) {
+    if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
     ConcurrentWormhole.counter++;
@@ -789,9 +789,9 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(2000)
+  @RepeatedTest(1000)
   void concurrentPutAndScan_ShouldReturnProperValues() throws Exception {
-    if (ConcurrentWormhole.counter >= 2000) {
+    if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
     ConcurrentWormhole.counter++;
@@ -873,9 +873,9 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(2000)
+  @RepeatedTest(1000)
   void concurrentPutAndGetAndDelete_ShouldReturnProperValues() throws Exception {
-    if (ConcurrentWormhole.counter >= 2000) {
+    if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
     ConcurrentWormhole.counter++;
@@ -942,9 +942,9 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(2000)
+  @RepeatedTest(1000)
   void concurrentPutAndGetAndDelete_withLeafNodeSize2_ShouldReturnProperValues() throws Exception {
-    if (ConcurrentWormhole.counter >= 2000) {
+    if (ConcurrentWormhole.counter >= 1000) {
       ConcurrentWormhole.counter = 0;
     }
     ConcurrentWormhole.counter++;

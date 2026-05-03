@@ -200,6 +200,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   }
 
   static boolean debugPrintEnabled;
+  static String testName = "";
   static int counter;
 
   /**
@@ -214,7 +215,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   @Nullable
   public V put(K key, V value) {
     String op = "PUT";
-    p(op, key, "start. test counter=" + counter);
+    p(op, key, "start. test name=" + testName + ", counter=" + counter);
     Object encodedKey = createEncodedKey(key);
     int loopCount = 0;
     while (true) {
@@ -299,7 +300,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   @Override
   public boolean delete(K key) {
     String op = "DEL";
-    p(op, key, "start. test counter=" + counter);
+    p(op, key, "start. test name=" + testName + ", counter=" + counter);
     Object encodedKey = createEncodedKey(key);
     int loopCount = 0;
     while (true) {
@@ -440,7 +441,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   @Nullable
   public V get(K key) {
     String op = "GET";
-    p(op, key, "start. test counter=" + counter);
+    p(op, key, "start. test name=" + testName + ", counter=" + counter);
     Object encodedKey = createEncodedKey(key);
     int loopCount = 0;
     while (true) {
@@ -484,7 +485,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
       BiFunction<K, V, Boolean> function) {
     String op = "SCAN";
     String key = startKey + ":" + endKey;
-    p(op, key, "start. test counter=" + counter);
+    p(op, key, "start. test name=" + testName + ", counter=" + counter);
     Object encodedStartKey =
         startKey == null ? createEmptyEncodedKey() : createEncodedKey(startKey);
     Object encodedEndKey = endKey == null ? null : createEncodedKey(endKey);
