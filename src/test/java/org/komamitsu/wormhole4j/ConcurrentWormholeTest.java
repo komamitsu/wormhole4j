@@ -46,8 +46,7 @@ class ConcurrentWormholeTest {
           throw new RuntimeException(e);
         }
         try {
-          String s = Files.readString(DEBUG_OUTPUT_PATH);
-          System.out.println("Log: " + s);
+          Files.readAllLines(DEBUG_OUTPUT_PATH).forEach(System.out::println);
         } catch (IOException e) {
           throw new RuntimeException(e);
         }
