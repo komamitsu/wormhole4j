@@ -234,7 +234,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
         Thread.yield();
       }
       qsbrEnter();
-      p(op, key, "entering qsbr");
+      p(op, key, "entered qsbr.");
       LeafNode<K, V> leafNode = searchTrieHashTable(qsbrThreadLocalMetaTables.get(), encodedKey);
       p(op, key, "got leaf node. id=" + leafNode.id);
       long writeLockOnLeafNode = leafNode.tryWriteLock();
@@ -271,7 +271,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
           // Increment versions and switch to the updated meta table.
           leafNode.setVersion(newVersion);
           newLeafNode.setVersion(newVersion);
-          p(op, key, "updated leaf node versions. new version" + newVersion);
+          p(op, key, "updated leaf node versions. new version=" + newVersion);
           switchMetaTable(newVersion);
           p(op, key, "switched meta table");
           newLeafNode.releaseLock(newLeafNode.getInitialLockStamp());
@@ -285,7 +285,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
           p(op, key, "waited");
 
           addNewLeafNodeToMetaTable(getInactiveMetaTable(), newLeafNode);
-          p(op, key, "added new leaf node to meta table(1)");
+          p(op, key, "added new leaf node to meta table(2)");
           return null;
         } finally {
           releaseLockOnMetaTable(writeLockOnMetaTable);
@@ -319,7 +319,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
         Thread.yield();
       }
       qsbrEnter();
-      p(op, key, "entering qsbr");
+      p(op, key, "entered qsbr");
       long writeLockOnLeafNode = 0;
       long writeLockOnLeftLeafNode = 0;
       long writeLockOnRightLeafNode = 0;
@@ -460,7 +460,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
         Thread.yield();
       }
       qsbrEnter();
-      p(op, key, "entering qsbr");
+      p(op, key, "entered qsbr");
       try {
         LeafNode<K, V> leafNode = searchTrieHashTable(qsbrThreadLocalMetaTables.get(), encodedKey);
         p(op, key, "got leaf node. id=" + leafNode.id);
@@ -505,7 +505,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     long readLockOnMetaTable = acquireReadLockOnMetaTable();
     try {
       qsbrEnter();
-      p(op, key, "entering qsbr");
+      p(op, key, "entered qsbr");
       LeafNode<K, V> leafNode =
           searchTrieHashTable(qsbrThreadLocalMetaTables.get(), encodedStartKey);
       while (leafNode != null) {
