@@ -188,6 +188,9 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   }
 
   private void switchMetaTable(long newVersion) {
+    // Keep this write order. qsbrEnter() reads version before metaTableIndex, so we must
+    // publish the new metaTableIndex first and only then publish the new version. Otherwise,
+    // a reader could observe the new version together with the old active meta table.
     metaTableIndex = getInactiveMetaTableIndex();
     version = newVersion;
   }
