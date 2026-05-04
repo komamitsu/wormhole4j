@@ -34,9 +34,9 @@ import org.komamitsu.wormhole4j.MetaTrieHashTable.NodeMetaLeaf;
  */
 abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   private static final int SPIN_INTERVAL = 64;
-  // These don't need to be volatile since they are only updated in synchronized blocks.
-  private long version;
-  private int metaTableIndex;
+
+  private volatile long version;
+  private volatile int metaTableIndex;
 
   private final List<MetaTrieHashTable<K, V>> metaTables;
   private final StampedLock metaTableLock = new StampedLock();
@@ -187,7 +187,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     return metaTableIndex == 0 ? 1 : 0;
   }
 
-  private synchronized void switchMetaTable(long newVersion) {
+  private void switchMetaTable(long newVersion) {
     metaTableIndex = getInactiveMetaTableIndex();
     version = newVersion;
   }
