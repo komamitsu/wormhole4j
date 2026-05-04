@@ -20,11 +20,11 @@ import org.junit.jupiter.api.Test
 import java.util.TreeMap
 
 @Param(name = "key", gen = IntGen::class, conf = "1:20")
-@Param(name = "value", gen = IntGen::class, conf = "1:100")
+@Param(name = "value", gen = IntGen::class, conf = "1:40")
 @Param(name = "key1", gen = IntGen::class, conf = "1:20")
 @Param(name = "key2", gen = IntGen::class, conf = "1:20")
-class WormholeTest {
-    private val wormhole = WormholeBuilder.ForIntKey<Int>().setConcurrent(true).setLeafNodeSize(4).build()
+class LincheckWithLeafNodeSize2Test {
+    private val wormhole = WormholeBuilder.ForIntKey<Int>().setConcurrent(true).setLeafNodeSize(2).build()
 
     fun ensureThreadRegistered() {
         wormhole.registerThread()
