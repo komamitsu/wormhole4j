@@ -1352,4 +1352,98 @@ class ConcurrentWormholeTest {
           }
         });
   }
+
+  @RepeatedTest(1000)
+  void concurrentPutAndGetAndScan_withLeafNodeSize2_ShouldReturnProperValues() throws Exception {
+    wormhole =
+        new WormholeBuilder.ForIntKey<Integer>().setConcurrent(true).setLeafNodeSize(2).build();
+    withRegisteredWormhole(
+        () -> {
+          // Arrange
+          assertThat(wormhole.put(10, 100)).isNull();
+
+          ExecutorService executorService = Executors.newFixedThreadPool(3);
+          List<Future<?>> futures = new ArrayList<>();
+          CyclicBarrier barrier1 = new CyclicBarrier(3);
+
+          try {
+            // Act
+            futures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier1.await();
+                              // 1-0
+                              assertThat(wormhole.put(11, 111)).isIn(null, 112, 113);
+                              // 1-1
+                              assertThat(wormhole.put(12, 121)).isIn(null, 123);
+                              // 1-2
+                              return null;
+                            })));
+            futures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier1.await();
+                              // 2-0
+                              assertThat(wormhole.put(9, 92)).isIn(null, 93);
+                              // 2-1
+                              assertThat(wormhole.put(10, 102)).isIn(100);
+                              // 2-2
+                              assertThat(wormhole.put(11, 112)).isIn(null, 111, 113);
+
+                              List<Integer> scanned = new ArrayList<>();
+                              wormhole.scan(2, 13, true, (k, v) -> scanned.add(v));
+                              if (scanned.contains(92)) {
+                                // T3:put(9, 93) < T2:put(9, 92) < T2:scan(), or
+                                // T2:put(9, 92) < T2:scan() < T3:put(9, 93)
+                                assertThat(scanned).contains(102, 112);
+                              }
+                              else if (scanned.contains(93)) {
+                                // T2:put(9, 92) < T3:put(9, 93) < T2:scan()
+                                //   - T2:put(11, 112) < T3:put(11, 113) < T2:scan()
+                                //   - T3:put(11, 113) < T2:put(11, 112) < T2:scan()
+                                assertThat(scanned).containsAnyOf(112, 113);
+                              }
+                              else {
+                                fail(scanned.toString());
+                              }
+
+                              return null;
+                            })));
+            futures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier1.await();
+                              // 3-0
+                              assertThat(wormhole.put(12, 123)).isIn(null, 121);
+                              // 3-1
+                              assertThat(wormhole.put(9, 93)).isIn(null, 92);
+                              // 3-2
+                              assertThat(wormhole.put(11, 113)).isIn(null, 111, 112);
+                              return null;
+                            })));
+
+            // Assert
+            for (Future<?> future : futures) {
+              future.get(5, TimeUnit.SECONDS);
+            }
+            assertThat(wormhole.get(9)).isIn(92, 93);
+            assertThat(wormhole.get(10)).isIn(102);
+            assertThat(wormhole.get(11)).isIn(111, 112, 113);
+            assertThat(wormhole.get(12)).isIn(121, 123);
+
+            return null;
+          } finally {
+            executorService.shutdown();
+            if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+              executorService.shutdownNow();
+            }
+          }
+        });
+  }
 }
