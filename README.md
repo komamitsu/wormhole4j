@@ -109,7 +109,7 @@ try {
     executor.submit(() -> {
         wormhole.registerThread();
         try {
-            String value = wormhole.get("James"); // returns "semaj"
+            String value = wormhole.get("James"); // may return "semaj" if the put has completed
         } finally {
             wormhole.unregisterThread();
         }
@@ -129,6 +129,11 @@ The performance of Wormhole4j was evaluated against well-known sorted map implem
 ![Java 21 - Get](./data/benchmark/2026/05/01/bench-java21-get.png)
 ![Java 21 - Put](./data/benchmark/2026/05/01/bench-java21-put.png)
 ![Java 21 - Scan](./data/benchmark/2026/05/01/bench-java21-scan.png)
+
+#### Benchmark Configuration
+
+- **Record count:** 100,000 records
+- **Operations measured:**
   - GET: 100,000 operations (random lookups from a populated map)
   - PUT: 100,000 operations (random updates with a populated map)
   - SCAN: 10,000 operations (range scans with scan size of 512 records)
