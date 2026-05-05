@@ -21,7 +21,7 @@ Add the following to your `pom.xml`:
 <dependency>
     <groupId>org.komamitsu</groupId>
     <artifactId>wormhole4j</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
 </dependency>
 ```
 
@@ -30,7 +30,7 @@ Add the following to your `pom.xml`:
 Add the following to your `build.gradle`:
 
 ```groovy
-implementation 'org.komamitsu:wormhole4j:0.2.0'
+implementation 'org.komamitsu:wormhole4j:0.3.0'
 ```
 
 ### Gradle (Kotlin DSL)
@@ -38,7 +38,7 @@ implementation 'org.komamitsu:wormhole4j:0.2.0'
 Add the following to your `build.gradle.kts`:
 
 ```kotlin
-implementation("org.komamitsu:wormhole4j:0.2.0")
+implementation("org.komamitsu:wormhole4j:0.3.0")
 ```
 
 ## Quick Start
