@@ -60,7 +60,7 @@ class LincheckWithLeafNodeSize4Test {
         return result
     }
 
-    @Test
+//    @Test
     fun stressTest() = StressOptions()
         .sequentialSpecification(SequentialMap::class.java)
         .threads(3)

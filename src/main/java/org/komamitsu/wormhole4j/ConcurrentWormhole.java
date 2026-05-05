@@ -229,7 +229,8 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
   @Nullable
   public V put(K key, V value) {
     String op = "PUT";
-    p(op, key, "start. test name=" + testName + ", counter=" + counter);
+    String debugKey = key + "=" + value;
+    p(op, debugKey, "start. test name=" + testName + ", counter=" + counter);
     Object encodedKey = createEncodedKey(key);
     int loopCount = 0;
     while (true) {
@@ -237,29 +238,29 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
         Thread.yield();
       }
       qsbrEnter();
-      p(op, key, "entered qsbr.");
+      p(op, debugKey, "entered qsbr.");
       LeafNode<K, V> leafNode = searchTrieHashTable(qsbrThreadLocalMetaTables.get(), encodedKey);
-      p(op, key, "got leaf node. id=" + leafNode.id);
+      p(op, debugKey, "got leaf node. id=" + leafNode.id);
       long writeLockOnLeafNode = leafNode.tryWriteLock();
       if (writeLockOnLeafNode == 0) {
-        p(op, key, "failed to get write lock on leaf node");
+        p(op, debugKey, "failed to get write lock on leaf node");
         qsbrExit();
-        p(op, key, "exited qsbr(1)");
+        p(op, debugKey, "exited qsbr(1)");
         continue;
       }
       try {
         if (leafNode.getVersion() > qsbrThreadLocalVersions.get().get()) {
-          p(op, key, "got stale leaf node");
+          p(op, debugKey, "got stale leaf node");
           continue;
         }
         Optional<V> existingValue = leafNode.lookupAndPutValue(encodedKey, key, value);
         if (existingValue != null) {
-          p(op, key, "updating leaf node and returning");
+          p(op, debugKey, "updating leaf node and returning");
           return existingValue.orElse(null);
         }
         long writeLockOnMetaTable = tryLockOnMetaTable();
         if (writeLockOnMetaTable == 0) {
-          p(op, key, "failed to get write lock on meta table");
+          p(op, debugKey, "failed to get write lock on meta table");
           continue;
         }
         try {
@@ -267,39 +268,39 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
 
           // This new leaf is already locked.
           LeafNode<K, V> newLeafNode = splitLeafNode(leafNode, encodedKey, key, value);
-          p(op, key, "got new leaf node. id=" + newLeafNode.id);
+          p(op, debugKey, "got new leaf node. id=" + newLeafNode.id);
           addNewLeafNodeToMetaTable(getInactiveMetaTable(), newLeafNode);
-          p(op, key, "added new leaf node to meta table(1)");
+          p(op, debugKey, "added new leaf node to meta table(1)");
 
           // Increment versions and switch to the updated meta table.
           leafNode.setVersion(newVersion);
           newLeafNode.setVersion(newVersion);
-          p(op, key, "updated leaf node versions. new version=" + newVersion);
+          p(op, debugKey, "updated leaf node versions. new version=" + newVersion);
           switchMetaTable(newVersion);
-          p(op, key, "switched meta table");
+          p(op, debugKey, "switched meta table");
           newLeafNode.releaseLock(newLeafNode.getInitialLockStamp());
           leafNode.releaseLock(writeLockOnLeafNode);
           writeLockOnLeafNode = 0;
-          p(op, key, "released leaf node locks(1)");
+          p(op, debugKey, "released leaf node locks(1)");
 
           // Wait until no reader threads on the previously active meta table.
           qsbrThreadLocalVersions.get().set(newVersion);
           qsbrWait(newVersion, getQsbrThreadIndex());
-          p(op, key, "waited");
+          p(op, debugKey, "waited");
 
           addNewLeafNodeToMetaTable(getInactiveMetaTable(), newLeafNode);
-          p(op, key, "added new leaf node to meta table(2)");
+          p(op, debugKey, "added new leaf node to meta table(2)");
           return null;
         } finally {
           releaseLockOnMetaTable(writeLockOnMetaTable);
-          p(op, key, "released meta table lock");
+          p(op, debugKey, "released meta table lock");
         }
       } finally {
         qsbrExit();
-        p(op, key, "exited qsbr(2)");
+        p(op, debugKey, "exited qsbr(2)");
         if (writeLockOnLeafNode != 0) {
           leafNode.releaseLock(writeLockOnLeafNode);
-          p(op, key, "released leaf node locks(2)");
+          p(op, debugKey, "released leaf node locks(2)");
         }
       }
     }
