@@ -109,7 +109,7 @@ try {
     executor.submit(() -> {
         wormhole.registerThread();
         try {
-            String value = wormhole.get("James"); // may return "semaj" if the put has completed
+            String value = wormhole.get("James"); // returns "semaj" if the put() operation has completed, otherwise null
         } finally {
             wormhole.unregisterThread();
         }
