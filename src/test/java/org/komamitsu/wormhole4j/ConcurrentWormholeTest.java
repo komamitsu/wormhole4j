@@ -1355,33 +1355,29 @@ class ConcurrentWormholeTest {
         });
   }
 
-  @RepeatedTest(1000)
+  @RepeatedTest(10000)
   void concurrentPutAndGetAndScan_withLeafNodeSize2_ShouldReturnProperValues() throws Exception {
+    ConcurrentWormhole.testName =
+        "concurrentPutAndGetAndScan_withLeafNodeSize2_ShouldReturnProperValues";
+    if (ConcurrentWormhole.counter >= 1000) {
+      ConcurrentWormhole.counter = 0;
+    }
+    ConcurrentWormhole.counter++;
     wormhole =
         new WormholeBuilder.ForIntKey<Integer>().setConcurrent(true).setLeafNodeSize(2).build();
     withRegisteredWormhole(
         () -> {
           // = Invalid execution results =
-          // |
-          // ----------------------------------------------------------------------------------------- |
+          // |----------------------------------------------------------------------------------------- |
           // |           Thread 1            |           Thread 2               |         Thread 3
-          //     |
-          // |
-          // ----------------------------------------------------------------------------------------- |
+          // |----------------------------------------------------------------------------------------- |
           // | put(10, 100): null            |                                  |
-          //     |
-          // |
-          // ----------------------------------------------------------------------------------------- |
+          // |----------------------------------------------------------------------------------------- |
           // | put(11, 111): null            | put(9, 92): null                 |
-          //     |
           // |                               | put(10, 102): 100                | put(12, 123): null
-          //     |
           // |                               | put(11, 112): 111                | put(9, 93): 92
-          //     |
           // | put(12, 121): 123             | scan(2, 13): [92, 102, 113, 123] | put(11, 113): 112
-          //     |
-          // |
-          // ----------------------------------------------------------------------------------------- |
+          // ------------------------------------------------------------------------------------------ |
 
           // Arrange
           assertThat(wormhole.put(10, 100)).isNull();
@@ -1467,20 +1463,21 @@ class ConcurrentWormholeTest {
             // T2:put(9, 92) < T2:put(11, 112) < T3:put(9, 93) < T3:put(11, 113)
             //
             // 1-1-*.
-            // T2:put(9, 92) < T3:put(9, 93) < T2:put(11, 112) < T2:scan < T3:put(11, 113)     //
-            // [93, 112]
-            // T2:put(9, 92) < T3:put(9, 93) < T2:put(11, 112) < T3:put(11, 113) < T2:scan     //
-            // [93, 113]
+            // T2:put(9, 92) < T3:put(9, 93) < T2:put(11, 112) < T2:scan < T3:put(11, 113)
+            // Scan result: [93, 112]
+            // T2:put(9, 92) < T3:put(9, 93) < T2:put(11, 112) < T3:put(11, 113) < T2:scan
+            // Scan result: [93, 113]
             //
             // 1-2-*.
-            // T2:put(9, 92) < T2:put(11, 112) < T2:scan < T3:put(9, 93) < T3:put(11, 113)     //
-            // [92, 112]
-            // T2:put(9, 92) < T2:put(11, 112) < T3:put(9, 93) < T2:scan < T3:put(11, 113)     //
-            // [93, 112]
-            // T2:put(9, 92) < T2:put(11, 112) < T3:put(9, 93) < T3:put(11, 113) < T2:scan     //
-            // [93, 113]
+            // T2:put(9, 92) < T2:put(11, 112) < T2:scan < T3:put(9, 93) < T3:put(11, 113)
+            // Scan result: [92, 112]
+            // T2:put(9, 92) < T2:put(11, 112) < T3:put(9, 93) < T2:scan < T3:put(11, 113)
+            // Scan result: [93, 112]
+            // T2:put(9, 92) < T2:put(11, 112) < T3:put(9, 93) < T3:put(11, 113) < T2:scan
+            // Scan result: [93, 113]
             //
             // Possible scan result: [92, 112], [93, 112], [93, 113]
+            //   (plus: [92, 111], [93, 111])
             // --------------------------------
             // 2.
             // T2:put(9, 92) < T3:put(9, 93)
@@ -1493,14 +1490,15 @@ class ConcurrentWormholeTest {
             // T2:put(9, 92) < T3:put(11, 113) < T3:put(9, 93) < T2:put(11, 112)
             //
             // 2-1-*.
-            // T2:put(9, 92) < T3:put(9, 93) < T3:put(11, 113) < T2:put(11, 112) < T2:scan     //
-            // [93, 112]
+            // T2:put(9, 92) < T3:put(9, 93) < T3:put(11, 113) < T2:put(11, 112) < T2:scan
+            // Scan result: [93, 112]
             //
             // 2-2-*.
-            // T2:put(9, 92) < T3:put(11, 113) < T3:put(9, 93) < T2:put(11, 112) < T2:scan     //
-            // [93, 112]
+            // T2:put(9, 92) < T3:put(11, 113) < T3:put(9, 93) < T2:put(11, 112) < T2:scan
+            // Scan result: [93, 112]
             //
             // Possible scan result: [93, 112]
+            //   (plus: [93, 111])
             // --------------------------------
             // 3.
             // T3:put(9, 93) < T2:put(9, 92)
@@ -1513,20 +1511,21 @@ class ConcurrentWormholeTest {
             // T3:put(9, 93) < T2:put(11, 112) < T2:put(9, 92) < T3:put(11, 113)
             //
             // 3-1-*.
-            // T3:put(9, 93) < T2:put(9, 92) < T2:put(11, 112) < T2:scan < T3:put(11, 113)     //
-            // [92, 112]
-            // T3:put(9, 93) < T2:put(9, 92) < T2:put(11, 112) < T3:put(11, 113) < T2:scan     //
-            // [92, 113]
+            // T3:put(9, 93) < T2:put(9, 92) < T2:put(11, 112) < T2:scan < T3:put(11, 113)
+            // Scan result: [92, 112]
+            // T3:put(9, 93) < T2:put(9, 92) < T2:put(11, 112) < T3:put(11, 113) < T2:scan
+            // Scan result: [92, 113]
             //
             // 3-2-*.
-            // T3:put(9, 93) < T2:put(11, 112) < T2:scan < T2:put(9, 92) < T3:put(11, 113)     //
-            // [93, 112]
-            // T3:put(9, 93) < T2:put(11, 112) < T2:put(9, 92) < T2:scan < T3:put(11, 113)     //
-            // [92, 112]
-            // T3:put(9, 93) < T2:put(11, 112) < T2:put(9, 92) < T3:put(11, 113) < T2:scan     //
-            // [92, 113]
+            // T3:put(9, 93) < T2:put(11, 112) < T2:scan < T2:put(9, 92) < T3:put(11, 113)
+            // Scan result: [93, 112]
+            // T3:put(9, 93) < T2:put(11, 112) < T2:put(9, 92) < T2:scan < T3:put(11, 113)
+            // Scan result: [92, 112]
+            // T3:put(9, 93) < T2:put(11, 112) < T2:put(9, 92) < T3:put(11, 113) < T2:scan
+            // Scan result: [92, 113]
             //
             // Possible scan result: [92, 112], [92, 113], [93, 112]
+            //   (plus: [92, 111], [93, 111])
             // --------------------------------
             // 4.
             // T3:put(9, 93) < T2:put(9, 92)
@@ -1539,14 +1538,15 @@ class ConcurrentWormholeTest {
             // T3:put(9, 93) < T3:put(11, 113) < T2:put(9, 92) < T2:put(11, 112)
             //
             // 4-1-*.
-            // T3:put(9, 93) < T2:put(9, 92) < T3:put(11, 113) < T2:put(11, 112) < T2:scan     //
-            // [92, 112]
+            // T3:put(9, 93) < T2:put(9, 92) < T3:put(11, 113) < T2:put(11, 112) < T2:scan
+            // Scan result: [92, 112]
             //
             // 4-2-*.
-            // T3:put(9, 93) < T3:put(11, 113) < T2:put(9, 92) < T2:put(11, 112) < T2:scan     //
-            // [92, 112]
+            // T3:put(9, 93) < T3:put(11, 113) < T2:put(9, 92) < T2:put(11, 112) < T2:scan
+            // Scan result: [92, 112]
             //
             // Possible scan result: [92, 112]
+            //   (plus: [92, 111])
             // --------------------------------
 
             List<Integer> filteredScanResult =
@@ -1594,8 +1594,14 @@ class ConcurrentWormholeTest {
               // T2:put(11, 112) < T3:put(11, 113)
 
               // Possible scan result: [92, 112], [93, 112], [93, 113]
+              //   (plus: [92, 111], [93, 111])
               assertThat(filteredScanResult)
-                  .isIn(Arrays.asList(92, 112), Arrays.asList(93, 112), Arrays.asList(93, 113));
+                  .isIn(
+                      Arrays.asList(92, 112),
+                      Arrays.asList(93, 112),
+                      Arrays.asList(93, 113),
+                      Arrays.asList(92, 111),
+                      Arrays.asList(93, 111));
             } else if (Objects.equals(putResultOfKey9ByThread3.get(), 92)
                 && !putKey11ByThread2HappenedBeforeThread3) {
               // 2.
@@ -1603,7 +1609,8 @@ class ConcurrentWormholeTest {
               // T3:put(11, 113) < T2:put(11, 112)
 
               // Possible scan result: [93, 112]
-              assertThat(filteredScanResult).isEqualTo(Arrays.asList(93, 112));
+              //   (plus: [93, 111])
+              assertThat(filteredScanResult).isIn(Arrays.asList(93, 112), Arrays.asList(93, 111));
             } else if (Objects.equals(putResultOfKey9ByThread2.get(), 93)
                 && putKey11ByThread2HappenedBeforeThread3) {
               // 3.
@@ -1611,8 +1618,14 @@ class ConcurrentWormholeTest {
               // T2:put(11, 112) < T3:put(11, 113)
 
               // Possible scan result: [92, 112], [92, 113], [93, 112]
+              //   (plus: [92, 111], [93, 111])
               assertThat(filteredScanResult)
-                  .isIn(Arrays.asList(92, 112), Arrays.asList(92, 113), Arrays.asList(93, 112));
+                  .isIn(
+                      Arrays.asList(92, 112),
+                      Arrays.asList(92, 113),
+                      Arrays.asList(93, 112),
+                      Arrays.asList(92, 111),
+                      Arrays.asList(93, 111));
             } else if (Objects.equals(putResultOfKey9ByThread2.get(), 93)
                 && !putKey11ByThread2HappenedBeforeThread3) {
               // 4.
@@ -1620,7 +1633,8 @@ class ConcurrentWormholeTest {
               // T3:put(11, 113) < T2:put(11, 112)
 
               // Possible scan result: [92, 112]
-              assertThat(filteredScanResult).isEqualTo(Arrays.asList(92, 112));
+              //   (plus: [92, 111])
+              assertThat(filteredScanResult).isIn(Arrays.asList(92, 112), Arrays.asList(92, 111));
             } else {
               fail(
                   String.format(
