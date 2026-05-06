@@ -673,7 +673,7 @@ abstract class WormholeForIntKeyTest {
       wormholeForStrValue.put(Integer.MIN_VALUE, "foo");
 
       // Act & Assert
-      assertThat(wormholeForStrValue.delete(Integer.MIN_VALUE)).isTrue();
+      assertThat(wormholeForStrValue.delete(Integer.MIN_VALUE)).isEqualTo("foo");
 
       assertThat(wormholeForStrValue.scanWithCount(Integer.MIN_VALUE, 100000)).isEmpty();
     }
@@ -684,7 +684,7 @@ abstract class WormholeForIntKeyTest {
       wormholeForIntValue.put(10, 100);
 
       // Act & Assert
-      assertThat(wormholeForIntValue.delete(10)).isTrue();
+      assertThat(wormholeForIntValue.delete(10)).isEqualTo(100);
       assertThat(wormholeForIntValue.get(9)).isNull();
       assertThat(wormholeForIntValue.get(10)).isNull();
       assertThat(wormholeForIntValue.get(11)).isNull();
@@ -698,8 +698,8 @@ abstract class WormholeForIntKeyTest {
       wormholeForIntValue.put(10, 100);
 
       // Act & Assert
-      assertThat(wormholeForIntValue.delete(9)).isFalse();
-      assertThat(wormholeForIntValue.delete(11)).isFalse();
+      assertThat(wormholeForIntValue.delete(9)).isNull();
+      assertThat(wormholeForIntValue.delete(11)).isNull();
       assertThat(wormholeForIntValue.get(10)).isEqualTo(100);
 
       assertThat(wormholeForIntValue.scanWithCount(Integer.MIN_VALUE, 100000))
@@ -714,15 +714,15 @@ abstract class WormholeForIntKeyTest {
       wormholeForIntValue.put(10, 100);
 
       // Act & Assert
-      assertThat(wormholeForIntValue.delete(10)).isTrue();
+      assertThat(wormholeForIntValue.delete(10)).isEqualTo(100);
       assertThat(wormholeForIntValue.get(10)).isNull();
       assertThat(wormholeForIntValue.scanWithCount(Integer.MIN_VALUE, 100000)).size().isEqualTo(2);
 
-      assertThat(wormholeForIntValue.delete(30)).isTrue();
+      assertThat(wormholeForIntValue.delete(30)).isEqualTo(300);
       assertThat(wormholeForIntValue.get(30)).isNull();
       assertThat(wormholeForIntValue.scanWithCount(Integer.MIN_VALUE, 100000)).size().isEqualTo(1);
 
-      assertThat(wormholeForIntValue.delete(20)).isTrue();
+      assertThat(wormholeForIntValue.delete(20)).isEqualTo(200);
       assertThat(wormholeForIntValue.get(20)).isNull();
       assertThat(wormholeForIntValue.scanWithCount(Integer.MIN_VALUE, 100000)).size().isEqualTo(0);
     }
@@ -737,7 +737,7 @@ abstract class WormholeForIntKeyTest {
       wormholeForIntValue.put(10, 100);
 
       // Act & Assert
-      assertThat(wormholeForIntValue.delete(10)).isTrue();
+      assertThat(wormholeForIntValue.delete(10)).isEqualTo(100);
       assertThat(wormholeForIntValue.get(10)).isNull();
       assertThat(wormholeForIntValue.get(20)).isEqualTo(200);
       assertThat(wormholeForIntValue.get(30)).isEqualTo(300);
@@ -745,7 +745,7 @@ abstract class WormholeForIntKeyTest {
       assertThat(wormholeForIntValue.get(50)).isEqualTo(500);
       assertThat(wormholeForIntValue.scanWithCount(Integer.MIN_VALUE, 100000)).size().isEqualTo(4);
 
-      assertThat(wormholeForIntValue.delete(20)).isTrue();
+      assertThat(wormholeForIntValue.delete(20)).isEqualTo(200);
       assertThat(wormholeForIntValue.get(10)).isNull();
       assertThat(wormholeForIntValue.get(20)).isNull();
       assertThat(wormholeForIntValue.get(30)).isEqualTo(300);
@@ -753,7 +753,7 @@ abstract class WormholeForIntKeyTest {
       assertThat(wormholeForIntValue.get(50)).isEqualTo(500);
       assertThat(wormholeForIntValue.scanWithCount(Integer.MIN_VALUE, 100000)).size().isEqualTo(3);
 
-      assertThat(wormholeForIntValue.delete(30)).isTrue();
+      assertThat(wormholeForIntValue.delete(30)).isEqualTo(300);
       assertThat(wormholeForIntValue.get(10)).isNull();
       assertThat(wormholeForIntValue.get(20)).isNull();
       assertThat(wormholeForIntValue.get(30)).isNull();
@@ -761,7 +761,7 @@ abstract class WormholeForIntKeyTest {
       assertThat(wormholeForIntValue.get(50)).isEqualTo(500);
       assertThat(wormholeForIntValue.scanWithCount(Integer.MIN_VALUE, 100000)).size().isEqualTo(2);
 
-      assertThat(wormholeForIntValue.delete(40)).isTrue();
+      assertThat(wormholeForIntValue.delete(40)).isEqualTo(400);
       assertThat(wormholeForIntValue.get(10)).isNull();
       assertThat(wormholeForIntValue.get(20)).isNull();
       assertThat(wormholeForIntValue.get(30)).isNull();
@@ -769,7 +769,7 @@ abstract class WormholeForIntKeyTest {
       assertThat(wormholeForIntValue.get(50)).isEqualTo(500);
       assertThat(wormholeForIntValue.scanWithCount(Integer.MIN_VALUE, 100000)).size().isEqualTo(1);
 
-      assertThat(wormholeForIntValue.delete(50)).isTrue();
+      assertThat(wormholeForIntValue.delete(50)).isEqualTo(500);
       assertThat(wormholeForIntValue.get(10)).isNull();
       assertThat(wormholeForIntValue.get(20)).isNull();
       assertThat(wormholeForIntValue.get(30)).isNull();
@@ -799,7 +799,8 @@ abstract class WormholeForIntKeyTest {
       for (int i = 0; i < expected.size() - recordCount * 0.5; i++) {
         int keyIndex = ThreadLocalRandom.current().nextInt(expectedKeys.size());
         int key = expectedKeys.get(keyIndex);
-        assertThat(wormholeForIntValue.delete(key)).isTrue();
+        int value = expected.get(key);
+        assertThat(wormholeForIntValue.delete(key)).isEqualTo(value);
         expected.remove(key);
         expectedKeys.remove(keyIndex);
       }
@@ -813,7 +814,8 @@ abstract class WormholeForIntKeyTest {
       for (int i = 0; i < expected.size() - recordCount * 0.05; i++) {
         int keyIndex = ThreadLocalRandom.current().nextInt(expectedKeys.size());
         int key = expectedKeys.get(keyIndex);
-        assertThat(wormholeForIntValue.delete(key)).isTrue();
+        int value = expected.get(key);
+        assertThat(wormholeForIntValue.delete(key)).isEqualTo(value);
         expected.remove(key);
         expectedKeys.remove(keyIndex);
       }
@@ -835,7 +837,8 @@ abstract class WormholeForIntKeyTest {
       for (int i = 0; i < remainingCount; i++) {
         int keyIndex = ThreadLocalRandom.current().nextInt(expectedKeys.size());
         int key = expectedKeys.get(keyIndex);
-        assertThat(wormholeForIntValue.delete(key)).isTrue();
+        int value = expected.get(key);
+        assertThat(wormholeForIntValue.delete(key)).isEqualTo(value);
         expected.remove(key);
         expectedKeys.remove(keyIndex);
       }

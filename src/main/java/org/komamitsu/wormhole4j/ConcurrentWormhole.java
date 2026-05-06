@@ -268,10 +268,12 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
    * Deletes a key-value pair if present.
    *
    * @param key the key (must not be {@code null})
-   * @return {@code true} if the key was removed, {@code false} otherwise
+   * @return the previous value associated with the key, or {@code null} if there was no previous
+   *     mapping
    */
+  @Nullable
   @Override
-  public boolean delete(K key) {
+  public V delete(K key) {
     Object encodedKey = createEncodedKey(key);
     int loopCount = 0;
     while (true) {
@@ -315,14 +317,14 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
         }
 
         if (leafNode.lookupValue(encodedKey) == null) {
-          return false;
+          return null;
         }
         long writeLockOnMetaTable = tryLockOnMetaTable();
         if (writeLockOnMetaTable == 0) {
           continue;
         }
-        boolean deleted = leafNode.delete(encodedKey);
-        assert deleted;
+        V deleted = leafNode.delete(encodedKey);
+        assert deleted != null;
         try {
           // Merge the nodes on the inactive meta table if needed.
           Tuple<LeafNode<K, V>, LeafNode<K, V>> mergedLeafNodes = mergeLeafNodesIfNeeded(leafNode);
@@ -362,7 +364,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
           if (mergedLeafNode != null) {
             removeMergedLeafNodeFromMetaTable(getInactiveMetaTable(), mergedLeafNode);
           }
-          return true;
+          return deleted;
         } finally {
           releaseLockOnMetaTable(writeLockOnMetaTable);
         }

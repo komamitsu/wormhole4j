@@ -623,7 +623,7 @@ class ConcurrentWormholeTest {
           assertThat(wormhole.put(10, 100)).isNull();
 
           ExecutorService executorService = Executors.newFixedThreadPool(3);
-          List<Future<List<Boolean>>> futures = new ArrayList<>();
+          List<Future<List<Integer>>> futures = new ArrayList<>();
           CyclicBarrier barrier = new CyclicBarrier(2);
 
           try {
@@ -634,7 +634,7 @@ class ConcurrentWormholeTest {
                         withRegisteredWormhole(
                             () -> {
                               barrier.await();
-                              List<Boolean> existingValues = new ArrayList<>();
+                              List<Integer> existingValues = new ArrayList<>();
                               existingValues.add(wormhole.delete(9));
                               return existingValues;
                             })));
@@ -644,21 +644,20 @@ class ConcurrentWormholeTest {
                         withRegisteredWormhole(
                             () -> {
                               barrier.await();
-                              List<Boolean> existingValues = new ArrayList<>();
+                              List<Integer> existingValues = new ArrayList<>();
                               existingValues.add(wormhole.delete(10));
                               return existingValues;
                             })));
 
             // Assert
-            List<Boolean> resultValues = new ArrayList<>();
-            for (Future<List<Boolean>> future : futures) {
-              List<Boolean> result =
+            List<Integer> resultValues = new ArrayList<>();
+            for (Future<List<Integer>> future : futures) {
+              List<Integer> result =
                   future.get().stream().filter(Objects::nonNull).collect(toList());
               resultValues.addAll(result);
             }
             assertThat(resultValues).hasSize(2);
-            assertThat(resultValues.get(0)).isTrue();
-            assertThat(resultValues.get(1)).isTrue();
+            assertThat(resultValues).containsExactlyInAnyOrder(90, 100);
 
             assertThat(wormhole.get(9)).isNull();
             assertThat(wormhole.get(10)).isNull();
@@ -684,7 +683,7 @@ class ConcurrentWormholeTest {
           assertThat(wormhole.put(13, 130)).isNull();
 
           ExecutorService executorService = Executors.newFixedThreadPool(3);
-          List<Future<List<Boolean>>> deleteFutures = new ArrayList<>();
+          List<Future<List<Integer>>> deleteFutures = new ArrayList<>();
           List<Future<List<Integer>>> putFutures = new ArrayList<>();
           CyclicBarrier barrier = new CyclicBarrier(2);
 
@@ -714,15 +713,15 @@ class ConcurrentWormholeTest {
                   future.get().stream().filter(Objects::nonNull).collect(toList());
               resultPutValues.addAll(result);
             }
-            List<Boolean> resultDeleteValues = new ArrayList<>();
-            for (Future<List<Boolean>> future : deleteFutures) {
-              List<Boolean> result =
+            List<Integer> resultDeleteValues = new ArrayList<>();
+            for (Future<List<Integer>> future : deleteFutures) {
+              List<Integer> result =
                   future.get().stream().filter(Objects::nonNull).collect(toList());
               resultDeleteValues.addAll(result);
             }
             assertThat(resultPutValues).hasSize(0);
             assertThat(resultDeleteValues).hasSize(1);
-            assertThat(resultDeleteValues.get(0)).isTrue();
+            assertThat(resultDeleteValues).containsExactlyInAnyOrder(120);
 
             assertThat(wormhole.get(7)).isEqualTo(70);
             assertThat(wormhole.get(8)).isEqualTo(80);
@@ -832,7 +831,7 @@ class ConcurrentWormholeTest {
           assertThat(wormhole.put(6, 60)).isNull();
           assertThat(wormhole.put(8, 80)).isNull();
           assertThat(wormhole.put(5, 50)).isNull();
-          assertThat(wormhole.delete(9)).isTrue();
+          assertThat(wormhole.delete(9)).isEqualTo(90);
 
           ExecutorService executorService = Executors.newFixedThreadPool(2);
           List<Future<?>> futures = new ArrayList<>();
@@ -858,7 +857,7 @@ class ConcurrentWormholeTest {
                         withRegisteredWormhole(
                             () -> {
                               barrier1.await();
-                              assertThat(wormhole.delete(8)).isTrue();
+                              assertThat(wormhole.delete(8)).isEqualTo(80);
                               barrier2.await();
                               return null;
                             })));

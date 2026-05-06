@@ -82,9 +82,11 @@ public abstract class Wormhole<K, V> {
    * Deletes a key-value pair if present.
    *
    * @param key the key (must not be {@code null})
-   * @return {@code true} if the key was removed, {@code false} otherwise
+   * @return the previous value associated with the key, or {@code null} if there was no previous
+   *     mapping
    */
-  public abstract boolean delete(K key);
+  @Nullable
+  public abstract V delete(K key);
 
   /**
    * Retrieves the value associated with the specified key.

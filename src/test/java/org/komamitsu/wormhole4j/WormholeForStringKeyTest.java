@@ -864,7 +864,7 @@ abstract class WormholeForStringKeyTest {
       wormholeForStrValue.put("", "foo");
 
       // Act & Assert
-      assertThat(wormholeForStrValue.delete("")).isTrue();
+      assertThat(wormholeForStrValue.delete("")).isEqualTo("foo");
 
       assertThat(wormholeForStrValue.scanWithCount("", 100000)).isEmpty();
     }
@@ -875,7 +875,7 @@ abstract class WormholeForStringKeyTest {
       wormholeForStrValue.put("James", "semaj");
 
       // Act & Assert
-      assertThat(wormholeForStrValue.delete("James")).isTrue();
+      assertThat(wormholeForStrValue.delete("James")).isEqualTo("semaj");
       assertThat(wormholeForStrValue.get("James")).isNull();
       assertThat(wormholeForStrValue.get("Jame")).isNull();
       assertThat(wormholeForStrValue.get("Jamez")).isNull();
@@ -890,11 +890,11 @@ abstract class WormholeForStringKeyTest {
       wormholeForStrValue.put("James", "semaj");
 
       // Act & Assert
-      assertThat(wormholeForStrValue.delete("J")).isFalse();
-      assertThat(wormholeForStrValue.delete("Ja")).isFalse();
-      assertThat(wormholeForStrValue.delete("Jam")).isFalse();
-      assertThat(wormholeForStrValue.delete("Jame")).isFalse();
-      assertThat(wormholeForStrValue.delete("Jamesa")).isFalse();
+      assertThat(wormholeForStrValue.delete("J")).isNull();
+      assertThat(wormholeForStrValue.delete("Ja")).isNull();
+      assertThat(wormholeForStrValue.delete("Jam")).isNull();
+      assertThat(wormholeForStrValue.delete("Jame")).isNull();
+      assertThat(wormholeForStrValue.delete("Jamesa")).isNull();
       assertThat(wormholeForStrValue.get("James")).isEqualTo("semaj");
 
       assertThat(wormholeForStrValue.scanWithCount("", 100000))
@@ -909,19 +909,19 @@ abstract class WormholeForStringKeyTest {
       wormholeForStrValue.put("Jason", "nosaj");
 
       // Act & Assert
-      assertThat(wormholeForStrValue.delete("Jason")).isTrue();
+      assertThat(wormholeForStrValue.delete("Jason")).isEqualTo("nosaj");
       assertThat(wormholeForStrValue.get("Jason")).isNull();
       assertThat(wormholeForStrValue.get("James")).isEqualTo("semaj");
       assertThat(wormholeForStrValue.get("John")).isEqualTo("nhoj");
       assertThat(wormholeForStrValue.scanWithCount("", 100000)).size().isEqualTo(2);
 
-      assertThat(wormholeForStrValue.delete("John")).isTrue();
+      assertThat(wormholeForStrValue.delete("John")).isEqualTo("nhoj");
       assertThat(wormholeForStrValue.get("Jason")).isNull();
       assertThat(wormholeForStrValue.get("John")).isNull();
       assertThat(wormholeForStrValue.get("James")).isEqualTo("semaj");
       assertThat(wormholeForStrValue.scanWithCount("", 100000)).size().isEqualTo(1);
 
-      assertThat(wormholeForStrValue.delete("James")).isTrue();
+      assertThat(wormholeForStrValue.delete("James")).isEqualTo("semaj");
       assertThat(wormholeForStrValue.get("Jason")).isNull();
       assertThat(wormholeForStrValue.get("John")).isNull();
       assertThat(wormholeForStrValue.get("James")).isNull();
@@ -938,7 +938,7 @@ abstract class WormholeForStringKeyTest {
       wormholeForStrValue.put("Jason", "nosaj");
 
       // Act & Assert
-      assertThat(wormholeForStrValue.delete("Jacob")).isTrue();
+      assertThat(wormholeForStrValue.delete("Jacob")).isEqualTo("bocaj");
       assertThat(wormholeForStrValue.get("Jacob")).isNull();
       assertThat(wormholeForStrValue.get("James")).isEqualTo("semaj");
       assertThat(wormholeForStrValue.get("Jason")).isEqualTo("nosaj");
@@ -946,7 +946,7 @@ abstract class WormholeForStringKeyTest {
       assertThat(wormholeForStrValue.get("Joseph")).isEqualTo("hpesoj");
       assertThat(wormholeForStrValue.scanWithCount("", 100000)).size().isEqualTo(4);
 
-      assertThat(wormholeForStrValue.delete("James")).isTrue();
+      assertThat(wormholeForStrValue.delete("James")).isEqualTo("semaj");
       assertThat(wormholeForStrValue.get("Jacob")).isNull();
       assertThat(wormholeForStrValue.get("James")).isNull();
       assertThat(wormholeForStrValue.get("Jason")).isEqualTo("nosaj");
@@ -954,7 +954,7 @@ abstract class WormholeForStringKeyTest {
       assertThat(wormholeForStrValue.get("Joseph")).isEqualTo("hpesoj");
       assertThat(wormholeForStrValue.scanWithCount("", 100000)).size().isEqualTo(3);
 
-      assertThat(wormholeForStrValue.delete("Jason")).isTrue();
+      assertThat(wormholeForStrValue.delete("Jason")).isEqualTo("nosaj");
       assertThat(wormholeForStrValue.get("Jacob")).isNull();
       assertThat(wormholeForStrValue.get("James")).isNull();
       assertThat(wormholeForStrValue.get("Jason")).isNull();
@@ -962,7 +962,7 @@ abstract class WormholeForStringKeyTest {
       assertThat(wormholeForStrValue.get("Joseph")).isEqualTo("hpesoj");
       assertThat(wormholeForStrValue.scanWithCount("", 100000)).size().isEqualTo(2);
 
-      assertThat(wormholeForStrValue.delete("John")).isTrue();
+      assertThat(wormholeForStrValue.delete("John")).isEqualTo("nhoj");
       assertThat(wormholeForStrValue.get("Jacob")).isNull();
       assertThat(wormholeForStrValue.get("James")).isNull();
       assertThat(wormholeForStrValue.get("Jason")).isNull();
@@ -970,7 +970,7 @@ abstract class WormholeForStringKeyTest {
       assertThat(wormholeForStrValue.get("Joseph")).isEqualTo("hpesoj");
       assertThat(wormholeForStrValue.scanWithCount("", 100000)).size().isEqualTo(1);
 
-      assertThat(wormholeForStrValue.delete("Joseph")).isTrue();
+      assertThat(wormholeForStrValue.delete("Joseph")).isEqualTo("hpesoj");
       assertThat(wormholeForStrValue.get("Jacob")).isNull();
       assertThat(wormholeForStrValue.get("James")).isNull();
       assertThat(wormholeForStrValue.get("Jason")).isNull();
@@ -989,7 +989,7 @@ abstract class WormholeForStringKeyTest {
       wormholeForStrValue.put("Jason", "nosaj");
 
       // Act & Assert
-      assertThat(wormholeForStrValue.delete("Joseph")).isTrue();
+      assertThat(wormholeForStrValue.delete("Joseph")).isEqualTo("hpesoj");
       assertThat(wormholeForStrValue.get("Jacob")).isEqualTo("bocaj");
       assertThat(wormholeForStrValue.get("James")).isEqualTo("semaj");
       assertThat(wormholeForStrValue.get("Jason")).isEqualTo("nosaj");
@@ -997,7 +997,7 @@ abstract class WormholeForStringKeyTest {
       assertThat(wormholeForStrValue.get("Joseph")).isNull();
       assertThat(wormholeForStrValue.scanWithCount("", 100000)).size().isEqualTo(4);
 
-      assertThat(wormholeForStrValue.delete("John")).isTrue();
+      assertThat(wormholeForStrValue.delete("John")).isEqualTo("nhoj");
       assertThat(wormholeForStrValue.get("Jacob")).isEqualTo("bocaj");
       assertThat(wormholeForStrValue.get("James")).isEqualTo("semaj");
       assertThat(wormholeForStrValue.get("Jason")).isEqualTo("nosaj");
@@ -1005,7 +1005,7 @@ abstract class WormholeForStringKeyTest {
       assertThat(wormholeForStrValue.get("Joseph")).isNull();
       assertThat(wormholeForStrValue.scanWithCount("", 100000)).size().isEqualTo(3);
 
-      assertThat(wormholeForStrValue.delete("Jason")).isTrue();
+      assertThat(wormholeForStrValue.delete("Jason")).isEqualTo("nosaj");
       assertThat(wormholeForStrValue.get("Jacob")).isEqualTo("bocaj");
       assertThat(wormholeForStrValue.get("James")).isEqualTo("semaj");
       assertThat(wormholeForStrValue.get("Jason")).isNull();
@@ -1013,7 +1013,7 @@ abstract class WormholeForStringKeyTest {
       assertThat(wormholeForStrValue.get("Joseph")).isNull();
       assertThat(wormholeForStrValue.scanWithCount("", 100000)).size().isEqualTo(2);
 
-      assertThat(wormholeForStrValue.delete("James")).isTrue();
+      assertThat(wormholeForStrValue.delete("James")).isEqualTo("semaj");
       assertThat(wormholeForStrValue.get("Jacob")).isEqualTo("bocaj");
       assertThat(wormholeForStrValue.get("James")).isNull();
       assertThat(wormholeForStrValue.get("Jason")).isNull();
@@ -1021,7 +1021,7 @@ abstract class WormholeForStringKeyTest {
       assertThat(wormholeForStrValue.get("Joseph")).isNull();
       assertThat(wormholeForStrValue.scanWithCount("", 100000)).size().isEqualTo(1);
 
-      assertThat(wormholeForStrValue.delete("Jacob")).isTrue();
+      assertThat(wormholeForStrValue.delete("Jacob")).isEqualTo("bocaj");
       assertThat(wormholeForStrValue.get("Jacob")).isNull();
       assertThat(wormholeForStrValue.get("James")).isNull();
       assertThat(wormholeForStrValue.get("Jason")).isNull();
@@ -1040,7 +1040,7 @@ abstract class WormholeForStringKeyTest {
       wormholeForIntValue.put("aa", 2);
 
       // Act & Assert
-      assertThat(wormholeForIntValue.delete("a")).isTrue();
+      assertThat(wormholeForIntValue.delete("a")).isEqualTo(1);
       assertThat(wormholeForIntValue.get("a")).isNull();
       assertThat(wormholeForIntValue.get("aa")).isEqualTo(2);
       assertThat(wormholeForIntValue.get("aaa")).isEqualTo(3);
@@ -1048,7 +1048,7 @@ abstract class WormholeForStringKeyTest {
       assertThat(wormholeForIntValue.get("aaaaa")).isEqualTo(5);
       assertThat(wormholeForIntValue.scanWithCount("", 100000)).size().isEqualTo(4);
 
-      assertThat(wormholeForIntValue.delete("aa")).isTrue();
+      assertThat(wormholeForIntValue.delete("aa")).isEqualTo(2);
       assertThat(wormholeForIntValue.get("a")).isNull();
       assertThat(wormholeForIntValue.get("aa")).isNull();
       assertThat(wormholeForIntValue.get("aaa")).isEqualTo(3);
@@ -1056,7 +1056,7 @@ abstract class WormholeForStringKeyTest {
       assertThat(wormholeForIntValue.get("aaaaa")).isEqualTo(5);
       assertThat(wormholeForIntValue.scanWithCount("", 100000)).size().isEqualTo(3);
 
-      assertThat(wormholeForIntValue.delete("aaa")).isTrue();
+      assertThat(wormholeForIntValue.delete("aaa")).isEqualTo(3);
       assertThat(wormholeForIntValue.get("a")).isNull();
       assertThat(wormholeForIntValue.get("aa")).isNull();
       assertThat(wormholeForIntValue.get("aaa")).isNull();
@@ -1064,7 +1064,7 @@ abstract class WormholeForStringKeyTest {
       assertThat(wormholeForIntValue.get("aaaaa")).isEqualTo(5);
       assertThat(wormholeForIntValue.scanWithCount("", 100000)).size().isEqualTo(2);
 
-      assertThat(wormholeForIntValue.delete("aaaa")).isTrue();
+      assertThat(wormholeForIntValue.delete("aaaa")).isEqualTo(4);
       assertThat(wormholeForIntValue.get("a")).isNull();
       assertThat(wormholeForIntValue.get("aa")).isNull();
       assertThat(wormholeForIntValue.get("aaa")).isNull();
@@ -1072,7 +1072,7 @@ abstract class WormholeForStringKeyTest {
       assertThat(wormholeForIntValue.get("aaaaa")).isEqualTo(5);
       assertThat(wormholeForIntValue.scanWithCount("", 100000)).size().isEqualTo(1);
 
-      assertThat(wormholeForIntValue.delete("aaaaa")).isTrue();
+      assertThat(wormholeForIntValue.delete("aaaaa")).isEqualTo(5);
       assertThat(wormholeForIntValue.get("a")).isNull();
       assertThat(wormholeForIntValue.get("aa")).isNull();
       assertThat(wormholeForIntValue.get("aaa")).isNull();
@@ -1091,7 +1091,7 @@ abstract class WormholeForStringKeyTest {
       wormholeForIntValue.put("aa", 2);
 
       // Act & Assert
-      assertThat(wormholeForIntValue.delete("aaaaa")).isTrue();
+      assertThat(wormholeForIntValue.delete("aaaaa")).isEqualTo(5);
       assertThat(wormholeForIntValue.get("a")).isEqualTo(1);
       assertThat(wormholeForIntValue.get("aa")).isEqualTo(2);
       assertThat(wormholeForIntValue.get("aaa")).isEqualTo(3);
@@ -1099,7 +1099,7 @@ abstract class WormholeForStringKeyTest {
       assertThat(wormholeForIntValue.get("aaaaa")).isNull();
       assertThat(wormholeForIntValue.scanWithCount("", 100000)).size().isEqualTo(4);
 
-      assertThat(wormholeForIntValue.delete("aaaa")).isTrue();
+      assertThat(wormholeForIntValue.delete("aaaa")).isEqualTo(4);
       assertThat(wormholeForIntValue.get("a")).isEqualTo(1);
       assertThat(wormholeForIntValue.get("aa")).isEqualTo(2);
       assertThat(wormholeForIntValue.get("aaa")).isEqualTo(3);
@@ -1107,7 +1107,7 @@ abstract class WormholeForStringKeyTest {
       assertThat(wormholeForIntValue.get("aaaaa")).isNull();
       assertThat(wormholeForIntValue.scanWithCount("", 100000)).size().isEqualTo(3);
 
-      assertThat(wormholeForIntValue.delete("aaa")).isTrue();
+      assertThat(wormholeForIntValue.delete("aaa")).isEqualTo(3);
       assertThat(wormholeForIntValue.get("a")).isEqualTo(1);
       assertThat(wormholeForIntValue.get("aa")).isEqualTo(2);
       assertThat(wormholeForIntValue.get("aaa")).isNull();
@@ -1115,7 +1115,7 @@ abstract class WormholeForStringKeyTest {
       assertThat(wormholeForIntValue.get("aaaaa")).isNull();
       assertThat(wormholeForIntValue.scanWithCount("", 100000)).size().isEqualTo(2);
 
-      assertThat(wormholeForIntValue.delete("aa")).isTrue();
+      assertThat(wormholeForIntValue.delete("aa")).isEqualTo(2);
       assertThat(wormholeForIntValue.get("a")).isEqualTo(1);
       assertThat(wormholeForIntValue.get("aa")).isNull();
       assertThat(wormholeForIntValue.get("aaa")).isNull();
@@ -1123,7 +1123,7 @@ abstract class WormholeForStringKeyTest {
       assertThat(wormholeForIntValue.get("aaaaa")).isNull();
       assertThat(wormholeForIntValue.scanWithCount("", 100000)).size().isEqualTo(1);
 
-      assertThat(wormholeForIntValue.delete("a")).isTrue();
+      assertThat(wormholeForIntValue.delete("a")).isEqualTo(1);
       assertThat(wormholeForIntValue.get("a")).isNull();
       assertThat(wormholeForIntValue.get("aa")).isNull();
       assertThat(wormholeForIntValue.get("aaa")).isNull();
@@ -1155,7 +1155,8 @@ abstract class WormholeForStringKeyTest {
       for (int i = 0; i < expected.size() - recordCount * 0.5; i++) {
         int keyIndex = ThreadLocalRandom.current().nextInt(expectedKeys.size());
         String key = expectedKeys.get(keyIndex);
-        assertThat(wormholeForIntValue.delete(key)).isTrue();
+        int value = expected.get(key);
+        assertThat(wormholeForIntValue.delete(key)).isEqualTo(value);
         expected.remove(key);
         expectedKeys.remove(keyIndex);
       }
@@ -1169,7 +1170,8 @@ abstract class WormholeForStringKeyTest {
       for (int i = 0; i < expected.size() - recordCount * 0.05; i++) {
         int keyIndex = ThreadLocalRandom.current().nextInt(expectedKeys.size());
         String key = expectedKeys.get(keyIndex);
-        assertThat(wormholeForIntValue.delete(key)).isTrue();
+        int value = expected.get(key);
+        assertThat(wormholeForIntValue.delete(key)).isEqualTo(value);
         expected.remove(key);
         expectedKeys.remove(keyIndex);
       }
@@ -1191,7 +1193,8 @@ abstract class WormholeForStringKeyTest {
       for (int i = 0; i < remainingCount; i++) {
         int keyIndex = ThreadLocalRandom.current().nextInt(expectedKeys.size());
         String key = expectedKeys.get(keyIndex);
-        assertThat(wormholeForIntValue.delete(key)).isTrue();
+        int value = expected.get(key);
+        assertThat(wormholeForIntValue.delete(key)).isEqualTo(value);
         expected.remove(key);
         expectedKeys.remove(keyIndex);
       }
