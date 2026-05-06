@@ -40,7 +40,7 @@ class ConcurrentWormholeTest {
   public static class TestResultWatcher implements TestWatcher {
     @Override
     public void testFailed(ExtensionContext context, Throwable cause) {
-      System.out.println("FAILED: " + context);
+      System.out.println("FAILED: " + context.getDisplayName());
       if (ConcurrentWormhole.writer != null) {
         try {
           ConcurrentWormhole.writer.close();
@@ -48,7 +48,11 @@ class ConcurrentWormholeTest {
           throw new RuntimeException(e);
         }
         try {
+          System.out.println(
+              "============================= START ================================");
           Files.readAllLines(DEBUG_OUTPUT_PATH).forEach(System.out::println);
+          System.out.println(
+              "=============================  END  ================================");
         } catch (IOException e) {
           throw new RuntimeException(e);
         }
