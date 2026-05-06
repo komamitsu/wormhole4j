@@ -417,6 +417,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     }
   }
 
+  // This method doesn't take a snapshot.
   @Override
   protected void scanInternal(
       @Nullable K startKey,
