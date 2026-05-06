@@ -19,10 +19,11 @@ import org.jetbrains.lincheck.datastructures.*
 import org.junit.jupiter.api.Test
 import java.util.TreeMap
 
+// scan() is excluded because it is linearizable per-record but does not guarantee a
+// consistent snapshot across all scanned records, making it incompatible with the
+// current Lincheck verification setting.
 @Param(name = "key", gen = IntGen::class, conf = "1:20")
 @Param(name = "value", gen = IntGen::class, conf = "1:40")
-@Param(name = "key1", gen = IntGen::class, conf = "1:20")
-@Param(name = "key2", gen = IntGen::class, conf = "1:20")
 class LincheckWithLeafNodeSize2Test {
     private val wormhole = WormholeBuilder.ForIntKey<Int>().setConcurrent(true).setLeafNodeSize(2).build()
 
@@ -42,16 +43,10 @@ class LincheckWithLeafNodeSize2Test {
         return wormhole.get(key)
     }
 
-    @Operation(params = ["key1", "key2"])
-    fun scan(key1: Int, key2: Int): List<Int> {
+    @Operation(params = ["key"])
+    fun delete(key: Int): Boolean {
         ensureThreadRegistered()
-        val (startKey, endKey) = if (key1 < key2) Pair(key1, key2) else Pair(key2, key1)
-        val result = ArrayList<Int>()
-        wormhole.scan(startKey, endKey, true) { _, v ->
-            result.add(v)
-            true
-        }
-        return result
+        return wormhole.delete(key)
     }
 
     @Test
@@ -69,9 +64,6 @@ class LincheckWithLeafNodeSize2Test {
 
         fun get(key: Int): Int? = map[key]
 
-        fun scan(key1: Int, key2: Int): List<Int> {
-            val (startKey, endKey) = if (key1 < key2) Pair(key1, key2) else Pair(key2, key1)
-            return map.subMap(startKey, endKey).toList().map { it.second }
-        }
+        fun delete(key: Int): Boolean = map.remove(key) != null
     }
 }
