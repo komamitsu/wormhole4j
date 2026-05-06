@@ -115,6 +115,7 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
     LeafNode<K, V> leafNode = searchTrieHashTable(metaTable, encodedKey);
     V deleted = leafNode.delete(encodedKey);
     if (deleted == null) {
+      validateIfNeeded();
       return null;
     }
     Tuple<LeafNode<K, V>, LeafNode<K, V>> mergedLeafNodes = mergeLeafNodesIfNeeded(leafNode);
