@@ -19,7 +19,9 @@ import org.jetbrains.lincheck.datastructures.*
 import org.junit.jupiter.api.Test
 import java.util.TreeMap
 
-// scan() is excluded because it is linearizable per-record but does not guarantee a consistent snapshot across all scanned records, making it incompatible with the current Lincheck verification setting.
+// scan() is excluded because it is linearizable per-record but does not guarantee a
+// consistent snapshot across all scanned records, making it incompatible with the
+// current Lincheck verification setting.
 @Param(name = "key", gen = IntGen::class, conf = "1:20")
 @Param(name = "value", gen = IntGen::class, conf = "1:40")
 @Param(name = "key1", gen = IntGen::class, conf = "1:20")
