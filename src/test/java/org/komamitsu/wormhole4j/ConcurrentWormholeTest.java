@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -77,7 +78,8 @@ class ConcurrentWormholeTest {
 
   @BeforeAll
   static void beforeAll() throws IOException {
-    ConcurrentWormhole.writer = Files.newBufferedWriter(DEBUG_OUTPUT_PATH);
+    ConcurrentWormhole.writer =
+        Files.newBufferedWriter(DEBUG_OUTPUT_PATH, StandardOpenOption.TRUNCATE_EXISTING);
   }
 
   @AfterAll
