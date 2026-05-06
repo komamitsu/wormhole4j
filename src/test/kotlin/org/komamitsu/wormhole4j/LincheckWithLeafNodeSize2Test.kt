@@ -24,8 +24,6 @@ import java.util.TreeMap
 // current Lincheck verification setting.
 @Param(name = "key", gen = IntGen::class, conf = "1:20")
 @Param(name = "value", gen = IntGen::class, conf = "1:40")
-@Param(name = "key1", gen = IntGen::class, conf = "1:20")
-@Param(name = "key2", gen = IntGen::class, conf = "1:20")
 class LincheckWithLeafNodeSize2Test {
     private val wormhole = WormholeBuilder.ForIntKey<Int>().setConcurrent(true).setLeafNodeSize(2).build()
 
@@ -45,6 +43,12 @@ class LincheckWithLeafNodeSize2Test {
         return wormhole.get(key)
     }
 
+    @Operation(params = ["key"])
+    fun delete(key: Int): Boolean {
+        ensureThreadRegistered()
+        return wormhole.delete(key)
+    }
+
     @Test
     fun stressTest() = StressOptions()
         .sequentialSpecification(SequentialMap::class.java)
@@ -59,5 +63,7 @@ class LincheckWithLeafNodeSize2Test {
         fun put(key: Int, value: Int): Int? = map.put(key, value)
 
         fun get(key: Int): Int? = map[key]
+
+        fun delete(key: Int): Boolean = map.remove(key) != null
     }
 }
