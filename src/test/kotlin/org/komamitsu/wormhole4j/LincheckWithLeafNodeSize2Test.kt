@@ -44,7 +44,7 @@ class LincheckWithLeafNodeSize2Test {
     }
 
     @Operation(params = ["key"])
-    fun delete(key: Int): Boolean {
+    fun delete(key: Int): Int? {
         ensureThreadRegistered()
         return wormhole.delete(key)
     }
@@ -64,6 +64,6 @@ class LincheckWithLeafNodeSize2Test {
 
         fun get(key: Int): Int? = map[key]
 
-        fun delete(key: Int): Boolean = map.remove(key) != null
+        fun delete(key: Int): Int? = map.remove(key)
     }
 }

@@ -46,7 +46,7 @@ implementation("org.komamitsu:wormhole4j:0.3.0")
 ```java
 // Example with String keys
 Wormhole<String, String> wormholeStr = new WormholeBuilder.ForStringKey<String>().build();
-wormholeStr.put("James", "semaj");
+String existingValue = wormholeStr.put("James", "semaj"); // returns null
 wormholeStr.put("Joseph", "hpesoj");
 wormholeStr.put("John", "nhoj");
 wormholeStr.put("Jacob", "bocaj");
@@ -70,7 +70,7 @@ wormholeStr.scan("Ja", "Joseph", true, (k, v) -> {
 });
 
 // Delete a record
-wormholeStr.delete("James");
+String deletedValue = wormholeStr.delete("James"); // returns "semaj"
 
 // Example with Integer keys
 Wormhole<Integer, String> wormholeInt = new WormholeBuilder.ForIntKey<String>().build();

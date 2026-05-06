@@ -669,21 +669,23 @@ class LeafNode<K, V> {
     addKeyReference(getLastKeyValueIndex());
   }
 
-  boolean delete(Object key) {
+  @Nullable
+  V delete(Object key) {
     incSort();
     int keyReferenceIndex = searchKeyRefs(key);
     if (keyReferenceIndex < 0) {
-      return false;
+      return null;
     }
     Integer tagIndex = pointSearchLeaf(key, (keyValueIndex, tagIdx) -> tagIdx);
     assert tagIndex != null;
     int keyValueIndex = getKeyValueIndexFromTag(tagIndex);
+    V value = getValue(keyValueIndex);
 
     removeKeyRef(keyReferenceIndex);
     removeTag(tagIndex);
     removeKeyValue(keyValueIndex);
 
-    return true;
+    return value;
   }
 
   void merge(LeafNode<K, V> right) {

@@ -105,22 +105,25 @@ abstract class SimpleWormhole<K, V> extends Wormhole<K, V> {
    * Deletes a key-value pair if present.
    *
    * @param key the key (must not be {@code null})
-   * @return {@code true} if the key was removed, {@code false} otherwise
+   * @return the previous value associated with the key, or {@code null} if there was no previous
+   *     mapping
    */
+  @Nullable
   @Override
-  public boolean delete(K key) {
+  public V delete(K key) {
     Object encodedKey = createEncodedKey(key);
     LeafNode<K, V> leafNode = searchTrieHashTable(metaTable, encodedKey);
-    if (!leafNode.delete(encodedKey)) {
+    V deleted = leafNode.delete(encodedKey);
+    if (deleted == null) {
       validateIfNeeded();
-      return false;
+      return null;
     }
     Tuple<LeafNode<K, V>, LeafNode<K, V>> mergedLeafNodes = mergeLeafNodesIfNeeded(leafNode);
     if (mergedLeafNodes != null) {
       removeMergedLeafNodeFromMetaTable(metaTable, mergedLeafNodes.second);
     }
     validateIfNeeded();
-    return true;
+    return deleted;
   }
 
   /**
