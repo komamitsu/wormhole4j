@@ -417,7 +417,8 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
     }
   }
 
-  // This method doesn't take a snapshot.
+  // Scans records. This scan is linearizable per-record but does not guarantee a consistent
+  // snapshot across all scanned records.
   @Override
   protected void scanInternal(
       @Nullable K startKey,
