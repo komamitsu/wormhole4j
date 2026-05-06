@@ -1248,12 +1248,6 @@ class ConcurrentWormholeTest {
 
   @RepeatedTest(10000)
   void concurrentPutAndGetAndScan_withLeafNodeSize2_ShouldReturnProperValues() throws Exception {
-    ConcurrentWormhole.testName =
-        "concurrentPutAndGetAndScan_withLeafNodeSize2_ShouldReturnProperValues";
-    if (ConcurrentWormhole.counter >= 1000) {
-      ConcurrentWormhole.counter = 0;
-    }
-    ConcurrentWormhole.counter++;
     wormhole =
         new WormholeBuilder.ForIntKey<Integer>().setConcurrent(true).setLeafNodeSize(2).build();
     withRegisteredWormhole(
