@@ -1246,6 +1246,8 @@ class ConcurrentWormholeTest {
         });
   }
 
+  // This test case may fail in the current implementation since scan operations don't take
+  // snapshots.
   @RepeatedTest(10000)
   void concurrentPutAndGetAndScan_withLeafNodeSize2_ShouldReturnProperValues() throws Exception {
     wormhole =
