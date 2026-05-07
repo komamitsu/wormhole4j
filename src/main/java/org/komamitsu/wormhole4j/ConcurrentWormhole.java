@@ -19,6 +19,7 @@ package org.komamitsu.wormhole4j;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.StampedLock;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import javax.annotation.Nullable;
@@ -475,6 +476,24 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
       qsbrExit();
       releaseLockOnMetaTable(readLockOnMetaTable);
     }
+  }
+
+  @Override
+  protected void snapshotScanInternal(
+      @Nullable K startKey,
+      @Nullable K endKey,
+      boolean isEndKeyExclusive,
+      BiConsumer<K, V> consumer) {
+    // FIXME: Implement the new logic that first locks leaf nodes and then scans them.
+    scanInternal(
+        startKey,
+        endKey,
+        isEndKeyExclusive,
+        null,
+        (k, v) -> {
+          consumer.accept(k, v);
+          return true;
+        });
   }
 
   @Nullable

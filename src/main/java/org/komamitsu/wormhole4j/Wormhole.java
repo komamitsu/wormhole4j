@@ -18,6 +18,7 @@ package org.komamitsu.wormhole4j;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import javax.annotation.Nullable;
@@ -115,7 +116,30 @@ public abstract class Wormhole<K, V> {
   }
 
   /**
-   * Scans the index starting from a key and collects up to {@code count} pairs.
+   * Returns a list containing key-value pairs in the range.
+   *
+   * @param startKey the start key (inclusive)
+   * @param endKey the end key
+   * @param isEndKeyExclusive whether the end key is exclusive
+   * @return a list of key-value pairs
+   */
+  public List<KeyValue<K, V>> scan(
+      @Nullable K startKey, @Nullable K endKey, boolean isEndKeyExclusive) {
+    List<KeyValue<K, V>> result = new ArrayList<>();
+    scanInternal(
+        startKey,
+        endKey,
+        isEndKeyExclusive,
+        null,
+        (k, v) -> {
+          result.add(new KeyValue<>(k, v));
+          return true;
+        });
+    return result;
+  }
+
+  /**
+   * Returns a list containing {@code count} key-value pairs in the range at most.
    *
    * @param startKey the start key (inclusive), or {@code null} to start from the beginning
    * @param count maximum number of results to return
@@ -133,6 +157,38 @@ public abstract class Wormhole<K, V> {
           result.add(new KeyValue<>(k, v));
           return true;
         });
+    return result;
+  }
+
+  /**
+   * Scans a consistent snapshot of the key range.
+   *
+   * @param startKey start key (inclusive), or {@code null} for beginning
+   * @param endKey end key, or {@code null} for end
+   * @param isEndKeyExclusive whether the end key is exclusive
+   * @param consumer function applied to each pair; return {@code false} to stop
+   */
+  public void snapshotScan(
+      @Nullable K startKey,
+      @Nullable K endKey,
+      boolean isEndKeyExclusive,
+      BiConsumer<K, V> consumer) {
+    snapshotScanInternal(startKey, endKey, isEndKeyExclusive, consumer);
+  }
+
+  /**
+   * Returns a list containing a snapshot of the key-value pairs in the range.
+   *
+   * @param startKey start key (inclusive), or {@code null} for beginning
+   * @param endKey end key, or {@code null} for end
+   * @param isEndKeyExclusive whether the end key is exclusive
+   * @return a consistent snapshot of the key-value pairs
+   */
+  public List<KeyValue<K, V>> snapshotScan(
+      @Nullable K startKey, @Nullable K endKey, boolean isEndKeyExclusive) {
+    List<KeyValue<K, V>> result = new ArrayList<>();
+    snapshotScanInternal(
+        startKey, endKey, isEndKeyExclusive, (k, v) -> result.add(new KeyValue<>(k, v)));
     return result;
   }
 
@@ -157,6 +213,12 @@ public abstract class Wormhole<K, V> {
       boolean isEndKeyExclusive,
       @Nullable Integer count,
       BiFunction<K, V, Boolean> function);
+
+  protected abstract void snapshotScanInternal(
+      @Nullable K startKey,
+      @Nullable K endKey,
+      boolean isEndKeyExclusive,
+      BiConsumer<K, V> consumer);
 
   abstract LeafNode<K, V> createLeafNode(
       EncodedKeyType encodedKeyType,
