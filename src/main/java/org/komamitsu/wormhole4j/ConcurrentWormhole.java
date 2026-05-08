@@ -484,16 +484,70 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
       @Nullable K endKey,
       boolean isEndKeyExclusive,
       BiConsumer<K, V> consumer) {
-    // FIXME: Implement the new logic that first locks leaf nodes and then scans them.
-    scanInternal(
-        startKey,
-        endKey,
-        isEndKeyExclusive,
-        null,
+    Object encodedStartKey =
+        startKey == null ? createEmptyEncodedKey() : createEncodedKey(startKey);
+    Object encodedEndKey = endKey == null ? null : createEncodedKey(endKey);
+    BiFunction<K, V, Boolean> actualFunction =
         (k, v) -> {
           consumer.accept(k, v);
           return true;
-        });
+        };
+
+    long readLockOnMetaTable = acquireReadLockOnMetaTable();
+    try {
+      qsbrEnter();
+      // First, lock all the leaf nodes to scan.
+      List<LeafNode<K, V>> lockedLeafNodes = new ArrayList<>();
+      List<Long> locks = new ArrayList<>();
+      LeafNode<K, V> leafNode =
+          searchTrieHashTable(qsbrThreadLocalMetaTables.get(), encodedStartKey);
+      while (leafNode != null) {
+        if (encodedEndKey != null
+            && EncodedKeyUtils.compare(encodedKeyType, encodedEndKey, leafNode.anchorKey) < 0) {
+          break;
+        }
+        long lockOnLeafNode;
+        boolean writeLockOnLeafNode = false;
+        int loopCount = 0;
+        while (true) {
+          if (++loopCount % SPIN_INTERVAL == 0) {
+            Thread.yield();
+          }
+          lockOnLeafNode = writeLockOnLeafNode ? leafNode.tryWriteLock() : leafNode.tryReadLock();
+          if (lockOnLeafNode == 0) {
+            continue;
+          }
+          if (writeLockOnLeafNode || leafNode.isKeyRefsSorted()) {
+            break;
+          }
+          leafNode.releaseLock(lockOnLeafNode);
+          writeLockOnLeafNode = true;
+        }
+        // A read lock on the meta table is already acquired. So, the version of leaf node doesn't
+        // need to be checked.
+        leafNode.incSort();
+        lockedLeafNodes.add(leafNode);
+        locks.add(lockOnLeafNode);
+
+        leafNode = leafNode.getRight();
+      }
+
+      assert lockedLeafNodes.size() == locks.size();
+      for (int i = 0; i < lockedLeafNodes.size(); i++) {
+        LeafNode<K, V> lockedLeafNode = lockedLeafNodes.get(i);
+        long lock = locks.get(i);
+        try {
+          lockedLeafNode.iterateKeyValues(
+              encodedStartKey, encodedEndKey, isEndKeyExclusive, actualFunction);
+        } finally {
+          lockedLeafNode.releaseLock(lock);
+        }
+        encodedStartKey = null;
+      }
+    } finally {
+      qsbrExit();
+      releaseLockOnMetaTable(readLockOnMetaTable);
+    }
   }
 
   @Nullable

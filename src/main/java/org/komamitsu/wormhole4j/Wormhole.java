@@ -101,8 +101,8 @@ public abstract class Wormhole<K, V> {
   /**
    * Scans the key range.
    *
-   * @param startKey the start key (inclusive)
-   * @param endKey the end key
+   * @param startKey start key (inclusive), or {@code null} for beginning
+   * @param endKey end key, or {@code null} for end
    * @param isEndKeyExclusive whether the end key is exclusive
    * @param function a function applied to each key-value pair; if it returns {@code true}, the scan
    *     continues, otherwise the scan stops
@@ -118,8 +118,8 @@ public abstract class Wormhole<K, V> {
   /**
    * Returns a list containing key-value pairs in the range.
    *
-   * @param startKey the start key (inclusive)
-   * @param endKey the end key
+   * @param startKey start key (inclusive), or {@code null} for beginning
+   * @param endKey end key, or {@code null} for end
    * @param isEndKeyExclusive whether the end key is exclusive
    * @return a list of key-value pairs
    */
@@ -141,7 +141,7 @@ public abstract class Wormhole<K, V> {
   /**
    * Returns a list containing {@code count} key-value pairs in the range at most.
    *
-   * @param startKey the start key (inclusive), or {@code null} to start from the beginning
+   * @param startKey start key (inclusive), or {@code null} for beginning
    * @param count maximum number of results to return
    * @return a list of key-value pairs
    */
@@ -166,7 +166,7 @@ public abstract class Wormhole<K, V> {
    * @param startKey start key (inclusive), or {@code null} for beginning
    * @param endKey end key, or {@code null} for end
    * @param isEndKeyExclusive whether the end key is exclusive
-   * @param consumer function applied to each pair; return {@code false} to stop
+   * @param consumer function applied to each pair
    */
   public void snapshotScan(
       @Nullable K startKey,
