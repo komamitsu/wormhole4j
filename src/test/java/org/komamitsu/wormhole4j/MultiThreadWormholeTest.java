@@ -22,11 +22,11 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.*;
 import java.util.concurrent.*;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.RepeatedTest;
-import org.junit.jupiter.api.Test;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import org.junit.jupiter.api.*;
 
-class ConcurrentWormholeTest {
+class MultiThreadWormholeTest {
   private Wormhole<Integer, Integer> wormhole;
 
   private interface ThrowableSupplier<R, E extends Exception> {
@@ -763,7 +763,7 @@ class ConcurrentWormholeTest {
                               assertThat(wormhole.put(9, 90)).isNull();
                               barrier2.await();
                               List<Integer> scanned = new ArrayList<>();
-                              wormhole.scan(2, 15, true, (k, v) -> scanned.add(v));
+                              wormhole.snapshotScan(2, 15, true, (k, v) -> scanned.add(v));
                               assertThat(scanned)
                                   .isIn(
                                       Arrays.asList(90, 100, 110, 130),
@@ -777,7 +777,7 @@ class ConcurrentWormholeTest {
                             () -> {
                               barrier1.await();
                               List<Integer> scanned = new ArrayList<>();
-                              wormhole.scan(6, 16, true, (k, v) -> scanned.add(v));
+                              wormhole.snapshotScan(6, 16, true, (k, v) -> scanned.add(v));
                               assertThat(scanned)
                                   .isIn(
                                       Arrays.asList(100, 110),
@@ -921,7 +921,7 @@ class ConcurrentWormholeTest {
                             () -> {
                               barrier1.await();
                               List<Integer> scanned = new ArrayList<>();
-                              wormhole.scan(8, 16, true, (k, v) -> scanned.add(v));
+                              wormhole.snapshotScan(8, 16, true, (k, v) -> scanned.add(v));
                               if (scanned.equals(Arrays.asList(100))) {
                                 // 1-0, 3-0
                                 Integer result10 = wormhole.get(10);
@@ -1235,6 +1235,304 @@ class ConcurrentWormholeTest {
             assertThat(wormhole.get(9)).isIn(null, 90);
             assertThat(wormhole.get(10)).isIn(null, 101);
             assertThat(wormhole.get(11)).isIn(110, 111);
+
+            return null;
+          } finally {
+            executorService.shutdown();
+            if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
+              executorService.shutdownNow();
+            }
+          }
+        });
+  }
+
+  @RepeatedTest(1000)
+  void concurrentPutAndGetAndScan_withLeafNodeSize2_ShouldReturnProperValues() throws Exception {
+    wormhole =
+        new WormholeBuilder.ForIntKey<Integer>().setConcurrent(true).setLeafNodeSize(2).build();
+    withRegisteredWormhole(
+        () -> {
+          // = Invalid execution results =
+          // |----------------------------------------------------------------------------------------- |
+          // |           Thread 1            |           Thread 2               |         Thread 3
+          // |----------------------------------------------------------------------------------------- |
+          // | put(10, 100): null            |                                  |
+          // |----------------------------------------------------------------------------------------- |
+          // | put(11, 111): null            | put(9, 92): null                 |
+          // |                               | put(10, 102): 100                | put(12, 123): null
+          // |                               | put(11, 112): 111                | put(9, 93): 92
+          // | put(12, 121): 123             | scan(2, 13): [92, 102, 113, 123] | put(11, 113): 112
+          // ------------------------------------------------------------------------------------------ |
+
+          // Arrange
+          assertThat(wormhole.put(10, 100)).isNull();
+
+          ExecutorService executorService = Executors.newFixedThreadPool(3);
+          List<Future<?>> futures = new ArrayList<>();
+          CyclicBarrier barrier1 = new CyclicBarrier(3);
+          AtomicReference<Integer> putResultOfKey9ByThread2 = new AtomicReference<>();
+          AtomicReference<Integer> putResultOfKey9ByThread3 = new AtomicReference<>();
+          AtomicReference<Integer> putResultOfKey11ByThread1 = new AtomicReference<>();
+          AtomicReference<Integer> putResultOfKey11ByThread2 = new AtomicReference<>();
+          AtomicReference<Integer> putResultOfKey11ByThread3 = new AtomicReference<>();
+          AtomicReference<List<Integer>> scanResultByThread2 = new AtomicReference<>();
+
+          try {
+            // Act
+            futures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier1.await();
+                              // 1-0
+                              putResultOfKey11ByThread1.set(wormhole.put(11, 111));
+                              assertThat(putResultOfKey11ByThread1.get()).isIn(null, 112, 113);
+                              // 1-1
+                              assertThat(wormhole.put(12, 121)).isIn(null, 123);
+                              // 1-2
+                              return null;
+                            })));
+            futures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier1.await();
+                              // 2-0
+                              putResultOfKey9ByThread2.set(wormhole.put(9, 92));
+                              assertThat(putResultOfKey9ByThread2.get()).isIn(null, 93);
+                              // 2-1
+                              assertThat(wormhole.put(10, 102)).isIn(100);
+                              // 2-2
+                              putResultOfKey11ByThread2.set(wormhole.put(11, 112));
+                              assertThat(putResultOfKey11ByThread2.get()).isIn(null, 111, 113);
+
+                              List<Integer> scanned = new ArrayList<>();
+                              wormhole.snapshotScan(2, 13, true, (k, v) -> scanned.add(v));
+                              scanResultByThread2.set(scanned);
+                              return null;
+                            })));
+            futures.add(
+                executorService.submit(
+                    () ->
+                        withRegisteredWormhole(
+                            () -> {
+                              barrier1.await();
+                              // 3-0
+                              assertThat(wormhole.put(12, 123)).isIn(null, 121);
+                              // 3-1
+                              putResultOfKey9ByThread3.set(wormhole.put(9, 93));
+                              assertThat(putResultOfKey9ByThread3.get()).isIn(null, 92);
+                              // 3-2
+                              putResultOfKey11ByThread3.set(wormhole.put(11, 113));
+                              assertThat(putResultOfKey11ByThread3.get()).isIn(null, 111, 112);
+                              return null;
+                            })));
+
+            // Assert
+            for (Future<?> future : futures) {
+              future.get(5, TimeUnit.SECONDS);
+            }
+
+            // For key:9 and key:11, there are 4 possible combinations:
+            // --------------------------------
+            // 1.
+            // T2:put(9, 92) < T3:put(9, 93)
+            // T2:put(11, 112) < T3:put(11, 113)
+            //
+            // 1-1.
+            // T2:put(9, 92) < T3:put(9, 93) < T2:put(11, 112) < T3:put(11, 113)
+            //
+            // 1-2.
+            // T2:put(9, 92) < T2:put(11, 112) < T3:put(9, 93) < T3:put(11, 113)
+            //
+            // 1-1-*.
+            // T2:put(9, 92) < T3:put(9, 93) < T2:put(11, 112) < T2:scan < T3:put(11, 113)
+            // Scan result: [93, 112]
+            // T2:put(9, 92) < T3:put(9, 93) < T2:put(11, 112) < T3:put(11, 113) < T2:scan
+            // Scan result: [93, 113]
+            //
+            // 1-2-*.
+            // T2:put(9, 92) < T2:put(11, 112) < T2:scan < T3:put(9, 93) < T3:put(11, 113)
+            // Scan result: [92, 112]
+            // T2:put(9, 92) < T2:put(11, 112) < T3:put(9, 93) < T2:scan < T3:put(11, 113)
+            // Scan result: [93, 112]
+            // T2:put(9, 92) < T2:put(11, 112) < T3:put(9, 93) < T3:put(11, 113) < T2:scan
+            // Scan result: [93, 113]
+            //
+            // Possible scan result: [92, 112], [93, 112], [93, 113]
+            //   (plus: [92, 111], [93, 111])
+            // --------------------------------
+            // 2.
+            // T2:put(9, 92) < T3:put(9, 93)
+            // T3:put(11, 113) < T2:put(11, 112)
+            //
+            // 2-1.
+            // T2:put(9, 92) < T3:put(9, 93) < T3:put(11, 113) < T2:put(11, 112)
+            //
+            // 2-2.
+            // T2:put(9, 92) < T3:put(11, 113) < T3:put(9, 93) < T2:put(11, 112)
+            //
+            // 2-1-*.
+            // T2:put(9, 92) < T3:put(9, 93) < T3:put(11, 113) < T2:put(11, 112) < T2:scan
+            // Scan result: [93, 112]
+            //
+            // 2-2-*.
+            // T2:put(9, 92) < T3:put(11, 113) < T3:put(9, 93) < T2:put(11, 112) < T2:scan
+            // Scan result: [93, 112]
+            //
+            // Possible scan result: [93, 112]
+            //   (plus: [93, 111])
+            // --------------------------------
+            // 3.
+            // T3:put(9, 93) < T2:put(9, 92)
+            // T2:put(11, 112) < T3:put(11, 113)
+            //
+            // 3-1.
+            // T3:put(9, 93) < T2:put(9, 92) < T2:put(11, 112) < T3:put(11, 113)
+            //
+            // 3-2.
+            // T3:put(9, 93) < T2:put(11, 112) < T2:put(9, 92) < T3:put(11, 113)
+            //
+            // 3-1-*.
+            // T3:put(9, 93) < T2:put(9, 92) < T2:put(11, 112) < T2:scan < T3:put(11, 113)
+            // Scan result: [92, 112]
+            // T3:put(9, 93) < T2:put(9, 92) < T2:put(11, 112) < T3:put(11, 113) < T2:scan
+            // Scan result: [92, 113]
+            //
+            // 3-2-*.
+            // T3:put(9, 93) < T2:put(11, 112) < T2:scan < T2:put(9, 92) < T3:put(11, 113)
+            // Scan result: [93, 112]
+            // T3:put(9, 93) < T2:put(11, 112) < T2:put(9, 92) < T2:scan < T3:put(11, 113)
+            // Scan result: [92, 112]
+            // T3:put(9, 93) < T2:put(11, 112) < T2:put(9, 92) < T3:put(11, 113) < T2:scan
+            // Scan result: [92, 113]
+            //
+            // Possible scan result: [92, 112], [92, 113], [93, 112]
+            //   (plus: [92, 111], [93, 111])
+            // --------------------------------
+            // 4.
+            // T3:put(9, 93) < T2:put(9, 92)
+            // T3:put(11, 113) < T2:put(11, 112)
+            //
+            // 4-1.
+            // T3:put(9, 93) < T2:put(9, 92) < T3:put(11, 113) < T2:put(11, 112)
+            //
+            // 4-2.
+            // T3:put(9, 93) < T3:put(11, 113) < T2:put(9, 92) < T2:put(11, 112)
+            //
+            // 4-1-*.
+            // T3:put(9, 93) < T2:put(9, 92) < T3:put(11, 113) < T2:put(11, 112) < T2:scan
+            // Scan result: [92, 112]
+            //
+            // 4-2-*.
+            // T3:put(9, 93) < T3:put(11, 113) < T2:put(9, 92) < T2:put(11, 112) < T2:scan
+            // Scan result: [92, 112]
+            //
+            // Possible scan result: [92, 112]
+            //   (plus: [92, 111])
+            // --------------------------------
+
+            List<Integer> filteredScanResult =
+                scanResultByThread2.get().stream()
+                    .filter(i -> i / 10 == 9 || i / 10 == 11)
+                    .sorted()
+                    .collect(Collectors.toList());
+
+            Boolean putKey11ByThread2HappenedBeforeThread3 = null;
+            if ((Objects.equals(putResultOfKey11ByThread1.get(), null)
+                    && Objects.equals(putResultOfKey11ByThread2.get(), 111)
+                    && Objects.equals(putResultOfKey11ByThread3.get(), 112))
+                || (Objects.equals(putResultOfKey11ByThread2.get(), null)
+                    && Objects.equals(putResultOfKey11ByThread1.get(), 112)
+                    && Objects.equals(putResultOfKey11ByThread3.get(), 111))
+                || (Objects.equals(putResultOfKey11ByThread2.get(), null)
+                    && Objects.equals(putResultOfKey11ByThread3.get(), 112)
+                    && Objects.equals(putResultOfKey11ByThread1.get(), 113))) {
+              putKey11ByThread2HappenedBeforeThread3 = true;
+            } else if ((Objects.equals(putResultOfKey11ByThread1.get(), null)
+                    && Objects.equals(putResultOfKey11ByThread3.get(), 111)
+                    && Objects.equals(putResultOfKey11ByThread2.get(), 113))
+                || (Objects.equals(putResultOfKey11ByThread3.get(), null)
+                    && Objects.equals(putResultOfKey11ByThread1.get(), 113)
+                    && Objects.equals(putResultOfKey11ByThread2.get(), 111))
+                || (Objects.equals(putResultOfKey11ByThread3.get(), null)
+                    && Objects.equals(putResultOfKey11ByThread2.get(), 113)
+                    && Objects.equals(putResultOfKey11ByThread1.get(), 112))) {
+              putKey11ByThread2HappenedBeforeThread3 = false;
+            } else {
+              fail(
+                  String.format(
+                      "T1:put(11)->%d, T2:put(9)->%d, T2:put(11)->%d, T3:put(9)->%d, T3:put(11)->%d",
+                      putResultOfKey11ByThread1.get(),
+                      putResultOfKey9ByThread2.get(),
+                      putResultOfKey11ByThread2.get(),
+                      putResultOfKey9ByThread3.get(),
+                      putResultOfKey11ByThread3.get()));
+            }
+
+            if (Objects.equals(putResultOfKey9ByThread3.get(), 92)
+                && putKey11ByThread2HappenedBeforeThread3) {
+              // 1.
+              // T2:put(9, 92) < T3:put(9, 93)
+              // T2:put(11, 112) < T3:put(11, 113)
+
+              // Possible scan result: [92, 112], [93, 112], [93, 113]
+              //   (plus: [92, 111], [93, 111])
+              assertThat(filteredScanResult)
+                  .isIn(
+                      Arrays.asList(92, 112),
+                      Arrays.asList(93, 112),
+                      Arrays.asList(93, 113),
+                      Arrays.asList(92, 111),
+                      Arrays.asList(93, 111));
+            } else if (Objects.equals(putResultOfKey9ByThread3.get(), 92)
+                && !putKey11ByThread2HappenedBeforeThread3) {
+              // 2.
+              // T2:put(9, 92) < T3:put(9, 93)
+              // T3:put(11, 113) < T2:put(11, 112)
+
+              // Possible scan result: [93, 112]
+              //   (plus: [93, 111])
+              assertThat(filteredScanResult).isIn(Arrays.asList(93, 112), Arrays.asList(93, 111));
+            } else if (Objects.equals(putResultOfKey9ByThread2.get(), 93)
+                && putKey11ByThread2HappenedBeforeThread3) {
+              // 3.
+              // T3:put(9, 93) < T2:put(9, 92)
+              // T2:put(11, 112) < T3:put(11, 113)
+
+              // Possible scan result: [92, 112], [92, 113], [93, 112]
+              //   (plus: [92, 111], [93, 111])
+              assertThat(filteredScanResult)
+                  .isIn(
+                      Arrays.asList(92, 112),
+                      Arrays.asList(92, 113),
+                      Arrays.asList(93, 112),
+                      Arrays.asList(92, 111),
+                      Arrays.asList(93, 111));
+            } else if (Objects.equals(putResultOfKey9ByThread2.get(), 93)
+                && !putKey11ByThread2HappenedBeforeThread3) {
+              // 4.
+              // T3:put(9, 93) < T2:put(9, 92)
+              // T3:put(11, 113) < T2:put(11, 112)
+
+              // Possible scan result: [92, 112]
+              //   (plus: [92, 111])
+              assertThat(filteredScanResult).isIn(Arrays.asList(92, 112), Arrays.asList(92, 111));
+            } else {
+              fail(
+                  String.format(
+                      "T1:put(11)->%s, T2:put(9)->%s, T2:put(11)->%s, T3:put(9)->%s, T3:put(11)->%s",
+                      putResultOfKey11ByThread1.get(),
+                      putResultOfKey9ByThread2.get(),
+                      putResultOfKey11ByThread2.get(),
+                      putResultOfKey9ByThread3.get(),
+                      putResultOfKey11ByThread3.get()));
+            }
+
+            assertThat(wormhole.get(10)).isIn(102);
+            assertThat(wormhole.get(12)).isIn(121, 123);
 
             return null;
           } finally {
