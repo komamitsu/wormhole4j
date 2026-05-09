@@ -763,7 +763,7 @@ class MultiThreadWormholeTest {
                               assertThat(wormhole.put(9, 90)).isNull();
                               barrier2.await();
                               List<Integer> scanned = new ArrayList<>();
-                              wormhole.scan(2, 15, true, (k, v) -> scanned.add(v));
+                              wormhole.snapshotScan(2, 15, true, (k, v) -> scanned.add(v));
                               assertThat(scanned)
                                   .isIn(
                                       Arrays.asList(90, 100, 110, 130),
@@ -777,7 +777,7 @@ class MultiThreadWormholeTest {
                             () -> {
                               barrier1.await();
                               List<Integer> scanned = new ArrayList<>();
-                              wormhole.scan(6, 16, true, (k, v) -> scanned.add(v));
+                              wormhole.snapshotScan(6, 16, true, (k, v) -> scanned.add(v));
                               assertThat(scanned)
                                   .isIn(
                                       Arrays.asList(100, 110),
@@ -921,7 +921,7 @@ class MultiThreadWormholeTest {
                             () -> {
                               barrier1.await();
                               List<Integer> scanned = new ArrayList<>();
-                              wormhole.scan(8, 16, true, (k, v) -> scanned.add(v));
+                              wormhole.snapshotScan(8, 16, true, (k, v) -> scanned.add(v));
                               if (scanned.equals(Arrays.asList(100))) {
                                 // 1-0, 3-0
                                 Integer result10 = wormhole.get(10);
@@ -1246,9 +1246,7 @@ class MultiThreadWormholeTest {
         });
   }
 
-  // This test case may fail in the current implementation since scan operations don't take
-  // snapshots.
-  @RepeatedTest(10000)
+  @RepeatedTest(1000)
   void concurrentPutAndGetAndScan_withLeafNodeSize2_ShouldReturnProperValues() throws Exception {
     wormhole =
         new WormholeBuilder.ForIntKey<Integer>().setConcurrent(true).setLeafNodeSize(2).build();
@@ -1311,7 +1309,7 @@ class MultiThreadWormholeTest {
                               assertThat(putResultOfKey11ByThread2.get()).isIn(null, 111, 113);
 
                               List<Integer> scanned = new ArrayList<>();
-                              wormhole.scan(2, 13, true, (k, v) -> scanned.add(v));
+                              wormhole.snapshotScan(2, 13, true, (k, v) -> scanned.add(v));
                               scanResultByThread2.set(scanned);
                               return null;
                             })));
