@@ -18,16 +18,18 @@ package org.komamitsu.wormhole4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.komamitsu.wormhole4j.TestHelpers.scan;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.params.Parameter;
 import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @ParameterizedClass
@@ -178,43 +180,6 @@ abstract class WormholeForIntKeyTest {
 
   @Nested
   class Scan extends Common {
-    private enum SCAN_TYPE {
-      WITH_RANGE_AND_FUNCTION,
-      WITH_RANGE,
-      SNAPSHOT_WITH_RANGE_AND_FUNCTION,
-      SNAPSHOT_WITH_RANGE,
-    }
-
-    private <K, V> List<KeyValue<K, V>> scan(
-        Wormhole<K, V> wormhole,
-        SCAN_TYPE scanType,
-        @Nullable K startKey,
-        @Nullable K endKey,
-        boolean isEndKeyExclusive) {
-      switch (scanType) {
-        case WITH_RANGE_AND_FUNCTION:
-          {
-            List<KeyValue<K, V>> result = new ArrayList<>();
-            wormhole.scan(
-                startKey, endKey, isEndKeyExclusive, (k, v) -> result.add(new KeyValue<>(k, v)));
-            return result;
-          }
-        case WITH_RANGE:
-          return wormhole.scan(startKey, endKey, isEndKeyExclusive);
-        case SNAPSHOT_WITH_RANGE_AND_FUNCTION:
-          {
-            List<KeyValue<K, V>> result = new ArrayList<>();
-            wormhole.snapshotScan(
-                startKey, endKey, isEndKeyExclusive, (k, v) -> result.add(new KeyValue<>(k, v)));
-            return result;
-          }
-        case SNAPSHOT_WITH_RANGE:
-          return wormhole.snapshotScan(startKey, endKey, isEndKeyExclusive);
-        default:
-          throw new AssertionError();
-      }
-    }
-
     @Test
     void scanWithCount_WithOneLeafNodeWithOneMinimumKeyRecord_ShouldReturnIt() {
       // Arrange
@@ -226,44 +191,38 @@ abstract class WormholeForIntKeyTest {
           .containsExactly(firstItem);
     }
 
-    @Test
-    void scan_WithOneLeafNodeWithOneMinimumKeyRecord_ShouldReturnIt() {
+    @ParameterizedTest
+    @EnumSource(TestHelpers.ScanType.class)
+    void scan_WithOneLeafNodeWithOneMinimumKeyRecord_ShouldReturnIt(TestHelpers.ScanType scanType) {
       // Arrange
       wormholeForStrValue.put(Integer.MIN_VALUE, "foo");
 
       // Act & Assert
       KeyValue<Integer, String> firstItem = new KeyValue<>(Integer.MIN_VALUE, "foo");
 
-      for (SCAN_TYPE scanType : SCAN_TYPE.values()) {
-        // With exclusive end keys.
-        assertThat(scan(wormholeForStrValue, scanType, Integer.MIN_VALUE, Integer.MIN_VALUE, true))
-            .isEmpty();
-        assertThat(scan(wormholeForStrValue, scanType, Integer.MIN_VALUE, null, true))
-            .containsExactly(firstItem);
-        assertThat(scan(wormholeForStrValue, scanType, null, Integer.MIN_VALUE, true)).isEmpty();
-        assertThat(scan(wormholeForStrValue, scanType, null, null, true))
-            .containsExactly(firstItem);
-        assertThat(
-                scan(wormholeForStrValue, scanType, Integer.MIN_VALUE + 1, Integer.MAX_VALUE, true))
-            .isEmpty();
-        assertThat(scan(wormholeForStrValue, scanType, Integer.MIN_VALUE + 1, null, true))
-            .isEmpty();
-        // With inclusive end keys.
-        assertThat(scan(wormholeForStrValue, scanType, Integer.MIN_VALUE, Integer.MIN_VALUE, false))
-            .containsExactly(firstItem);
-        assertThat(scan(wormholeForStrValue, scanType, Integer.MIN_VALUE, null, false))
-            .containsExactly(firstItem);
-        assertThat(scan(wormholeForStrValue, scanType, null, Integer.MIN_VALUE, false))
-            .containsExactly(firstItem);
-        assertThat(scan(wormholeForStrValue, scanType, null, null, false))
-            .containsExactly(firstItem);
-        assertThat(
-                scan(
-                    wormholeForStrValue, scanType, Integer.MIN_VALUE + 1, Integer.MAX_VALUE, false))
-            .isEmpty();
-        assertThat(scan(wormholeForStrValue, scanType, Integer.MIN_VALUE + 1, null, false))
-            .isEmpty();
-      }
+      // With exclusive end keys.
+      assertThat(scan(wormholeForStrValue, scanType, Integer.MIN_VALUE, Integer.MIN_VALUE, true))
+          .isEmpty();
+      assertThat(scan(wormholeForStrValue, scanType, Integer.MIN_VALUE, null, true))
+          .containsExactly(firstItem);
+      assertThat(scan(wormholeForStrValue, scanType, null, Integer.MIN_VALUE, true)).isEmpty();
+      assertThat(scan(wormholeForStrValue, scanType, null, null, true)).containsExactly(firstItem);
+      assertThat(
+              scan(wormholeForStrValue, scanType, Integer.MIN_VALUE + 1, Integer.MAX_VALUE, true))
+          .isEmpty();
+      assertThat(scan(wormholeForStrValue, scanType, Integer.MIN_VALUE + 1, null, true)).isEmpty();
+      // With inclusive end keys.
+      assertThat(scan(wormholeForStrValue, scanType, Integer.MIN_VALUE, Integer.MIN_VALUE, false))
+          .containsExactly(firstItem);
+      assertThat(scan(wormholeForStrValue, scanType, Integer.MIN_VALUE, null, false))
+          .containsExactly(firstItem);
+      assertThat(scan(wormholeForStrValue, scanType, null, Integer.MIN_VALUE, false))
+          .containsExactly(firstItem);
+      assertThat(scan(wormholeForStrValue, scanType, null, null, false)).containsExactly(firstItem);
+      assertThat(
+              scan(wormholeForStrValue, scanType, Integer.MIN_VALUE + 1, Integer.MAX_VALUE, false))
+          .isEmpty();
+      assertThat(scan(wormholeForStrValue, scanType, Integer.MIN_VALUE + 1, null, false)).isEmpty();
     }
 
     @Test
@@ -281,29 +240,28 @@ abstract class WormholeForIntKeyTest {
       assertThat(wormholeForIntValue.scanWithCount(11, 1)).isEmpty();
     }
 
-    @Test
-    void scan_WithOneLeafNodeWithOneRecord_ShouldReturnIt() {
+    @ParameterizedTest
+    @EnumSource(TestHelpers.ScanType.class)
+    void scan_WithOneLeafNodeWithOneRecord_ShouldReturnIt(TestHelpers.ScanType scanType) {
       // Arrange
       wormholeForIntValue.put(10, 100);
 
       // Act & Assert
       KeyValue<Integer, Integer> firstItem = new KeyValue<>(10, 100);
-      for (SCAN_TYPE scanType : SCAN_TYPE.values()) {
-        // With exclusive end keys.
-        assertThat(scan(wormholeForIntValue, scanType, 10, 10, true)).isEmpty();
-        assertThat(scan(wormholeForIntValue, scanType, null, 10, true)).isEmpty();
-        assertThat(scan(wormholeForIntValue, scanType, 10, null, true)).containsExactly(firstItem);
-        assertThat(scan(wormholeForIntValue, scanType, 11, 11, true)).isEmpty();
-        assertThat(scan(wormholeForIntValue, scanType, null, 10, true)).isEmpty();
-        assertThat(scan(wormholeForIntValue, scanType, 11, null, true)).isEmpty();
-        // With inclusive end keys.
-        assertThat(scan(wormholeForIntValue, scanType, 10, 10, false)).containsExactly(firstItem);
-        assertThat(scan(wormholeForIntValue, scanType, null, 10, false)).containsExactly(firstItem);
-        assertThat(scan(wormholeForIntValue, scanType, 10, null, false)).containsExactly(firstItem);
-        assertThat(scan(wormholeForIntValue, scanType, 11, 11, false)).isEmpty();
-        assertThat(scan(wormholeForIntValue, scanType, null, 9, false)).isEmpty();
-        assertThat(scan(wormholeForIntValue, scanType, 11, null, false)).isEmpty();
-      }
+      // With exclusive end keys.
+      assertThat(scan(wormholeForIntValue, scanType, 10, 10, true)).isEmpty();
+      assertThat(scan(wormholeForIntValue, scanType, null, 10, true)).isEmpty();
+      assertThat(scan(wormholeForIntValue, scanType, 10, null, true)).containsExactly(firstItem);
+      assertThat(scan(wormholeForIntValue, scanType, 11, 11, true)).isEmpty();
+      assertThat(scan(wormholeForIntValue, scanType, null, 10, true)).isEmpty();
+      assertThat(scan(wormholeForIntValue, scanType, 11, null, true)).isEmpty();
+      // With inclusive end keys.
+      assertThat(scan(wormholeForIntValue, scanType, 10, 10, false)).containsExactly(firstItem);
+      assertThat(scan(wormholeForIntValue, scanType, null, 10, false)).containsExactly(firstItem);
+      assertThat(scan(wormholeForIntValue, scanType, 10, null, false)).containsExactly(firstItem);
+      assertThat(scan(wormholeForIntValue, scanType, 11, 11, false)).isEmpty();
+      assertThat(scan(wormholeForIntValue, scanType, null, 9, false)).isEmpty();
+      assertThat(scan(wormholeForIntValue, scanType, 11, null, false)).isEmpty();
     }
 
     @Test
@@ -348,8 +306,9 @@ abstract class WormholeForIntKeyTest {
       assertThat(wormholeForIntValue.scanWithCount(31, 2)).isEmpty();
     }
 
-    @Test
-    void scan_WithOneLeafNodeWithMaxRecords_ShouldReturnIt() {
+    @ParameterizedTest
+    @EnumSource(TestHelpers.ScanType.class)
+    void scan_WithOneLeafNodeWithMaxRecords_ShouldReturnIt(TestHelpers.ScanType scanType) {
       // Arrange
       wormholeForIntValue.put(30, 300);
       wormholeForIntValue.put(20, 200);
@@ -359,20 +318,18 @@ abstract class WormholeForIntKeyTest {
       KeyValue<Integer, Integer> firstItem = new KeyValue<>(10, 100);
       KeyValue<Integer, Integer> secondItem = new KeyValue<>(20, 200);
       KeyValue<Integer, Integer> thirdItem = new KeyValue<>(30, 300);
-      for (SCAN_TYPE scanType : SCAN_TYPE.values()) {
-        // With exclusive end keys.
-        assertThat(scan(wormholeForIntValue, scanType, 10, 30, true))
-            .containsExactly(firstItem, secondItem);
-        assertThat(scan(wormholeForIntValue, scanType, 10, 31, true))
-            .containsExactly(firstItem, secondItem, thirdItem);
-        assertThat(scan(wormholeForIntValue, scanType, 11, 30, true)).containsExactly(secondItem);
-        // With inclusive end keys.
-        assertThat(scan(wormholeForIntValue, scanType, 10, 30, false))
-            .containsExactly(firstItem, secondItem, thirdItem);
-        assertThat(scan(wormholeForIntValue, scanType, 9, 31, false))
-            .containsExactly(firstItem, secondItem, thirdItem);
-        assertThat(scan(wormholeForIntValue, scanType, 11, 29, false)).containsExactly(secondItem);
-      }
+      // With exclusive end keys.
+      assertThat(scan(wormholeForIntValue, scanType, 10, 30, true))
+          .containsExactly(firstItem, secondItem);
+      assertThat(scan(wormholeForIntValue, scanType, 10, 31, true))
+          .containsExactly(firstItem, secondItem, thirdItem);
+      assertThat(scan(wormholeForIntValue, scanType, 11, 30, true)).containsExactly(secondItem);
+      // With inclusive end keys.
+      assertThat(scan(wormholeForIntValue, scanType, 10, 30, false))
+          .containsExactly(firstItem, secondItem, thirdItem);
+      assertThat(scan(wormholeForIntValue, scanType, 9, 31, false))
+          .containsExactly(firstItem, secondItem, thirdItem);
+      assertThat(scan(wormholeForIntValue, scanType, 11, 29, false)).containsExactly(secondItem);
     }
 
     @Test
@@ -470,8 +427,9 @@ abstract class WormholeForIntKeyTest {
       assertThat(wormholeForIntValue.scanWithCount(51, 1)).isEmpty();
     }
 
-    @Test
-    void scan_WithTwoLeafNodes_ShouldReturnIt() {
+    @ParameterizedTest
+    @EnumSource(TestHelpers.ScanType.class)
+    void scan_WithTwoLeafNodes_ShouldReturnIt(TestHelpers.ScanType scanType) {
       // Arrange
       wormholeForIntValue.put(10, 100);
       wormholeForIntValue.put(20, 200);
@@ -485,22 +443,20 @@ abstract class WormholeForIntKeyTest {
       KeyValue<Integer, Integer> thirdItem = new KeyValue<>(30, 300);
       KeyValue<Integer, Integer> fourthItem = new KeyValue<>(40, 400);
       KeyValue<Integer, Integer> fifthItem = new KeyValue<>(50, 500);
-      for (SCAN_TYPE scanType : SCAN_TYPE.values()) {
-        // With exclusive end keys.
-        assertThat(scan(wormholeForIntValue, scanType, 10, 50, true))
-            .containsExactly(firstItem, secondItem, thirdItem, fourthItem);
-        assertThat(scan(wormholeForIntValue, scanType, 9, 51, true))
-            .containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
-        assertThat(scan(wormholeForIntValue, scanType, 11, 50, true))
-            .containsExactly(secondItem, thirdItem, fourthItem);
-        // With inclusive end keys.
-        assertThat(scan(wormholeForIntValue, scanType, 10, 50, false))
-            .containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
-        assertThat(scan(wormholeForIntValue, scanType, 9, 51, false))
-            .containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
-        assertThat(scan(wormholeForIntValue, scanType, 11, 49, false))
-            .containsExactly(secondItem, thirdItem, fourthItem);
-      }
+      // With exclusive end keys.
+      assertThat(scan(wormholeForIntValue, scanType, 10, 50, true))
+          .containsExactly(firstItem, secondItem, thirdItem, fourthItem);
+      assertThat(scan(wormholeForIntValue, scanType, 9, 51, true))
+          .containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
+      assertThat(scan(wormholeForIntValue, scanType, 11, 50, true))
+          .containsExactly(secondItem, thirdItem, fourthItem);
+      // With inclusive end keys.
+      assertThat(scan(wormholeForIntValue, scanType, 10, 50, false))
+          .containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
+      assertThat(scan(wormholeForIntValue, scanType, 9, 51, false))
+          .containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
+      assertThat(scan(wormholeForIntValue, scanType, 11, 49, false))
+          .containsExactly(secondItem, thirdItem, fourthItem);
     }
 
     @Test
