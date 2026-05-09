@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.*;
 
-class ConcurrentWormholeTest {
+class MultiThreadWormholeTest {
   private Wormhole<Integer, Integer> wormhole;
 
   private interface ThrowableSupplier<R, E extends Exception> {
