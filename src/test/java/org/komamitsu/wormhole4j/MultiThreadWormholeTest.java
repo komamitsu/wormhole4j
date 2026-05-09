@@ -1525,7 +1525,7 @@ class MultiThreadWormholeTest {
             } else {
               fail(
                   String.format(
-                      "T1:put(11)->%d, T2:put(9)->%d, T2:put(11)->%d, T3:put(9)->%d, T3:put(11)->%d",
+                      "T1:put(11)->%s, T2:put(9)->%s, T2:put(11)->%s, T3:put(9)->%s, T3:put(11)->%s",
                       putResultOfKey11ByThread1.get(),
                       putResultOfKey9ByThread2.get(),
                       putResultOfKey11ByThread2.get(),
