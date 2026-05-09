@@ -53,9 +53,8 @@ class LincheckWithLeafNodeSize4Test {
         ensureThreadRegistered()
         val (startKey, endKey) = if (key1 < key2) Pair(key1, key2) else Pair(key2, key1)
         val result = ArrayList<Int>()
-        wormhole.scan(startKey, endKey, true) { _, v ->
+        wormhole.snapshotScan(startKey, endKey, true) { _, v ->
             result.add(v)
-            true
         }
         return result
     }
