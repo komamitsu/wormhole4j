@@ -19,6 +19,7 @@ package org.komamitsu.wormhole4j;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.StampedLock;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import javax.annotation.Nullable;
@@ -470,6 +471,90 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
         }
         leafNode = leafNode.getRight();
         encodedStartKey = null;
+      }
+    } finally {
+      qsbrExit();
+      releaseLockOnMetaTable(readLockOnMetaTable);
+    }
+  }
+
+  @Override
+  protected void snapshotScanInternal(
+      @Nullable K startKey,
+      @Nullable K endKey,
+      boolean isEndKeyExclusive,
+      BiConsumer<K, V> consumer) {
+    Object encodedStartKey =
+        startKey == null ? createEmptyEncodedKey() : createEncodedKey(startKey);
+    Object encodedEndKey = endKey == null ? null : createEncodedKey(endKey);
+    BiFunction<K, V, Boolean> actualFunction =
+        (k, v) -> {
+          consumer.accept(k, v);
+          return true;
+        };
+
+    long readLockOnMetaTable = acquireReadLockOnMetaTable();
+    try {
+      qsbrEnter();
+      // First, lock all the leaf nodes to scan.
+      List<LeafNode<K, V>> lockedLeafNodes = new ArrayList<>();
+      List<Long> leafNodeLocks = new ArrayList<>();
+      LeafNode<K, V> leafNode =
+          searchTrieHashTable(qsbrThreadLocalMetaTables.get(), encodedStartKey);
+      while (leafNode != null) {
+        if (encodedEndKey != null
+            && EncodedKeyUtils.compare(encodedKeyType, encodedEndKey, leafNode.anchorKey) < 0) {
+          break;
+        }
+        long lockOnLeafNode;
+        boolean writeLockOnLeafNode = false;
+        int loopCount = 0;
+        while (true) {
+          if (++loopCount % SPIN_INTERVAL == 0) {
+            Thread.yield();
+          }
+          lockOnLeafNode = writeLockOnLeafNode ? leafNode.tryWriteLock() : leafNode.tryReadLock();
+          if (lockOnLeafNode == 0) {
+            continue;
+          }
+          if (writeLockOnLeafNode || leafNode.isKeyRefsSorted()) {
+            break;
+          }
+          leafNode.releaseLock(lockOnLeafNode);
+          writeLockOnLeafNode = true;
+        }
+        // A read lock on the meta table is already acquired. So, the version of leaf node doesn't
+        // need to be checked.
+        leafNode.incSort();
+        lockedLeafNodes.add(leafNode);
+        leafNodeLocks.add(lockOnLeafNode);
+
+        leafNode = leafNode.getRight();
+      }
+
+      assert lockedLeafNodes.size() == leafNodeLocks.size();
+      try {
+        for (int i = 0; i < lockedLeafNodes.size(); i++) {
+          LeafNode<K, V> lockedLeafNode = lockedLeafNodes.get(i);
+          long lock = leafNodeLocks.get(i);
+          try {
+            lockedLeafNode.iterateKeyValues(
+                encodedStartKey, encodedEndKey, isEndKeyExclusive, actualFunction);
+          } finally {
+            lockedLeafNode.releaseLock(lock);
+            leafNodeLocks.set(i, 0L);
+          }
+          encodedStartKey = null;
+        }
+      } finally {
+        // Release unlocked leaf nodes if needed.
+        for (int i = 0; i < lockedLeafNodes.size(); i++) {
+          long lock = leafNodeLocks.get(i);
+          if (lock != 0) {
+            LeafNode<K, V> lockedLeafNode = lockedLeafNodes.get(i);
+            lockedLeafNode.releaseLock(lock);
+          }
+        }
       }
     } finally {
       qsbrExit();

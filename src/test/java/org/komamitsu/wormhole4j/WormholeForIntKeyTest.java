@@ -18,6 +18,7 @@ package org.komamitsu.wormhole4j;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.komamitsu.wormhole4j.TestHelpers.scan;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -27,6 +28,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.params.Parameter;
 import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @ParameterizedClass
@@ -178,7 +181,7 @@ abstract class WormholeForIntKeyTest {
   @Nested
   class Scan extends Common {
     @Test
-    void withOneLeafNodeWithOneMinimumKeyRecord_ShouldReturnIt() {
+    void scanWithCount_WithOneLeafNodeWithOneMinimumKeyRecord_ShouldReturnIt() {
       // Arrange
       wormholeForStrValue.put(Integer.MIN_VALUE, "foo");
 
@@ -186,92 +189,44 @@ abstract class WormholeForIntKeyTest {
       KeyValue<Integer, String> firstItem = new KeyValue<>(Integer.MIN_VALUE, "foo");
       assertThat(wormholeForStrValue.scanWithCount(Integer.MIN_VALUE, 2))
           .containsExactly(firstItem);
+    }
+
+    @ParameterizedTest
+    @EnumSource(TestHelpers.ScanType.class)
+    void scan_WithOneLeafNodeWithOneMinimumKeyRecord_ShouldReturnIt(TestHelpers.ScanType scanType) {
+      // Arrange
+      wormholeForStrValue.put(Integer.MIN_VALUE, "foo");
+
+      // Act & Assert
+      KeyValue<Integer, String> firstItem = new KeyValue<>(Integer.MIN_VALUE, "foo");
 
       // With exclusive end keys.
-      {
-        List<KeyValue<Integer, String>> result = new ArrayList<>();
-        wormholeForStrValue.scan(
-            Integer.MIN_VALUE, Integer.MIN_VALUE, true, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).isEmpty();
-      }
-      {
-        List<KeyValue<Integer, String>> result = new ArrayList<>();
-        wormholeForStrValue.scan(
-            Integer.MIN_VALUE, null, true, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(firstItem);
-      }
-      {
-        List<KeyValue<Integer, String>> result = new ArrayList<>();
-        wormholeForStrValue.scan(
-            null, Integer.MIN_VALUE, true, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).isEmpty();
-      }
-      {
-        List<KeyValue<Integer, String>> result = new ArrayList<>();
-        wormholeForStrValue.scan(null, null, true, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(firstItem);
-      }
-      {
-        List<KeyValue<Integer, String>> result = new ArrayList<>();
-        wormholeForStrValue.scan(
-            Integer.MIN_VALUE + 1,
-            Integer.MAX_VALUE,
-            true,
-            (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).isEmpty();
-      }
-      {
-        List<KeyValue<Integer, String>> result = new ArrayList<>();
-        wormholeForStrValue.scan(
-            Integer.MIN_VALUE + 1, null, true, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).isEmpty();
-      }
+      assertThat(scan(wormholeForStrValue, scanType, Integer.MIN_VALUE, Integer.MIN_VALUE, true))
+          .isEmpty();
+      assertThat(scan(wormholeForStrValue, scanType, Integer.MIN_VALUE, null, true))
+          .containsExactly(firstItem);
+      assertThat(scan(wormholeForStrValue, scanType, null, Integer.MIN_VALUE, true)).isEmpty();
+      assertThat(scan(wormholeForStrValue, scanType, null, null, true)).containsExactly(firstItem);
+      assertThat(
+              scan(wormholeForStrValue, scanType, Integer.MIN_VALUE + 1, Integer.MAX_VALUE, true))
+          .isEmpty();
+      assertThat(scan(wormholeForStrValue, scanType, Integer.MIN_VALUE + 1, null, true)).isEmpty();
       // With inclusive end keys.
-      {
-        List<KeyValue<Integer, String>> result = new ArrayList<>();
-        wormholeForStrValue.scan(
-            Integer.MIN_VALUE,
-            Integer.MIN_VALUE,
-            false,
-            (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(firstItem);
-      }
-      {
-        List<KeyValue<Integer, String>> result = new ArrayList<>();
-        wormholeForStrValue.scan(
-            Integer.MIN_VALUE, null, false, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(firstItem);
-      }
-      {
-        List<KeyValue<Integer, String>> result = new ArrayList<>();
-        wormholeForStrValue.scan(
-            null, Integer.MIN_VALUE, false, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(firstItem);
-      }
-      {
-        List<KeyValue<Integer, String>> result = new ArrayList<>();
-        wormholeForStrValue.scan(null, null, false, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(firstItem);
-      }
-      {
-        List<KeyValue<Integer, String>> result = new ArrayList<>();
-        wormholeForStrValue.scan(
-            Integer.MIN_VALUE + 1,
-            Integer.MAX_VALUE,
-            false,
-            (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).isEmpty();
-      }
-      {
-        List<KeyValue<Integer, String>> result = new ArrayList<>();
-        wormholeForStrValue.scan(
-            Integer.MIN_VALUE + 1, null, false, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).isEmpty();
-      }
+      assertThat(scan(wormholeForStrValue, scanType, Integer.MIN_VALUE, Integer.MIN_VALUE, false))
+          .containsExactly(firstItem);
+      assertThat(scan(wormholeForStrValue, scanType, Integer.MIN_VALUE, null, false))
+          .containsExactly(firstItem);
+      assertThat(scan(wormholeForStrValue, scanType, null, Integer.MIN_VALUE, false))
+          .containsExactly(firstItem);
+      assertThat(scan(wormholeForStrValue, scanType, null, null, false)).containsExactly(firstItem);
+      assertThat(
+              scan(wormholeForStrValue, scanType, Integer.MIN_VALUE + 1, Integer.MAX_VALUE, false))
+          .isEmpty();
+      assertThat(scan(wormholeForStrValue, scanType, Integer.MIN_VALUE + 1, null, false)).isEmpty();
     }
 
     @Test
-    void withOneLeafNodeWithOneRecord_ShouldReturnIt() {
+    void scanWithCount_WithOneLeafNodeWithOneRecord_ShouldReturnIt() {
       // Arrange
       wormholeForIntValue.put(10, 100);
 
@@ -283,73 +238,34 @@ abstract class WormholeForIntKeyTest {
       assertThat(wormholeForIntValue.scanWithCount(10, 1)).containsExactly(firstItem);
       assertThat(wormholeForIntValue.scanWithCount(10, 2)).containsExactly(firstItem);
       assertThat(wormholeForIntValue.scanWithCount(11, 1)).isEmpty();
+    }
 
+    @ParameterizedTest
+    @EnumSource(TestHelpers.ScanType.class)
+    void scan_WithOneLeafNodeWithOneRecord_ShouldReturnIt(TestHelpers.ScanType scanType) {
+      // Arrange
+      wormholeForIntValue.put(10, 100);
+
+      // Act & Assert
+      KeyValue<Integer, Integer> firstItem = new KeyValue<>(10, 100);
       // With exclusive end keys.
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(10, 10, true, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).isEmpty();
-      }
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(null, 10, true, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).isEmpty();
-      }
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(10, null, true, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(firstItem);
-      }
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(11, 11, true, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).isEmpty();
-      }
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(null, 10, true, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).isEmpty();
-      }
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(11, null, true, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).isEmpty();
-      }
+      assertThat(scan(wormholeForIntValue, scanType, 10, 10, true)).isEmpty();
+      assertThat(scan(wormholeForIntValue, scanType, null, 10, true)).isEmpty();
+      assertThat(scan(wormholeForIntValue, scanType, 10, null, true)).containsExactly(firstItem);
+      assertThat(scan(wormholeForIntValue, scanType, 11, 11, true)).isEmpty();
+      assertThat(scan(wormholeForIntValue, scanType, null, 10, true)).isEmpty();
+      assertThat(scan(wormholeForIntValue, scanType, 11, null, true)).isEmpty();
       // With inclusive end keys.
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(10, 10, false, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(firstItem);
-      }
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(null, 10, false, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(firstItem);
-      }
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(10, null, false, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(firstItem);
-      }
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(11, 11, false, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).isEmpty();
-      }
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(null, 9, false, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).isEmpty();
-      }
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(11, null, false, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).isEmpty();
-      }
+      assertThat(scan(wormholeForIntValue, scanType, 10, 10, false)).containsExactly(firstItem);
+      assertThat(scan(wormholeForIntValue, scanType, null, 10, false)).containsExactly(firstItem);
+      assertThat(scan(wormholeForIntValue, scanType, 10, null, false)).containsExactly(firstItem);
+      assertThat(scan(wormholeForIntValue, scanType, 11, 11, false)).isEmpty();
+      assertThat(scan(wormholeForIntValue, scanType, null, 9, false)).isEmpty();
+      assertThat(scan(wormholeForIntValue, scanType, 11, null, false)).isEmpty();
     }
 
     @Test
-    void withOneLeafNodeWithMaxRecords_ShouldReturnIt() {
+    void scanWithCount_WithOneLeafNodeWithMaxRecords_ShouldReturnIt() {
       // Arrange
       wormholeForIntValue.put(30, 300);
       wormholeForIntValue.put(20, 200);
@@ -388,42 +304,36 @@ abstract class WormholeForIntKeyTest {
       assertThat(wormholeForIntValue.scanWithCount(30, 2)).containsExactly(thirdItem);
       assertThat(wormholeForIntValue.scanWithCount(31, 1)).isEmpty();
       assertThat(wormholeForIntValue.scanWithCount(31, 2)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @EnumSource(TestHelpers.ScanType.class)
+    void scan_WithOneLeafNodeWithMaxRecords_ShouldReturnIt(TestHelpers.ScanType scanType) {
+      // Arrange
+      wormholeForIntValue.put(30, 300);
+      wormholeForIntValue.put(20, 200);
+      wormholeForIntValue.put(10, 100);
+
+      // Act & Assert
+      KeyValue<Integer, Integer> firstItem = new KeyValue<>(10, 100);
+      KeyValue<Integer, Integer> secondItem = new KeyValue<>(20, 200);
+      KeyValue<Integer, Integer> thirdItem = new KeyValue<>(30, 300);
       // With exclusive end keys.
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(10, 30, true, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(firstItem, secondItem);
-      }
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(10, 31, true, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(firstItem, secondItem, thirdItem);
-      }
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(11, 30, true, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(secondItem);
-      }
+      assertThat(scan(wormholeForIntValue, scanType, 10, 30, true))
+          .containsExactly(firstItem, secondItem);
+      assertThat(scan(wormholeForIntValue, scanType, 10, 31, true))
+          .containsExactly(firstItem, secondItem, thirdItem);
+      assertThat(scan(wormholeForIntValue, scanType, 11, 30, true)).containsExactly(secondItem);
       // With inclusive end keys.
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(10, 30, false, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(firstItem, secondItem, thirdItem);
-      }
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(9, 31, false, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(firstItem, secondItem, thirdItem);
-      }
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(11, 29, false, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(secondItem);
-      }
+      assertThat(scan(wormholeForIntValue, scanType, 10, 30, false))
+          .containsExactly(firstItem, secondItem, thirdItem);
+      assertThat(scan(wormholeForIntValue, scanType, 9, 31, false))
+          .containsExactly(firstItem, secondItem, thirdItem);
+      assertThat(scan(wormholeForIntValue, scanType, 11, 29, false)).containsExactly(secondItem);
     }
 
     @Test
-    void withTwoLeafNodes_ShouldReturnIt() {
+    void scanWithCount_WithTwoLeafNodes_ShouldReturnIt() {
       // Arrange
       wormholeForIntValue.put(10, 100);
       wormholeForIntValue.put(20, 200);
@@ -515,38 +425,38 @@ abstract class WormholeForIntKeyTest {
       assertThat(wormholeForIntValue.scanWithCount(50, 1)).containsExactly(fifthItem);
       assertThat(wormholeForIntValue.scanWithCount(50, 2)).containsExactly(fifthItem);
       assertThat(wormholeForIntValue.scanWithCount(51, 1)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @EnumSource(TestHelpers.ScanType.class)
+    void scan_WithTwoLeafNodes_ShouldReturnIt(TestHelpers.ScanType scanType) {
+      // Arrange
+      wormholeForIntValue.put(10, 100);
+      wormholeForIntValue.put(20, 200);
+      wormholeForIntValue.put(30, 300);
+      wormholeForIntValue.put(40, 400);
+      wormholeForIntValue.put(50, 500);
+
+      // Act & Assert
+      KeyValue<Integer, Integer> firstItem = new KeyValue<>(10, 100);
+      KeyValue<Integer, Integer> secondItem = new KeyValue<>(20, 200);
+      KeyValue<Integer, Integer> thirdItem = new KeyValue<>(30, 300);
+      KeyValue<Integer, Integer> fourthItem = new KeyValue<>(40, 400);
+      KeyValue<Integer, Integer> fifthItem = new KeyValue<>(50, 500);
       // With exclusive end keys.
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(10, 50, true, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem);
-      }
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(9, 51, true, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
-      }
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(11, 50, true, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(secondItem, thirdItem, fourthItem);
-      }
+      assertThat(scan(wormholeForIntValue, scanType, 10, 50, true))
+          .containsExactly(firstItem, secondItem, thirdItem, fourthItem);
+      assertThat(scan(wormholeForIntValue, scanType, 9, 51, true))
+          .containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
+      assertThat(scan(wormholeForIntValue, scanType, 11, 50, true))
+          .containsExactly(secondItem, thirdItem, fourthItem);
       // With inclusive end keys.
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(10, 50, false, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
-      }
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(9, 51, false, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
-      }
-      {
-        List<KeyValue<Integer, Integer>> result = new ArrayList<>();
-        wormholeForIntValue.scan(11, 49, false, (k, v) -> result.add(new KeyValue<>(k, v)));
-        assertThat(result).containsExactly(secondItem, thirdItem, fourthItem);
-      }
+      assertThat(scan(wormholeForIntValue, scanType, 10, 50, false))
+          .containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
+      assertThat(scan(wormholeForIntValue, scanType, 9, 51, false))
+          .containsExactly(firstItem, secondItem, thirdItem, fourthItem, fifthItem);
+      assertThat(scan(wormholeForIntValue, scanType, 11, 49, false))
+          .containsExactly(secondItem, thirdItem, fourthItem);
     }
 
     @Test

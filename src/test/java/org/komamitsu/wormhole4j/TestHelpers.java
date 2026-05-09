@@ -16,7 +16,10 @@
 
 package org.komamitsu.wormhole4j;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import javax.annotation.Nullable;
 
 class TestHelpers {
   static String genRandomKey(int minKeyLength, int maxKeyLength) {
@@ -27,5 +30,42 @@ class TestHelpers {
       sb.append(c);
     }
     return sb.toString();
+  }
+
+  enum ScanType {
+    WITH_RANGE_AND_FUNCTION,
+    WITH_RANGE,
+    SNAPSHOT_WITH_RANGE_AND_CONSUMER,
+    SNAPSHOT_WITH_RANGE,
+  }
+
+  static <K, V> List<KeyValue<K, V>> scan(
+      Wormhole<K, V> wormhole,
+      ScanType scanType,
+      @Nullable K startKey,
+      @Nullable K endKey,
+      boolean isEndKeyExclusive) {
+    switch (scanType) {
+      case WITH_RANGE_AND_FUNCTION:
+        {
+          List<KeyValue<K, V>> result = new ArrayList<>();
+          wormhole.scan(
+              startKey, endKey, isEndKeyExclusive, (k, v) -> result.add(new KeyValue<>(k, v)));
+          return result;
+        }
+      case WITH_RANGE:
+        return wormhole.scan(startKey, endKey, isEndKeyExclusive);
+      case SNAPSHOT_WITH_RANGE_AND_CONSUMER:
+        {
+          List<KeyValue<K, V>> result = new ArrayList<>();
+          wormhole.snapshotScan(
+              startKey, endKey, isEndKeyExclusive, (k, v) -> result.add(new KeyValue<>(k, v)));
+          return result;
+        }
+      case SNAPSHOT_WITH_RANGE:
+        return wormhole.snapshotScan(startKey, endKey, isEndKeyExclusive);
+      default:
+        throw new AssertionError();
+    }
   }
 }
