@@ -35,7 +35,7 @@ class TestHelpers {
   enum ScanType {
     WITH_RANGE_AND_FUNCTION,
     WITH_RANGE,
-    SNAPSHOT_WITH_RANGE_AND_FUNCTION,
+    SNAPSHOT_WITH_RANGE_AND_CONSUMER,
     SNAPSHOT_WITH_RANGE,
   }
 
@@ -55,7 +55,7 @@ class TestHelpers {
         }
       case WITH_RANGE:
         return wormhole.scan(startKey, endKey, isEndKeyExclusive);
-      case SNAPSHOT_WITH_RANGE_AND_FUNCTION:
+      case SNAPSHOT_WITH_RANGE_AND_CONSUMER:
         {
           List<KeyValue<K, V>> result = new ArrayList<>();
           wormhole.snapshotScan(

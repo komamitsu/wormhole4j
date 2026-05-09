@@ -498,7 +498,7 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
       qsbrEnter();
       // First, lock all the leaf nodes to scan.
       List<LeafNode<K, V>> lockedLeafNodes = new ArrayList<>();
-      List<Long> locks = new ArrayList<>();
+      List<Long> leafNodeLocks = new ArrayList<>();
       LeafNode<K, V> leafNode =
           searchTrieHashTable(qsbrThreadLocalMetaTables.get(), encodedStartKey);
       while (leafNode != null) {
@@ -527,22 +527,34 @@ abstract class ConcurrentWormhole<K, V> extends Wormhole<K, V> {
         // need to be checked.
         leafNode.incSort();
         lockedLeafNodes.add(leafNode);
-        locks.add(lockOnLeafNode);
+        leafNodeLocks.add(lockOnLeafNode);
 
         leafNode = leafNode.getRight();
       }
 
-      assert lockedLeafNodes.size() == locks.size();
-      for (int i = 0; i < lockedLeafNodes.size(); i++) {
-        LeafNode<K, V> lockedLeafNode = lockedLeafNodes.get(i);
-        long lock = locks.get(i);
-        try {
-          lockedLeafNode.iterateKeyValues(
-              encodedStartKey, encodedEndKey, isEndKeyExclusive, actualFunction);
-        } finally {
-          lockedLeafNode.releaseLock(lock);
+      assert lockedLeafNodes.size() == leafNodeLocks.size();
+      try {
+        for (int i = 0; i < lockedLeafNodes.size(); i++) {
+          LeafNode<K, V> lockedLeafNode = lockedLeafNodes.get(i);
+          long lock = leafNodeLocks.get(i);
+          try {
+            lockedLeafNode.iterateKeyValues(
+                encodedStartKey, encodedEndKey, isEndKeyExclusive, actualFunction);
+          } finally {
+            lockedLeafNode.releaseLock(lock);
+            leafNodeLocks.set(i, 0L);
+          }
+          encodedStartKey = null;
         }
-        encodedStartKey = null;
+      } finally {
+        // Release unlocked leaf nodes if needed.
+        for (int i = 0; i < lockedLeafNodes.size(); i++) {
+          long lock = leafNodeLocks.get(i);
+          if (lock != 0) {
+            LeafNode<K, V> lockedLeafNode = lockedLeafNodes.get(i);
+            lockedLeafNode.releaseLock(lock);
+          }
+        }
       }
     } finally {
       qsbrExit();
