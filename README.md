@@ -5,11 +5,11 @@ It provides fast range scans and prefix searches, fast point lookups, and compet
 
 ## Features
 
-* Supports `put()`, `get()`, `scan()`, and `delete()` operations for Integer, Long, and String keys
+* Supports `put()`, `get()`, `scan()`, `scanWithCount()`, `snapshotScan()`, and `delete()` operations for Integer, Long, and String keys
 * **[Significantly faster](#benchmark-result) `scan()` API** for full scans, prefix scans, and range scans (inclusive/exclusive) - up to 4x faster than tree-based alternatives
 * **[Excellent performance](#benchmark-result) for String keys** - 30-41% faster get/put operations than tree-based structures
 * **Faster `get()` for numeric keys** - 26% faster than tree-based structures; competitive `put()` performance
-* **[Thread-safe concurrent access](#multi-thread)** via `setConcurrent(true)` in the builder - outperforms `ConcurrentSkipListMap` for Put+Get and String key scans; trade-off on concurrent numeric key scans
+* **[Thread-safe concurrent access](#concurrent-usage)** via `setConcurrent(true)` in the builder - outperforms `ConcurrentSkipListMap` for Put+Get and String key scans; trade-off on concurrent numeric key scans
 
 ## Installation
 
@@ -21,7 +21,7 @@ Add the following to your `pom.xml`:
 <dependency>
     <groupId>org.komamitsu</groupId>
     <artifactId>wormhole4j</artifactId>
-    <version>0.3.0</version>
+    <version>0.3.1</version>
 </dependency>
 ```
 
@@ -30,7 +30,7 @@ Add the following to your `pom.xml`:
 Add the following to your `build.gradle`:
 
 ```groovy
-implementation 'org.komamitsu:wormhole4j:0.3.0'
+implementation 'org.komamitsu:wormhole4j:0.3.1'
 ```
 
 ### Gradle (Kotlin DSL)
@@ -38,7 +38,7 @@ implementation 'org.komamitsu:wormhole4j:0.3.0'
 Add the following to your `build.gradle.kts`:
 
 ```kotlin
-implementation("org.komamitsu:wormhole4j:0.3.0")
+implementation("org.komamitsu:wormhole4j:0.3.1")
 ```
 
 ## Quick Start
@@ -56,10 +56,8 @@ String value = wormholeStr.get("James"); // returns "semaj"
 // Prefix scan
 List<KeyValue<String, String>> prefixScanResult = wormholeStr.scanWithCount("Ja", 3);
 
-// Range scan (exclusive end)
-List<KeyValue<String, String>> rangeScanResult = new ArrayList<>();
+// Range scan (exclusive end) with a callback
 wormholeStr.scan("Ja", "Joseph", true, (k, v) -> {
-  rangeScanResult.add(new KeyValue<>(k, v));
   /*
   if (k.equals("unexpected_key")) {
     // If you want to stop the scan, return false.
@@ -68,6 +66,9 @@ wormholeStr.scan("Ja", "Joseph", true, (k, v) -> {
   */
   return true;
 });
+
+// Range scan (exclusive end) returning a list
+List<KeyValue<String, String>> rangeScanResult = wormholeStr.scan("Ja", "Joseph", true);
 
 // Delete a record
 String deletedValue = wormholeStr.delete("James"); // returns "semaj"
@@ -110,6 +111,9 @@ try {
         wormhole.registerThread();
         try {
             String value = wormhole.get("James"); // returns "semaj" if the put() operation has completed, otherwise null
+
+            // Use snapshotScan() for a consistent snapshot across all scanned records
+            List<KeyValue<String, String>> snapshot = wormhole.snapshotScan("James", "Joseph", true);
         } finally {
             wormhole.unregisterThread();
         }
