@@ -25,7 +25,7 @@ plugins {
 }
 
 group = "org.komamitsu"
-version = "0.3.0"
+version = "0.3.1"
 
 val projectName = "Wormhole4j"
 val projectDescription = "High-performance ordered in-memory index for Java"
