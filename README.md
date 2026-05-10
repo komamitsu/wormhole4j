@@ -5,7 +5,7 @@ It provides fast range scans and prefix searches, fast point lookups, and compet
 
 ## Features
 
-* Supports `put()`, `get()`, `scan()`, `snapshotScan()`, and `delete()` operations for Integer, Long, and String keys
+* Supports `put()`, `get()`, `scan()`, `scanWithCount()`, `snapshotScan()`, and `delete()` operations for Integer, Long, and String keys
 * **[Significantly faster](#benchmark-result) `scan()` API** for full scans, prefix scans, and range scans (inclusive/exclusive) - up to 4x faster than tree-based alternatives
 * **[Excellent performance](#benchmark-result) for String keys** - 30-41% faster get/put operations than tree-based structures
 * **Faster `get()` for numeric keys** - 26% faster than tree-based structures; competitive `put()` performance
