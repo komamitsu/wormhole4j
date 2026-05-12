@@ -16,8 +16,10 @@
 
 package org.komamitsu.wormhole4j.jmh.benchmark.singlethread;
 
+import static org.komamitsu.wormhole4j.jmh.Constants.RECORD_COUNT;
 import static org.komamitsu.wormhole4j.jmh.Utils.randomInt;
 
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -44,11 +46,27 @@ public abstract class WormholeBenchmark<K extends Comparable<K>> {
     }
   }
 
+  protected abstract static class EmptyState<K extends Comparable<K>> {
+    Wormhole<K, Integer> map;
+
+    protected void setup(Wormhole<K, Integer> wormhole) {
+      map = wormhole;
+    }
+  }
+
+  protected void execInsert(KeysState<K> keysState, EmptyState<K> emptyState) {
+    Wormhole<K, Integer> map = emptyState.map;
+    List<K> keys = keysState.keys;
+    for (int i = 0; i < RECORD_COUNT; i++) {
+      map.put(keys.get(i), i);
+    }
+  }
+
   protected void execGet(KeysState<K> keysState, FullState<K> fullState, Blackhole blackhole) {
     blackhole.consume(fullState.map.get(keysState.getRandomKey()));
   }
 
-  protected void execPut(KeysState<K> keysState, FullState<K> fullState) {
+  protected void execUpdate(KeysState<K> keysState, FullState<K> fullState) {
     fullState.map.put(keysState.getRandomKey(), ThreadLocalRandom.current().nextInt());
   }
 
@@ -71,14 +89,28 @@ public abstract class WormholeBenchmark<K extends Comparable<K>> {
       }
     }
 
+    @State(Scope.Benchmark)
+    public static class EmptyState extends WormholeBenchmark.EmptyState<Integer> {
+      @Setup(Level.Iteration)
+      public void setup() {
+        super.setup(new WormholeBuilder.ForIntKey<Integer>().build());
+      }
+    }
+
+    @Benchmark
+    @OperationsPerInvocation(RECORD_COUNT)
+    public void benchmarkInsert(IntKeysState keysState, EmptyState emptyState) {
+      execInsert(keysState, emptyState);
+    }
+
     @Benchmark
     public void benchmarkGet(IntKeysState keysState, FullState fullState, Blackhole blackhole) {
       execGet(keysState, fullState, blackhole);
     }
 
     @Benchmark
-    public void benchmarkPut(IntKeysState keysState, FullState fullState) {
-      execPut(keysState, fullState);
+    public void benchmarkUpdate(IntKeysState keysState, FullState fullState) {
+      execUpdate(keysState, fullState);
     }
 
     @Benchmark
@@ -96,14 +128,28 @@ public abstract class WormholeBenchmark<K extends Comparable<K>> {
       }
     }
 
+    @State(Scope.Benchmark)
+    public static class EmptyState extends WormholeBenchmark.EmptyState<Long> {
+      @Setup(Level.Iteration)
+      public void setup() {
+        super.setup(new WormholeBuilder.ForLongKey<Integer>().build());
+      }
+    }
+
+    @Benchmark
+    @OperationsPerInvocation(RECORD_COUNT)
+    public void benchmarkInsert(LongKeysState keysState, EmptyState emptyState) {
+      execInsert(keysState, emptyState);
+    }
+
     @Benchmark
     public void benchmarkGet(LongKeysState keysState, FullState fullState, Blackhole blackhole) {
       execGet(keysState, fullState, blackhole);
     }
 
     @Benchmark
-    public void benchmarkPut(LongKeysState keysState, FullState fullState) {
-      execPut(keysState, fullState);
+    public void benchmarkUpdate(LongKeysState keysState, FullState fullState) {
+      execUpdate(keysState, fullState);
     }
 
     @Benchmark
@@ -121,14 +167,28 @@ public abstract class WormholeBenchmark<K extends Comparable<K>> {
       }
     }
 
+    @State(Scope.Benchmark)
+    public static class EmptyState extends WormholeBenchmark.EmptyState<String> {
+      @Setup(Level.Iteration)
+      public void setup() {
+        super.setup(new WormholeBuilder.ForStringKey<Integer>().build());
+      }
+    }
+
+    @Benchmark
+    @OperationsPerInvocation(RECORD_COUNT)
+    public void benchmarkInsert(StringKeysState keysState, EmptyState emptyState) {
+      execInsert(keysState, emptyState);
+    }
+
     @Benchmark
     public void benchmarkGet(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
       execGet(keysState, fullState, blackhole);
     }
 
     @Benchmark
-    public void benchmarkPut(StringKeysState keysState, FullState fullState) {
-      execPut(keysState, fullState);
+    public void benchmarkUpdate(StringKeysState keysState, FullState fullState) {
+      execUpdate(keysState, fullState);
     }
 
     @Benchmark
