@@ -80,10 +80,18 @@ public abstract class WormholeBenchmark<K extends Comparable<K>> {
         (startKey, endKey) -> fullState.map.scan(startKey, endKey, true, function));
   }
 
+  protected void execRemove(KeysState<K> keysState, FullState<K> fullState) {
+    Wormhole<K, Integer> map = fullState.map;
+    List<K> keys = keysState.keys;
+    for (int i = 0; i < RECORD_COUNT; i++) {
+      map.delete(keys.get(i));
+    }
+  }
+
   public static class ForIntKey extends WormholeBenchmark<Integer> {
     @State(Scope.Benchmark)
     public static class FullState extends WormholeBenchmark.FullState<Integer> {
-      @Setup(Level.Trial)
+      @Setup(Level.Iteration)
       public void setup(IntKeysState keysState) {
         super.setup(new WormholeBuilder.ForIntKey<Integer>().build(), keysState);
       }
@@ -99,6 +107,8 @@ public abstract class WormholeBenchmark<K extends Comparable<K>> {
 
     @Benchmark
     @OperationsPerInvocation(RECORD_COUNT)
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(TimeUnit.NANOSECONDS)
     public void benchmarkInsert(IntKeysState keysState, EmptyState emptyState) {
       execInsert(keysState, emptyState);
     }
@@ -117,12 +127,20 @@ public abstract class WormholeBenchmark<K extends Comparable<K>> {
     public void benchmarkScan(IntKeysState keysState, FullState fullState, Blackhole blackhole) {
       execScan(keysState, fullState, blackhole);
     }
+
+    @Benchmark
+    @OperationsPerInvocation(RECORD_COUNT)
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(TimeUnit.NANOSECONDS)
+    public void benchmarkRemove(IntKeysState keysState, FullState fullState) {
+      execRemove(keysState, fullState);
+    }
   }
 
   public static class ForLongKey extends WormholeBenchmark<Long> {
     @State(Scope.Benchmark)
     public static class FullState extends WormholeBenchmark.FullState<Long> {
-      @Setup(Level.Trial)
+      @Setup(Level.Iteration)
       public void setup(LongKeysState keysState) {
         super.setup(new WormholeBuilder.ForLongKey<Integer>().build(), keysState);
       }
@@ -138,6 +156,8 @@ public abstract class WormholeBenchmark<K extends Comparable<K>> {
 
     @Benchmark
     @OperationsPerInvocation(RECORD_COUNT)
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(TimeUnit.NANOSECONDS)
     public void benchmarkInsert(LongKeysState keysState, EmptyState emptyState) {
       execInsert(keysState, emptyState);
     }
@@ -156,12 +176,20 @@ public abstract class WormholeBenchmark<K extends Comparable<K>> {
     public void benchmarkScan(LongKeysState keysState, FullState fullState, Blackhole blackhole) {
       execScan(keysState, fullState, blackhole);
     }
+
+    @Benchmark
+    @OperationsPerInvocation(RECORD_COUNT)
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(TimeUnit.NANOSECONDS)
+    public void benchmarkRemove(LongKeysState keysState, FullState fullState) {
+      execRemove(keysState, fullState);
+    }
   }
 
   public static class ForStringKey extends WormholeBenchmark<String> {
     @State(Scope.Benchmark)
     public static class FullState extends WormholeBenchmark.FullState<String> {
-      @Setup(Level.Trial)
+      @Setup(Level.Iteration)
       public void setup(StringKeysState keysState) {
         super.setup(new WormholeBuilder.ForStringKey<Integer>().build(), keysState);
       }
@@ -177,6 +205,8 @@ public abstract class WormholeBenchmark<K extends Comparable<K>> {
 
     @Benchmark
     @OperationsPerInvocation(RECORD_COUNT)
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(TimeUnit.NANOSECONDS)
     public void benchmarkInsert(StringKeysState keysState, EmptyState emptyState) {
       execInsert(keysState, emptyState);
     }
@@ -194,6 +224,14 @@ public abstract class WormholeBenchmark<K extends Comparable<K>> {
     @Benchmark
     public void benchmarkScan(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
       execScan(keysState, fullState, blackhole);
+    }
+
+    @Benchmark
+    @OperationsPerInvocation(RECORD_COUNT)
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(TimeUnit.NANOSECONDS)
+    public void benchmarkRemove(StringKeysState keysState, FullState fullState) {
+      execRemove(keysState, fullState);
     }
   }
 }

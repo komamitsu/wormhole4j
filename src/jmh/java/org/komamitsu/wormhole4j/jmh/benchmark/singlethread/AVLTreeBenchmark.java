@@ -76,10 +76,18 @@ public abstract class AVLTreeBenchmark<K extends Comparable<K>> {
             fullState.map.subMap(startKey, endKey).forEach((key, value) -> blackhole.consume(key)));
   }
 
+  protected void execRemove(KeysState<K> keysState, FullState<K> fullState) {
+    Object2ObjectSortedMap<K, Integer> map = fullState.map;
+    List<K> keys = keysState.keys;
+    for (int i = 0; i < RECORD_COUNT; i++) {
+      map.remove(keys.get(i));
+    }
+  }
+
   public static class ForIntKey extends AVLTreeBenchmark<Integer> {
     @State(Scope.Benchmark)
     public static class FullState extends AVLTreeBenchmark.FullState<Integer> {
-      @Setup(Level.Trial)
+      @Setup(Level.Iteration)
       public void setup(IntKeysState keysState) {
         super.setup(keysState);
       }
@@ -95,6 +103,8 @@ public abstract class AVLTreeBenchmark<K extends Comparable<K>> {
 
     @Benchmark
     @OperationsPerInvocation(RECORD_COUNT)
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(TimeUnit.NANOSECONDS)
     public void benchmarkInsert(IntKeysState keysState, EmptyState emptyState) {
       execInsert(keysState, emptyState);
     }
@@ -113,12 +123,20 @@ public abstract class AVLTreeBenchmark<K extends Comparable<K>> {
     public void benchmarkScan(IntKeysState keysState, FullState fullState, Blackhole blackhole) {
       execScan(keysState, fullState, blackhole);
     }
+
+    @Benchmark
+    @OperationsPerInvocation(RECORD_COUNT)
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(TimeUnit.NANOSECONDS)
+    public void benchmarkRemove(IntKeysState keysState, FullState fullState) {
+      execRemove(keysState, fullState);
+    }
   }
 
   public static class ForLongKey extends AVLTreeBenchmark<Long> {
     @State(Scope.Benchmark)
     public static class FullState extends AVLTreeBenchmark.FullState<Long> {
-      @Setup(Level.Trial)
+      @Setup(Level.Iteration)
       public void setup(LongKeysState keysState) {
         super.setup(keysState);
       }
@@ -134,6 +152,8 @@ public abstract class AVLTreeBenchmark<K extends Comparable<K>> {
 
     @Benchmark
     @OperationsPerInvocation(RECORD_COUNT)
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(TimeUnit.NANOSECONDS)
     public void benchmarkInsert(LongKeysState keysState, EmptyState emptyState) {
       execInsert(keysState, emptyState);
     }
@@ -152,12 +172,20 @@ public abstract class AVLTreeBenchmark<K extends Comparable<K>> {
     public void benchmarkScan(LongKeysState keysState, FullState fullState, Blackhole blackhole) {
       execScan(keysState, fullState, blackhole);
     }
+
+    @Benchmark
+    @OperationsPerInvocation(RECORD_COUNT)
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(TimeUnit.NANOSECONDS)
+    public void benchmarkRemove(LongKeysState keysState, FullState fullState) {
+      execRemove(keysState, fullState);
+    }
   }
 
   public static class ForStringKey extends AVLTreeBenchmark<String> {
     @State(Scope.Benchmark)
     public static class FullState extends AVLTreeBenchmark.FullState<String> {
-      @Setup(Level.Trial)
+      @Setup(Level.Iteration)
       public void setup(StringKeysState keysState) {
         super.setup(keysState);
       }
@@ -173,6 +201,8 @@ public abstract class AVLTreeBenchmark<K extends Comparable<K>> {
 
     @Benchmark
     @OperationsPerInvocation(RECORD_COUNT)
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(TimeUnit.NANOSECONDS)
     public void benchmarkInsert(StringKeysState keysState, EmptyState emptyState) {
       execInsert(keysState, emptyState);
     }
@@ -190,6 +220,14 @@ public abstract class AVLTreeBenchmark<K extends Comparable<K>> {
     @Benchmark
     public void benchmarkScan(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
       execScan(keysState, fullState, blackhole);
+    }
+
+    @Benchmark
+    @OperationsPerInvocation(RECORD_COUNT)
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(TimeUnit.NANOSECONDS)
+    public void benchmarkRemove(StringKeysState keysState, FullState fullState) {
+      execRemove(keysState, fullState);
     }
   }
 }
