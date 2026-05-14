@@ -83,15 +83,6 @@ public abstract class RedBlackTreeBenchmark<K extends Comparable<K>> {
     }
   }
 
-  // FIXME
-  protected void execBatchUpdate(KeysState<K> keysState, FullState<K> fullState) {
-    TreeMap<K, Integer> map = fullState.map;
-    List<K> keys = keysState.keys;
-    for (int i = 0; i < RECORD_COUNT; i++) {
-      map.put(keys.get(i), i);
-    }
-  }
-
   public static class ForIntKey extends RedBlackTreeBenchmark<Integer> {
     @State(Scope.Benchmark)
     public static class FullState extends RedBlackTreeBenchmark.FullState<Integer> {
@@ -138,15 +129,6 @@ public abstract class RedBlackTreeBenchmark<K extends Comparable<K>> {
     @OutputTimeUnit(TimeUnit.NANOSECONDS)
     public void benchmarkRemove(IntKeysState keysState, FullState fullState) {
       execRemove(keysState, fullState);
-    }
-
-    // FIXME
-    @Benchmark
-    @OperationsPerInvocation(RECORD_COUNT)
-    @BenchmarkMode(Mode.SingleShotTime)
-    @OutputTimeUnit(TimeUnit.NANOSECONDS)
-    public void benchmarkBatchUpdate(IntKeysState keysState, FullState fullState) {
-      execBatchUpdate(keysState, fullState);
     }
   }
 
