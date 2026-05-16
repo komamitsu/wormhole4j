@@ -160,7 +160,7 @@ The performance of Wormhole4j was evaluated against well-known sorted map implem
 
 **String key get/update** is 30-41% faster than both tree implementations, likely due to Wormhole's ability to exploit common key prefixes and avoid redundant character comparisons.
 
-**Numeric key get** shows a clear advantage (+26% over both trees). **Numeric key put** is roughly on par with `TreeMap` and marginally ahead of the AVL tree — within the noise for small datasets.
+**Numeric key get** shows a clear advantage (+26% over both trees). **Numeric key update** is roughly on par with TreeMap — within the noise for small datasets.
 
 **Remove** is slower than both tree implementations. There might be room to improve, however it seems to come from the leaf node data structure of Wormhole.
 
