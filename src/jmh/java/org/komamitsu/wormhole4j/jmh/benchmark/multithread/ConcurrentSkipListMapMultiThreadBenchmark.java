@@ -46,7 +46,7 @@ public abstract class ConcurrentSkipListMapMultiThreadBenchmark<K extends Compar
     blackhole.consume(fullState.map.get(keysState.getRandomKey()));
   }
 
-  protected void execPut(KeysState<K> keysState, FullState<K> fullState) {
+  protected void execUpdate(KeysState<K> keysState, FullState<K> fullState) {
     fullState.map.put(keysState.getRandomKey(), ThreadLocalRandom.current().nextInt());
   }
 
@@ -66,17 +66,17 @@ public abstract class ConcurrentSkipListMapMultiThreadBenchmark<K extends Compar
       }
     }
 
-    @Group("PutAndGet")
+    @Group("UpdateAndGet")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndGetBenchmarkPut(IntKeysState keysState, FullState fullState) {
-      execPut(keysState, fullState);
+    public void updateAndGetBenchmarkUpdate(IntKeysState keysState, FullState fullState) {
+      execUpdate(keysState, fullState);
     }
 
-    @Group("PutAndGet")
+    @Group("UpdateAndGet")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndGetBenchmarkGet(
+    public void updateAndGetBenchmarkGet(
         IntKeysState keysState, FullState fullState, Blackhole blackhole) {
       execGet(keysState, fullState, blackhole);
     }
@@ -84,14 +84,14 @@ public abstract class ConcurrentSkipListMapMultiThreadBenchmark<K extends Compar
     @Group("PutAndScan")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndScanBenchmarkPut(IntKeysState keysState, FullState fullState) {
-      execPut(keysState, fullState);
+    public void updateAndScanBenchmarkUpdate(IntKeysState keysState, FullState fullState) {
+      execUpdate(keysState, fullState);
     }
 
     @Group("PutAndScan")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndScanBenchmarkScan(
+    public void updateAndScanBenchmarkScan(
         IntKeysState keysState, FullState fullState, Blackhole blackhole) {
       execScan(keysState, fullState, blackhole);
     }
@@ -107,17 +107,17 @@ public abstract class ConcurrentSkipListMapMultiThreadBenchmark<K extends Compar
       }
     }
 
-    @Group("PutAndGet")
+    @Group("UpdateAndGet")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndGetBenchmarkPut(LongKeysState keysState, FullState fullState) {
-      execPut(keysState, fullState);
+    public void updateAndGetBenchmarkUpdate(LongKeysState keysState, FullState fullState) {
+      execUpdate(keysState, fullState);
     }
 
-    @Group("PutAndGet")
+    @Group("UpdateAndGet")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndGetBenchmarkGet(
+    public void updateAndGetBenchmarkGet(
         LongKeysState keysState, FullState fullState, Blackhole blackhole) {
       execGet(keysState, fullState, blackhole);
     }
@@ -125,14 +125,14 @@ public abstract class ConcurrentSkipListMapMultiThreadBenchmark<K extends Compar
     @Group("PutAndScan")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndScanBenchmarkPut(LongKeysState keysState, FullState fullState) {
-      execPut(keysState, fullState);
+    public void updateAndScanBenchmarkUpdate(LongKeysState keysState, FullState fullState) {
+      execUpdate(keysState, fullState);
     }
 
     @Group("PutAndScan")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndScanBenchmarkScan(
+    public void updateAndScanBenchmarkScan(
         LongKeysState keysState, FullState fullState, Blackhole blackhole) {
       execScan(keysState, fullState, blackhole);
     }
@@ -148,17 +148,17 @@ public abstract class ConcurrentSkipListMapMultiThreadBenchmark<K extends Compar
       }
     }
 
-    @Group("PutAndGet")
+    @Group("UpdateAndGet")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndGetBenchmarkPut(StringKeysState keysState, FullState fullState) {
-      execPut(keysState, fullState);
+    public void updateAndGetBenchmarkUpdate(StringKeysState keysState, FullState fullState) {
+      execUpdate(keysState, fullState);
     }
 
-    @Group("PutAndGet")
+    @Group("UpdateAndGet")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndGetBenchmarkGet(
+    public void updateAndGetBenchmarkGet(
         StringKeysState keysState, FullState fullState, Blackhole blackhole) {
       execGet(keysState, fullState, blackhole);
     }
@@ -166,14 +166,14 @@ public abstract class ConcurrentSkipListMapMultiThreadBenchmark<K extends Compar
     @Group("PutAndScan")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndScanBenchmarkPut(StringKeysState keysState, FullState fullState) {
-      execPut(keysState, fullState);
+    public void updateAndScanBenchmarkUpdate(StringKeysState keysState, FullState fullState) {
+      execUpdate(keysState, fullState);
     }
 
     @Group("PutAndScan")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndScanBenchmarkScan(
+    public void updateAndScanBenchmarkScan(
         StringKeysState keysState, FullState fullState, Blackhole blackhole) {
       execScan(keysState, fullState, blackhole);
     }

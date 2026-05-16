@@ -179,7 +179,7 @@ def plot_scaling_chart(
     ax.xaxis.grid(True, linestyle="--", color="#eeeeee", linewidth=0.6)
 
     ax.set_title(title, fontsize=13, fontweight="normal", pad=12)
-    ax.set_xlabel("Number of Threads (PUT + GET/SCAN)", fontsize=11)
+    ax.set_xlabel("Number of Threads (UPDATE + GET/SCAN)", fontsize=11)
     ax.set_ylabel("Throughput (Millions of ops/s)", fontsize=11)
 
     # X-axis: show only the actual thread counts

@@ -87,34 +87,34 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
       }
     }
 
-    @Group("PutAndGet")
+    @Group("UpdateAndGet")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndGetBenchmarkPut(
+    public void updateAndGetBenchmarkUpdate(
         IntKeysState keysState, FullState fullState, ThreadState threadState) {
       execPut(keysState, fullState);
     }
 
-    @Group("PutAndGet")
+    @Group("UpdateAndGet")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndGetBenchmarkGet(
+    public void updateAndGetBenchmarkGet(
         IntKeysState keysState, FullState fullState, Blackhole blackhole, ThreadState threadState) {
       execGet(keysState, fullState, blackhole);
     }
 
-    @Group("PutAndScan")
+    @Group("UpdateAndScan")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndScanBenchmarkPut(
+    public void updateAndScanBenchmarkUpdate(
         IntKeysState keysState, FullState fullState, ThreadState threadState) {
       execPut(keysState, fullState);
     }
 
-    @Group("PutAndScan")
+    @Group("UpdateAndScan")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndScanBenchmarkScan(
+    public void updateAndScanBenchmarkScan(
         IntKeysState keysState, FullState fullState, Blackhole blackhole, ThreadState threadState) {
       execScan(keysState, fullState, blackhole);
     }
@@ -143,18 +143,18 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
       }
     }
 
-    @Group("PutAndGet")
+    @Group("UpdateAndGet")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndGetBenchmarkPut(
+    public void updateAndGetBenchmarkUpdate(
         LongKeysState keysState, FullState fullState, ThreadState threadState) {
       execPut(keysState, fullState);
     }
 
-    @Group("PutAndGet")
+    @Group("UpdateAndGet")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndGetBenchmarkGet(
+    public void updateAndGetBenchmarkGet(
         LongKeysState keysState,
         FullState fullState,
         Blackhole blackhole,
@@ -162,18 +162,18 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
       execGet(keysState, fullState, blackhole);
     }
 
-    @Group("PutAndScan")
+    @Group("UpdateAndScan")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndScanBenchmarkPut(
+    public void updateAndScanBenchmarkUpdate(
         LongKeysState keysState, FullState fullState, ThreadState threadState) {
       execPut(keysState, fullState);
     }
 
-    @Group("PutAndScan")
+    @Group("UpdateAndScan")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndScanBenchmarkScan(
+    public void updateAndScanBenchmarkScan(
         LongKeysState keysState,
         FullState fullState,
         Blackhole blackhole,
@@ -205,18 +205,18 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
       }
     }
 
-    @Group("PutAndGet")
+    @Group("UpdateAndGet")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndGetBenchmarkPut(
+    public void updateAndGetBenchmarkUpdate(
         StringKeysState keysState, FullState fullState, ThreadState threadState) {
       execPut(keysState, fullState);
     }
 
-    @Group("PutAndGet")
+    @Group("UpdateAndGet")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndGetBenchmarkGet(
+    public void updateAndGetBenchmarkGet(
         StringKeysState keysState,
         FullState fullState,
         Blackhole blackhole,
@@ -224,18 +224,18 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
       execGet(keysState, fullState, blackhole);
     }
 
-    @Group("PutAndScan")
+    @Group("UpdateAndScan")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndScanBenchmarkPut(
+    public void updateAndScanBenchmarkUpdate(
         StringKeysState keysState, FullState fullState, ThreadState threadState) {
       execPut(keysState, fullState);
     }
 
-    @Group("PutAndScan")
+    @Group("UpdateAndScan")
     @GroupThreads(Constants.GROUP_THREADS)
     @Benchmark
-    public void putAndScanBenchmarkScan(
+    public void updateAndScanBenchmarkScan(
         StringKeysState keysState,
         FullState fullState,
         Blackhole blackhole,
