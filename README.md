@@ -156,7 +156,7 @@ The performance of Wormhole4j was evaluated against well-known sorted map implem
 
 **SCAN** is Wormhole's strongest suit: up to 4x faster than the AVL tree and 2x faster than `TreeMap` for numeric keys. This reflects the core advantage of Wormhole's linked leaf node structure for range traversal.
 
-**String key GET/UPDATE** is about 40% faster than both tree implementations, likely due to Wormhole's hash table based Trie and the indexes in a leaf node, which allow it to exploit common key prefixes and avoid redundant character comparisons.
+**String key GET/UPDATE** is about 40% faster than both tree implementations, likely due to Wormhole's hash-table-based Trie and the indexes in a leaf node, which allow it to exploit common key prefixes and avoid redundant character comparisons.
 
 **REMOVE** is slower than both tree implementations. There might be room to improve. However, this performance characteristic appears to be inherent to Wormhole's leaf node design.
 
