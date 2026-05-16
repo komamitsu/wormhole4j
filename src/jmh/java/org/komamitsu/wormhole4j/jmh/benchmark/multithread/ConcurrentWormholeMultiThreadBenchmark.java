@@ -49,7 +49,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     blackhole.consume(fullState.map.get(keysState.getRandomKey()));
   }
 
-  protected void execPut(KeysState<K> keysState, FullState<K> fullState) {
+  protected void execUpdate(KeysState<K> keysState, FullState<K> fullState) {
     fullState.map.put(keysState.getRandomKey(), ThreadLocalRandom.current().nextInt());
   }
 
@@ -92,7 +92,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     @Benchmark
     public void updateAndGetBenchmarkUpdate(
         IntKeysState keysState, FullState fullState, ThreadState threadState) {
-      execPut(keysState, fullState);
+      execUpdate(keysState, fullState);
     }
 
     @Group("UpdateAndGet")
@@ -108,7 +108,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     @Benchmark
     public void updateAndScanBenchmarkUpdate(
         IntKeysState keysState, FullState fullState, ThreadState threadState) {
-      execPut(keysState, fullState);
+      execUpdate(keysState, fullState);
     }
 
     @Group("UpdateAndScan")
@@ -148,7 +148,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     @Benchmark
     public void updateAndGetBenchmarkUpdate(
         LongKeysState keysState, FullState fullState, ThreadState threadState) {
-      execPut(keysState, fullState);
+      execUpdate(keysState, fullState);
     }
 
     @Group("UpdateAndGet")
@@ -167,7 +167,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     @Benchmark
     public void updateAndScanBenchmarkUpdate(
         LongKeysState keysState, FullState fullState, ThreadState threadState) {
-      execPut(keysState, fullState);
+      execUpdate(keysState, fullState);
     }
 
     @Group("UpdateAndScan")
@@ -210,7 +210,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     @Benchmark
     public void updateAndGetBenchmarkUpdate(
         StringKeysState keysState, FullState fullState, ThreadState threadState) {
-      execPut(keysState, fullState);
+      execUpdate(keysState, fullState);
     }
 
     @Group("UpdateAndGet")
@@ -229,7 +229,7 @@ public abstract class ConcurrentWormholeMultiThreadBenchmark<K extends Comparabl
     @Benchmark
     public void updateAndScanBenchmarkUpdate(
         StringKeysState keysState, FullState fullState, ThreadState threadState) {
-      execPut(keysState, fullState);
+      execUpdate(keysState, fullState);
     }
 
     @Group("UpdateAndScan")
