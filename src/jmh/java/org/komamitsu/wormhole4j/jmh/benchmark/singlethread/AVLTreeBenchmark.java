@@ -16,12 +16,15 @@
 
 package org.komamitsu.wormhole4j.jmh.benchmark.singlethread;
 
+import static org.komamitsu.wormhole4j.jmh.Constants.RECORD_COUNT;
 import static org.komamitsu.wormhole4j.jmh.Utils.randomInt;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectSortedMap;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import org.komamitsu.wormhole4j.jmh.Constants;
 import org.komamitsu.wormhole4j.jmh.state.IntKeysState;
 import org.komamitsu.wormhole4j.jmh.state.KeysState;
 import org.komamitsu.wormhole4j.jmh.state.LongKeysState;
@@ -29,9 +32,7 @@ import org.komamitsu.wormhole4j.jmh.state.StringKeysState;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
-@BenchmarkMode(Mode.Throughput)
-@OutputTimeUnit(TimeUnit.SECONDS)
-public abstract class AVLTreeBenchmark<K extends Comparable<K>> {
+public abstract class AVLTreeBenchmark<K extends Comparable<K>> extends SingleThreadBenchmark {
 
   protected abstract static class FullState<K extends Comparable<K>> {
     Object2ObjectSortedMap<K, Integer> map;
@@ -44,11 +45,27 @@ public abstract class AVLTreeBenchmark<K extends Comparable<K>> {
     }
   }
 
+  protected abstract static class EmptyState<K extends Comparable<K>> {
+    Object2ObjectSortedMap<K, Integer> map;
+
+    protected void setup() {
+      map = new Object2ObjectAVLTreeMap<>();
+    }
+  }
+
+  protected void execInsert(KeysState<K> keysState, EmptyState<K> emptyState) {
+    Object2ObjectSortedMap<K, Integer> map = emptyState.map;
+    List<K> keys = keysState.keys;
+    for (int i = 0; i < RECORD_COUNT; i++) {
+      map.put(keys.get(i), i);
+    }
+  }
+
   protected void execGet(KeysState<K> keysState, FullState<K> fullState, Blackhole blackhole) {
     blackhole.consume(fullState.map.get(keysState.getRandomKey()));
   }
 
-  protected void execPut(KeysState<K> keysState, FullState<K> fullState) {
+  protected void execUpdate(KeysState<K> keysState, FullState<K> fullState) {
     fullState.map.put(keysState.getRandomKey(), ThreadLocalRandom.current().nextInt());
   }
 
@@ -58,13 +75,38 @@ public abstract class AVLTreeBenchmark<K extends Comparable<K>> {
             fullState.map.subMap(startKey, endKey).forEach((key, value) -> blackhole.consume(key)));
   }
 
+  protected void execRemove(KeysState<K> keysState, FullState<K> fullState) {
+    Object2ObjectSortedMap<K, Integer> map = fullState.map;
+    List<K> keys = keysState.keys;
+    for (int i = 0; i < RECORD_COUNT; i++) {
+      map.remove(keys.get(i));
+    }
+  }
+
   public static class ForIntKey extends AVLTreeBenchmark<Integer> {
     @State(Scope.Benchmark)
     public static class FullState extends AVLTreeBenchmark.FullState<Integer> {
-      @Setup(Level.Trial)
+      @Setup(Level.Iteration)
       public void setup(IntKeysState keysState) {
         super.setup(keysState);
       }
+    }
+
+    @State(Scope.Benchmark)
+    public static class EmptyState extends AVLTreeBenchmark.EmptyState<Integer> {
+      @Setup(Level.Iteration)
+      public void setup() {
+        super.setup();
+      }
+    }
+
+    @Benchmark
+    @OperationsPerInvocation(RECORD_COUNT)
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(TimeUnit.NANOSECONDS)
+    @Warmup(iterations = Constants.WARMUP_ITERATIONS_BATCH)
+    public void benchmarkInsert(IntKeysState keysState, EmptyState emptyState) {
+      execInsert(keysState, emptyState);
     }
 
     @Benchmark
@@ -73,23 +115,49 @@ public abstract class AVLTreeBenchmark<K extends Comparable<K>> {
     }
 
     @Benchmark
-    public void benchmarkPut(IntKeysState keysState, FullState fullState) {
-      execPut(keysState, fullState);
+    public void benchmarkUpdate(IntKeysState keysState, FullState fullState) {
+      execUpdate(keysState, fullState);
     }
 
     @Benchmark
     public void benchmarkScan(IntKeysState keysState, FullState fullState, Blackhole blackhole) {
       execScan(keysState, fullState, blackhole);
     }
+
+    @Benchmark
+    @OperationsPerInvocation(RECORD_COUNT)
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(TimeUnit.NANOSECONDS)
+    @Warmup(iterations = Constants.WARMUP_ITERATIONS_BATCH)
+    public void benchmarkRemove(IntKeysState keysState, FullState fullState) {
+      execRemove(keysState, fullState);
+    }
   }
 
   public static class ForLongKey extends AVLTreeBenchmark<Long> {
     @State(Scope.Benchmark)
     public static class FullState extends AVLTreeBenchmark.FullState<Long> {
-      @Setup(Level.Trial)
+      @Setup(Level.Iteration)
       public void setup(LongKeysState keysState) {
         super.setup(keysState);
       }
+    }
+
+    @State(Scope.Benchmark)
+    public static class EmptyState extends AVLTreeBenchmark.EmptyState<Long> {
+      @Setup(Level.Iteration)
+      public void setup() {
+        super.setup();
+      }
+    }
+
+    @Benchmark
+    @OperationsPerInvocation(RECORD_COUNT)
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(TimeUnit.NANOSECONDS)
+    @Warmup(iterations = Constants.WARMUP_ITERATIONS_BATCH)
+    public void benchmarkInsert(LongKeysState keysState, EmptyState emptyState) {
+      execInsert(keysState, emptyState);
     }
 
     @Benchmark
@@ -98,23 +166,49 @@ public abstract class AVLTreeBenchmark<K extends Comparable<K>> {
     }
 
     @Benchmark
-    public void benchmarkPut(LongKeysState keysState, FullState fullState) {
-      execPut(keysState, fullState);
+    public void benchmarkUpdate(LongKeysState keysState, FullState fullState) {
+      execUpdate(keysState, fullState);
     }
 
     @Benchmark
     public void benchmarkScan(LongKeysState keysState, FullState fullState, Blackhole blackhole) {
       execScan(keysState, fullState, blackhole);
     }
+
+    @Benchmark
+    @OperationsPerInvocation(RECORD_COUNT)
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(TimeUnit.NANOSECONDS)
+    @Warmup(iterations = Constants.WARMUP_ITERATIONS_BATCH)
+    public void benchmarkRemove(LongKeysState keysState, FullState fullState) {
+      execRemove(keysState, fullState);
+    }
   }
 
   public static class ForStringKey extends AVLTreeBenchmark<String> {
     @State(Scope.Benchmark)
     public static class FullState extends AVLTreeBenchmark.FullState<String> {
-      @Setup(Level.Trial)
+      @Setup(Level.Iteration)
       public void setup(StringKeysState keysState) {
         super.setup(keysState);
       }
+    }
+
+    @State(Scope.Benchmark)
+    public static class EmptyState extends AVLTreeBenchmark.EmptyState<String> {
+      @Setup(Level.Iteration)
+      public void setup() {
+        super.setup();
+      }
+    }
+
+    @Benchmark
+    @OperationsPerInvocation(RECORD_COUNT)
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(TimeUnit.NANOSECONDS)
+    @Warmup(iterations = Constants.WARMUP_ITERATIONS_BATCH)
+    public void benchmarkInsert(StringKeysState keysState, EmptyState emptyState) {
+      execInsert(keysState, emptyState);
     }
 
     @Benchmark
@@ -123,13 +217,22 @@ public abstract class AVLTreeBenchmark<K extends Comparable<K>> {
     }
 
     @Benchmark
-    public void benchmarkPut(StringKeysState keysState, FullState fullState) {
-      execPut(keysState, fullState);
+    public void benchmarkUpdate(StringKeysState keysState, FullState fullState) {
+      execUpdate(keysState, fullState);
     }
 
     @Benchmark
     public void benchmarkScan(StringKeysState keysState, FullState fullState, Blackhole blackhole) {
       execScan(keysState, fullState, blackhole);
+    }
+
+    @Benchmark
+    @OperationsPerInvocation(RECORD_COUNT)
+    @BenchmarkMode(Mode.SingleShotTime)
+    @OutputTimeUnit(TimeUnit.NANOSECONDS)
+    @Warmup(iterations = Constants.WARMUP_ITERATIONS_BATCH)
+    public void benchmarkRemove(StringKeysState keysState, FullState fullState) {
+      execRemove(keysState, fullState);
     }
   }
 }

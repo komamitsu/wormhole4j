@@ -4,8 +4,9 @@ Generate JMH benchmark bar charts from a single-thread JMH result text file.
 
 Expected format:
     AVLTreeBenchmark.ForIntKey.benchmarkGet  thrpt ...
+    AVLTreeBenchmark.ForIntKey.benchmarkInsert ss ...
 
-One chart is produced per operation (Get / Put / Scan):
+One chart is produced per operation (Get / Put / Scan / Insert / Remove):
   x-axis: key type (IntKey, LongKey, StringKey)
   bars:   implementation
 
@@ -16,11 +17,6 @@ Options:
     java_version     Label used in chart titles and output filenames (e.g. Java21)
     --out-dir DIR    Directory to write output PNG files (default: same dir as input file)
     --error-bars     Show error bars on each bar (disabled by default)
-
-Output filenames:
-    bench-<java_version>-get.png
-    bench-<java_version>-put.png
-    bench-<java_version>-scan.png
 """
 
 import argparse
@@ -61,15 +57,15 @@ def op_label(raw: str) -> str:
     return raw.capitalize()
 
 
-
 # ---------------------------------------------------------------------------
 # 2. Parsing
 # ---------------------------------------------------------------------------
 
-# AVLTreeBenchmark.ForIntKey.benchmarkGet
+# Matches JMH line format and captures the benchmark class, key type, operation,
+# raw score, error, and unit type dynamically.
 _SINGLE_THREAD_RE = re.compile(
     r"^(\w+Benchmark)\.(\w+Key)\.(benchmark\w+)"
-    r"\s+thrpt\s+\d+\s+([\d.]+)\s+[±]\s+([\d.]+)",
+    r"\s+\w+\s+\d+\s+([\d.]+)\s+[±]\s+([\d.]+)\s+(\S+)",
 )
 
 # Map benchmark class name → short implementation label
@@ -82,7 +78,7 @@ _IMPL_MAP = {
 
 def parse_jmh(path: str):
     """
-    Parse a single-thread JMH throughput result file.
+    Parse a single-thread JMH result file, supporting both ops/s and ns/op units.
 
     Returns:
         data[operation][impl][key_type] = (score, error)
@@ -94,16 +90,27 @@ def parse_jmh(path: str):
             m = _SINGLE_THREAD_RE.match(line.strip())
             if not m:
                 continue
-            bench_class, key_type, raw_op, score_s, error_s = m.groups()
+            bench_class, key_type, raw_op, score_s, error_s, unit = m.groups()
+            
+            score = float(score_s)
+            error = float(error_s)
+            
+            # Convert ns/op to ops/s format if necessary
+            if unit == "ns/op":
+                if score > 0:
+                    # Propagate error accurately for 1/x scaling
+                    error = (1e9 / score) * (error / score)
+                    score = 1e9 / score
+                else:
+                    score, error = 0.0, 0.0
+
             impl = _IMPL_MAP.get(bench_class, camel_to_display(
                 re.sub(r"Benchmark$", "", bench_class)
             ))
             op = op_label(raw_op)
-            data[op][impl][key_type] = (float(score_s), float(error_s))
+            data[op][impl][key_type] = (score, error)
 
     return data
-
-
 
 
 # ---------------------------------------------------------------------------

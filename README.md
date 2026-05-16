@@ -9,7 +9,7 @@ It provides fast range scans and prefix searches, fast point lookups, and compet
 * **[Significantly faster](#benchmark-result) `scan()` API** for full scans, prefix scans, and range scans (inclusive/exclusive) - up to 4x faster than tree-based alternatives
 * **[Excellent performance](#benchmark-result) for String keys** - 30-41% faster get/put operations than tree-based structures
 * **Faster `get()` for numeric keys** - 26% faster than tree-based structures; competitive `put()` performance
-* **[Thread-safe concurrent access](#concurrent-usage)** via `setConcurrent(true)` in the builder - outperforms `ConcurrentSkipListMap` for Put+Get and String key scans; trade-off on concurrent numeric key scans
+* **[Thread-safe concurrent access](#concurrent-usage)** via `setConcurrent(true)` in the builder - outperforms `ConcurrentSkipListMap` for update+get and String key scans; trade-off on concurrent numeric key scans
 
 ## Installation
 
@@ -130,17 +130,21 @@ try {
 
 The performance of Wormhole4j was evaluated against well-known sorted map implementations.
 
-![Java 21 - Get](./data/benchmark/2026/05/01/bench-java21-get.png)
-![Java 21 - Put](./data/benchmark/2026/05/01/bench-java21-put.png)
-![Java 21 - Scan](./data/benchmark/2026/05/01/bench-java21-scan.png)
+![Java 21 - GET](./data/benchmark/2026/05/16/bench-java21-get.png)
+![Java 21 - UPDATE](./data/benchmark/2026/05/16/bench-java21-update.png)
+![Java 21 - INSERT](./data/benchmark/2026/05/16/bench-java21-insert.png)
+![Java 21 - REMOVE](./data/benchmark/2026/05/16/bench-java21-remove.png)
+![Java 21 - SCAN](./data/benchmark/2026/05/16/bench-java21-scan.png)
 
 #### Benchmark Configuration
 
 - **Record count:** 100,000 records
 - **Operations measured:**
-  - GET: 100,000 operations (random lookups from a populated map)
-  - PUT: 100,000 operations (random updates with a populated map)
-  - SCAN: 10,000 operations (range scans with scan size of 512 records)
+  - GET: 10 second operations
+  - UPDATE: 10 second operations
+  - INSERT: 100,000 operations
+  - REMOVE: 100,000 operations
+  - SCAN: 10 second operations (range scans with scan size of 512 records)
 - **Key types tested:** Integer, Long, and String
   - String keys: length range 32-256 characters
 - **JVM version:** Java 21
@@ -154,25 +158,27 @@ The performance of Wormhole4j was evaluated against well-known sorted map implem
 
 **Scan** is Wormhole's strongest suit: up to 4x faster than the AVL tree and 2x faster than `TreeMap` for numeric keys, and 40% faster than `TreeMap` for string keys. This reflects the core advantage of the Wormhole index structure for range traversal.
 
-**String key get/put** is 30-41% faster than both tree implementations, likely due to Wormhole's ability to exploit common key prefixes and avoid redundant character comparisons.
+**String key get/update** is 30-41% faster than both tree implementations, likely due to Wormhole's ability to exploit common key prefixes and avoid redundant character comparisons.
 
-**Numeric key get** shows a clear advantage (+26% over both trees). **Numeric key put** is roughly on par with `TreeMap` and marginally ahead of the AVL tree — within the noise for small datasets.
+**Numeric key get** shows a clear advantage (+26% over both trees). **Numeric key update** is roughly on par with TreeMap — within the noise for small datasets.
+
+**Remove** is slower than both tree implementations. There might be room to improve, however it seems to come from the leaf node data structure of Wormhole.
 
 ### Multi-thread
 
 The concurrent performance of Wormhole4j was evaluated with simultaneous read and write operations across varying thread counts.
 
-![Java 21 - Put and Get (IntKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandget-intkey.png)
-![Java 21 - Put and Get (LongKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandget-longkey.png)
-![Java 21 - Put and Get (StringKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandget-stringkey.png)
-![Java 21 - Put and Scan (IntKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandscan-intkey.png)
-![Java 21 - Put and Scan (LongKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandscan-longkey.png)
-![Java 21 - Put and Scan (StringKey)](./data/benchmark/2026/05/01/bench-java21-mt-putandscan-stringkey.png)
+![Java 21 - UPDATE and GET (IntKey)](./data/benchmark/2026/05/01/bench-java21-mt-updateandget-intkey.png)
+![Java 21 - UPDATE and GET (LongKey)](./data/benchmark/2026/05/01/bench-java21-mt-updateandget-longkey.png)
+![Java 21 - UPDATE and GET (StringKey)](./data/benchmark/2026/05/01/bench-java21-mt-updateandget-stringkey.png)
+![Java 21 - UPDATE and SCAN (IntKey)](./data/benchmark/2026/05/01/bench-java21-mt-updateandscan-intkey.png)
+![Java 21 - UPDATE and SCAN (LongKey)](./data/benchmark/2026/05/01/bench-java21-mt-updateandscan-longkey.png)
+![Java 21 - UPDATE and SCAN (StringKey)](./data/benchmark/2026/05/01/bench-java21-mt-updateandscan-stringkey.png)
 
 #### Benchmark Configuration
 
 - **Record count:** 100,000 records
-- **Scenarios:** N PUT threads and N GET (or SCAN) threads running concurrently, where N = 1, 2, 4, 8
+- **Scenarios:** N UPDATE threads and N GET (or SCAN) threads running concurrently, where N = 1, 2, 4, 8
 - **Key types tested:** Integer, Long, and String
   - String keys: length range 32-256 characters
 - **JVM version:** Java 21
@@ -183,11 +189,11 @@ The concurrent performance of Wormhole4j was evaluated with simultaneous read an
 
 #### Key Findings
 
-**Put + Get:** Wormhole consistently outperforms `ConcurrentSkipListMap` across all thread counts and key types. The advantage is largest for String keys (up to 2x faster at 1+1 threads, 56% faster at 8+8) and solid for numeric keys (15-48% faster depending on thread count).
+**UPDATE + GET:** Wormhole consistently outperforms `ConcurrentSkipListMap` across all thread counts and key types. The advantage is largest for String keys (up to 2x faster at 1+1 threads, 56% faster at 8+8) and solid for numeric keys (15-48% faster depending on thread count).
 
-**Put + Scan (PUT throughput):** Similarly strong gains, especially for String keys (up to 2.3x faster PUT at 1+1 threads, 84% faster combined at 8+8).
+**UPDATE + SCAN (UPDATE throughput):** Similarly strong gains, especially for String keys (up to 2.3x faster UPDATE at 1+1 threads, 84% faster combined at 8+8).
 
-**Put + Scan (SCAN throughput):** Results are mixed. For String keys, Wormhole is faster across all thread counts (30-89%). For Integer and Long keys, `ConcurrentSkipListMap` has a SCAN advantage (38-48% faster) under concurrent write pressure — a trade-off to be aware of for scan-heavy workloads with numeric keys.
+**UPDATE + SCAN (SCAN throughput):** Results are mixed. For String keys, Wormhole is faster across all thread counts (30-89%). For Integer and Long keys, `ConcurrentSkipListMap` has a SCAN advantage (38-48% faster) under concurrent write pressure — a trade-off to be aware of for scan-heavy workloads with numeric keys.
 
 **Scalability:** Both implementations scale roughly linearly from 1+1 to 4+4 threads (around 3x throughput gain) and flatten similarly beyond that. Wormhole's throughput advantage is maintained at all tested thread counts.
 
