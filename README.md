@@ -131,7 +131,7 @@ try {
 The performance of Wormhole4j was evaluated against well-known sorted map implementations.
 
 ![Java 21 - GET](./data/benchmark/2026/05/16/bench-java21-get.png)
-![Java 21 - UPDATE](./data/benchmark/2026/05/16/bench-java21-put.png)
+![Java 21 - UPDATE](./data/benchmark/2026/05/16/bench-java21-update.png)
 ![Java 21 - INSERT](./data/benchmark/2026/05/16/bench-java21-insert.png)
 ![Java 21 - REMOVE](./data/benchmark/2026/05/16/bench-java21-remove.png)
 ![Java 21 - SCAN](./data/benchmark/2026/05/16/bench-java21-scan.png)
