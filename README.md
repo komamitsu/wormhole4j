@@ -158,7 +158,7 @@ The performance of Wormhole4j was evaluated against well-known sorted map implem
 
 **String key GET/UPDATE** is about 40% faster than both tree implementations, likely due to Wormhole's hash table based Trie and the indexes in a leaf node, which allow it to exploit common key prefixes and avoid redundant character comparisons.
 
-**REMOVE** is slower than both tree implementations. There might be room to improve. However, it seems to come from the leaf node data structure of Wormhole.
+**REMOVE** is slower than both tree implementations. There might be room to improve. However, this performance characteristic appears to be inherent to Wormhole's leaf node design.
 
 ### Multi-thread
 
