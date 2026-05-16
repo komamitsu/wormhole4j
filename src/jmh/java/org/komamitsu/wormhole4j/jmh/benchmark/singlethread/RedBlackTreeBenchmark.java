@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.TreeMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import org.komamitsu.wormhole4j.jmh.Constants;
 import org.komamitsu.wormhole4j.jmh.state.IntKeysState;
 import org.komamitsu.wormhole4j.jmh.state.KeysState;
 import org.komamitsu.wormhole4j.jmh.state.LongKeysState;
@@ -30,9 +31,7 @@ import org.komamitsu.wormhole4j.jmh.state.StringKeysState;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
-@BenchmarkMode(Mode.Throughput)
-@OutputTimeUnit(TimeUnit.SECONDS)
-public abstract class RedBlackTreeBenchmark<K extends Comparable<K>> {
+public abstract class RedBlackTreeBenchmark<K extends Comparable<K>> extends SingleThreadBenchmark {
 
   protected abstract static class FullState<K extends Comparable<K>> {
     TreeMap<K, Integer> map;
@@ -104,6 +103,7 @@ public abstract class RedBlackTreeBenchmark<K extends Comparable<K>> {
     @OperationsPerInvocation(RECORD_COUNT)
     @BenchmarkMode(Mode.SingleShotTime)
     @OutputTimeUnit(TimeUnit.NANOSECONDS)
+    @Warmup(iterations = Constants.WARMUP_ITERATIONS_BATCH)
     public void benchmarkInsert(IntKeysState keysState, EmptyState emptyState) {
       execInsert(keysState, emptyState);
     }
@@ -127,6 +127,7 @@ public abstract class RedBlackTreeBenchmark<K extends Comparable<K>> {
     @OperationsPerInvocation(RECORD_COUNT)
     @BenchmarkMode(Mode.SingleShotTime)
     @OutputTimeUnit(TimeUnit.NANOSECONDS)
+    @Warmup(iterations = Constants.WARMUP_ITERATIONS_BATCH)
     public void benchmarkRemove(IntKeysState keysState, FullState fullState) {
       execRemove(keysState, fullState);
     }
@@ -153,6 +154,7 @@ public abstract class RedBlackTreeBenchmark<K extends Comparable<K>> {
     @OperationsPerInvocation(RECORD_COUNT)
     @BenchmarkMode(Mode.SingleShotTime)
     @OutputTimeUnit(TimeUnit.NANOSECONDS)
+    @Warmup(iterations = Constants.WARMUP_ITERATIONS_BATCH)
     public void benchmarkInsert(LongKeysState keysState, EmptyState emptyState) {
       execInsert(keysState, emptyState);
     }
@@ -176,6 +178,7 @@ public abstract class RedBlackTreeBenchmark<K extends Comparable<K>> {
     @OperationsPerInvocation(RECORD_COUNT)
     @BenchmarkMode(Mode.SingleShotTime)
     @OutputTimeUnit(TimeUnit.NANOSECONDS)
+    @Warmup(iterations = Constants.WARMUP_ITERATIONS_BATCH)
     public void benchmarkRemove(LongKeysState keysState, FullState fullState) {
       execRemove(keysState, fullState);
     }
@@ -202,6 +205,7 @@ public abstract class RedBlackTreeBenchmark<K extends Comparable<K>> {
     @OperationsPerInvocation(RECORD_COUNT)
     @BenchmarkMode(Mode.SingleShotTime)
     @OutputTimeUnit(TimeUnit.NANOSECONDS)
+    @Warmup(iterations = Constants.WARMUP_ITERATIONS_BATCH)
     public void benchmarkInsert(StringKeysState keysState, EmptyState emptyState) {
       execInsert(keysState, emptyState);
     }
@@ -225,6 +229,7 @@ public abstract class RedBlackTreeBenchmark<K extends Comparable<K>> {
     @OperationsPerInvocation(RECORD_COUNT)
     @BenchmarkMode(Mode.SingleShotTime)
     @OutputTimeUnit(TimeUnit.NANOSECONDS)
+    @Warmup(iterations = Constants.WARMUP_ITERATIONS_BATCH)
     public void benchmarkRemove(StringKeysState keysState, FullState fullState) {
       execRemove(keysState, fullState);
     }

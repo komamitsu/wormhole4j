@@ -14,19 +14,14 @@
  * limitations under the License.
  */
 
-package org.komamitsu.wormhole4j.jmh;
+package org.komamitsu.wormhole4j.jmh.benchmark.multithread;
 
-public final class Constants {
-  public static final int RECORD_COUNT = 100000;
-  public static final int SCAN_OPS_COUNT = RECORD_COUNT / 10;
-  static final int MIN_STRING_KEY_LEN = 32;
-  static final int MAX_STRING_KEY_LEN = 256;
-  public static final int SCAN_RANGE_SIZE = 512;
+import java.util.concurrent.TimeUnit;
+import org.komamitsu.wormhole4j.jmh.Constants;
+import org.openjdk.jmh.annotations.*;
 
-  public static final int MEASUREMENT_ITERATIONS = 1;
-  public static final int WARMUP_ITERATIONS_REGULAR = 1;
-  public static final int WARMUP_ITERATIONS_BATCH = 2;
-  public static final int GROUP_THREADS = 8;
-
-  private Constants() {}
-}
+@Warmup(iterations = Constants.WARMUP_ITERATIONS_REGULAR)
+@Measurement(iterations = Constants.MEASUREMENT_ITERATIONS)
+@BenchmarkMode(Mode.Throughput)
+@OutputTimeUnit(TimeUnit.SECONDS)
+public abstract class MultiThreadBenchmark {}

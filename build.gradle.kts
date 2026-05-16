@@ -66,8 +66,6 @@ tasks.test {
 }
 
 jmh {
-    warmupIterations = 1
-    iterations = 1
     fork = 8
     failOnError = true
     // includes = listOf(".*\\.singlethread\\..*")
