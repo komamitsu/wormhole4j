@@ -1,12 +1,11 @@
 # Wormhole4j
 
 **Wormhole4j** is a high-performance sorted map for Java 8 or later, based on the research paper [*"Wormhole: A Fast Ordered Index for In-memory Data Management"*](https://dl.acm.org/doi/10.1145/3302424.3303955).
-It provides fast range scans and prefix searches, fast point lookups for String keys, and competitive get and update performance, with support for thread-safe concurrent access.
 
 ## Features
 
 * Supports `put()`, `get()`, `scan()`, `scanWithCount()`, `snapshotScan()`, and `delete()` operations for Integer, Long, and String keys
-* **[Significantly faster](#benchmark-result) `scan()` API** for range scans (inclusive/exclusive) - more than 2x faster than tree-based alternatives
+* **[Significantly faster](#benchmark-result) `scan()` API** for range scans (inclusive/exclusive) - 2x-4x faster than tree-based alternatives
 * **[Excellent performance](#benchmark-result) for String keys** - about 40% faster get/put operations than tree-based alternatives
 * **[Thread-safe concurrent access](#concurrent-usage)** via `setConcurrent(true)` in the builder - outperforms `ConcurrentSkipListMap` for update+get and String key scans; trade-off on concurrent numeric key scans
 
@@ -155,11 +154,11 @@ The performance of Wormhole4j was evaluated against well-known sorted map implem
 
 #### Key Findings
 
-**SCAN** is Wormhole's strongest suit: up to 4x faster than the AVL tree and 2x faster than `TreeMap` for numeric keys. This reflects the core advantage of the Wormhole's linked leaf node structure for range traversal.
+**SCAN** is Wormhole's strongest suit: up to 4x faster than the AVL tree and 2x faster than `TreeMap` for numeric keys. This reflects the core advantage of Wormhole's linked leaf node structure for range traversal.
 
-**String key GET/UPDATE** is about 40% faster than both tree implementations, likely due to the Wormhole's hash table based Trie and the indexes in a leaf node, which allow it to exploit common key prefixes and avoid redundant character comparisons.
+**String key GET/UPDATE** is about 40% faster than both tree implementations, likely due to Wormhole's hash table based Trie and the indexes in a leaf node, which allow it to exploit common key prefixes and avoid redundant character comparisons.
 
-**REMOVE** is slower than both tree implementations. There might be room to improve, however it seems to come from the leaf node data structure of Wormhole.
+**REMOVE** is slower than both tree implementations. There might be room to improve. However, it seems to come from the leaf node data structure of Wormhole.
 
 ### Multi-thread
 
