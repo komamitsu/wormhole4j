@@ -6,8 +6,8 @@
 
 * Supports `put()`, `get()`, `scan()`, `scanWithCount()`, `snapshotScan()`, and `delete()` operations for Integer, Long, and String keys
 * **[Significantly faster](#benchmark-result) `scan()` API** for range scans (inclusive/exclusive) - 2x-4x faster than tree-based alternatives
-* **[Excellent performance](#benchmark-result) for String keys** - about 40% faster get/put operations than tree-based alternatives
-* **[Thread-safe concurrent access](#concurrent-usage)** via `setConcurrent(true)` in the builder - outperforms `ConcurrentSkipListMap` for update+get and String key scans; trade-off on concurrent numeric key scans
+* **[Excellent performance](#benchmark-result) for String keys** - about 40% faster `get()`/`put()` operations than tree-based alternatives
+* **[Thread-safe concurrent access](#concurrent-usage)** via `setConcurrent(true)` in the builder - outperforms `ConcurrentSkipListMap` for `put()`+`get()` workloads and String key scans; trade-off on concurrent numeric key scans
 
 ## Installation
 
